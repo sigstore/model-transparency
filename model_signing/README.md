@@ -35,14 +35,14 @@ python3 main.py sign --path "${path}"
 # Verification.
 python3 main.py verify -h
 python3 main.py verify --path "${path}" \
-    --email-provider https://accounts.google.com \
-    --email myemail@gmail.com
+    --identity-provider https://accounts.google.com \
+    --identity myemail@gmail.com
 
 # Leave the venv.
 deactivate
 ```
 
-### Supported Email Providers
+### Supported Identity Providers
 
 Google's provider is `https://accounts.google.com`.
 
@@ -64,8 +64,8 @@ mkdir -p "${model_path}"
 cd "${model_path}" && tar xvzf ../"${model_path}".tgz && rm ../"${model_path}".tgz && cd -
 python3 main.py sign --path "${model_path}"
 python3 main.py verify --path "${model_path}" \
-    --email-provider https://accounts.google.com \
-    --email myemail@gmail.com
+    --identity-provider https://accounts.google.com \
+    --identity myemail@gmail.com
 ```
 
 #### Hugging face
@@ -86,8 +86,8 @@ model_path="${model_name}"
 git clone "https://huggingface.co/${model_name}"
 python3 main.py sign --path "${model_path}"
 python3 main.py verify --path "${model_path}" \
-    --email-provider https://accounts.google.com \
-    --email myemail@gmail.com
+    --identity-provider https://accounts.google.com \
+    --identity myemail@gmail.com
 ```
 
 Example for Falcon model:
@@ -99,8 +99,8 @@ model_path=$(echo "${model_name}" | cut -d/ -f2)
 git clone "https://huggingface.co/${model_name}"
 python3 main.py sign --path "${model_path}"
 python3 main.py verify --path "${model_path}" \
-    --email-provider https://accounts.google.com \
-    --email myemail@gmail.com
+    --identity-provider https://accounts.google.com \
+    --identity myemail@gmail.com
 ```
 
 #### PyTorch Hub
@@ -114,8 +114,8 @@ model_path=$(echo "${model_name}" | cut -d/ -f2)
 git clone "https://github.com/${model_name}.git"
 python3 main.py sign --path "${model_path}"
 python3 main.py verify --path "${model_path}" \
-    --email-provider https://accounts.google.com \
-    --email myemail@gmail.com
+    --identity-provider https://accounts.google.com \
+    --identity myemail@gmail.com
 ```
 
 #### ONNX
@@ -129,6 +129,6 @@ model_path="${model_name}.onnx"
 wget "https://github.com/onnx/models/raw/main/text/machine_comprehension/roberta/model/${model_name}.onnx"
 python3 main.py sign --path "${model_path}"
 python3 main.py verify --path "${model_path}" \
-    --email-provider https://accounts.google.com \
-    --email myemail@gmail.com
+    --identity-provider https://accounts.google.com \
+    --identity myemail@gmail.com
 ```
