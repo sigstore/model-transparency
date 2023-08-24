@@ -38,8 +38,8 @@ def readOptions():
         "verify", formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 	verify.add_argument("--path", required=True, help="The path to a file to verify")
-	verify.add_argument("--email", required=True, help="The email to verify")
-	verify.add_argument("--email-provider", required=True, help="The OIDC provider to verify")
+        verify.add_argument("--identity", required=True, help="The identity (email, workload identity) to verify")
+	verify.add_argument("--identity-provider", required=True, help="The OIDC provider to verify")
 
 	args = parser.parse_args()
 	return args
@@ -54,8 +54,8 @@ def sign(modelfn: Path, use_ambiant: bool) -> model.SignatureResult:
 	signer = model.SigstoreSigner(use_ambiant = use_ambiant)
 	return signer.sign(modelfn, signature_path(modelfn))
 
-def verify(modelfn: Path, issuer:str, email:str, offline = False)-> model.VerificationResult:
-	verifier = model.SigstoreVerifier(oidc_provider=issuer, email=email)
+def verify(modelfn: Path, issuer:str, identity:str, offline = False)-> model.VerificationResult:
+	verifier = model.SigstoreVerifier(oidc_provider=issuer, identity=identity)
 	return verifier.verify(modelfn, signature_path(modelfn), offline)
 
 def main(args) -> int:
@@ -69,8 +69,8 @@ def main(args) -> int:
 	elif args.subcommand == "verify":
 		modelfn = Path(args.path)
 		result = verify(modelfn=modelfn, 
-	 	  issuer=args.email_provider,
-	 	  email=args.email,
+	 	  issuer=args.identity_provider,
+	 	  identity=args.identity,
 	 	)
 		if result:
 			print("verification success")

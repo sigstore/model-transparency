@@ -105,9 +105,9 @@ class VerificationResult(BaseResult):
     pass
 
 class SigstoreVerifier():
-    def __init__(self, oidc_provider: str, email: str):
+    def __init__(self, oidc_provider: str, identity: str):
         self.oidc_provider = oidc_provider
-        self.email = email
+        self.identity = identity
         self.verifier = Verifier.production()
 
     def verify(self, inputfn: Path, signaturefn: Path, offline: bool) -> VerificationResult:
@@ -119,7 +119,7 @@ class SigstoreVerifier():
             contentio = io.BytesIO(Serializer.serialize(inputfn, signaturefn))
             material = VerificationMaterials.from_bundle(input_=contentio, bundle=bundle, offline=offline)
             policy_ = policy.Identity(
-                identity=self.email,
+                identity=self.identity,
                 issuer=self.oidc_provider,
             )
             result = self.verifier.verify(materials=material, policy=policy_)
