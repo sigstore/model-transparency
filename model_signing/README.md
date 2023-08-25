@@ -152,5 +152,5 @@ To run the benchmarks:
 ```bash
 git clone git@github.com:google/model-transparency.git
 cd model-transparency/model_signing
-bash benchmarksrun.sh
+bash benchmarks/run.sh
 ```
