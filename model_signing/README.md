@@ -146,11 +146,12 @@ python3 main.py verify --path "${model_path}" \
 ## Benchmarking
 
 Install as per [Prerequisites section](#prerequisites)
+Ensure you have enough disk space: >= 50GB when passing 3rd script argument as "true", else >= 100GB.
 
 To run the benchmarks:
 
 ```bash
 git clone git@github.com:google/model-transparency.git
 cd model-transparency/model_signing
-bash benchmarks/run.sh
+bash benchmarks/run.sh https://accounts.google.com myemail@gmail.com [true]
 ```

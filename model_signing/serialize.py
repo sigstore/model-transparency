@@ -23,6 +23,7 @@ class Hasher:
             return content
         raise ValueError("not reachable")
 
+    @staticmethod
     def root_folder(path: Path, content:bytes) -> str:
         return Hasher._node_compute(name="root", ty="dir", content=content)
 
