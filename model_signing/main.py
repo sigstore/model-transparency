@@ -38,7 +38,7 @@ def readOptions():
         "verify", formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 	verify.add_argument("--path", required=True, help="The path to a file to verify")
-        verify.add_argument("--identity", required=True, help="The identity (email, workload identity) to verify")
+	verify.add_argument("--identity", required=True, help="The identity (email, workload identity) to verify")
 	verify.add_argument("--identity-provider", required=True, help="The OIDC provider to verify")
 
 	args = parser.parse_args()
