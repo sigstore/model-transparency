@@ -46,6 +46,9 @@ echo
 declare -A results
 
 # Init the environment.
+if [[ ! -d "test_env/" ]]; then
+    python3 -m venv test_env
+fi
 # shellcheck disable=SC1091 # We have access to source=test_env/bin/activate.
 source test_env/bin/activate
 python3 -m pip install --require-hashes -r install/requirements.txt

@@ -9,7 +9,6 @@ This project demonstrates how to protect the integrity of a model by signing it 
 ```shell
 sudo apt install git git-lfs python3-venv
 git lfs install
-python3 -m venv test_env
 ```
 
 

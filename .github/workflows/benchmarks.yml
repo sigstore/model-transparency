@@ -17,5 +17,4 @@ jobs:
           cd model_signing
           sudo apt install git git-lfs python3-venv
           git lfs install
-          python3 -m venv test_env
           bash benchmarks/run.sh https://github.com/login/oauth https://github.com/"$GITHUB_REPOSITORY"/.github/workflows/benchmarks.yml@refs/heads/main
