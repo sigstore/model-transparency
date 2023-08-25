@@ -38,6 +38,10 @@ if [ "$#" -eq 3 ]; then
     cleanup="$3"
 fi
 
+echo
+echo "INFO: Be patient, this will take a few minutes!"
+echo
+
 # Variable holding results.
 declare -A results
 
@@ -47,11 +51,11 @@ source test_env/bin/activate
 python3 -m pip install --require-hashes -r install/requirements.txt
 
 # =========================================
-#       Warm up!
+#               Warm up!
 # =========================================
 # We need to have the identity in the environment, so perform one signature.
 file=$(mktemp)
-python3 main.py sign --path "${file}"
+python3 main.py sign --path "${file}" 1>/dev/null
 rm "${file}" "${file}.sig"
 
 # =========================================
@@ -98,7 +102,6 @@ model_init() {
 run "${model_name}" "${model_path}" model_init
 
 
-
 # =========================================
 #       Huggingface bert base model
 #       (Tensorflow and PyTorch)
@@ -112,6 +115,21 @@ model_init() {
     fi
 }
 run "${model_name}" "${model_path}" model_init
+
+
+# =========================================
+#           PyTorch falcon-7b model
+# =========================================
+model_name=tiiuae/falcon-7b
+model_path=$(echo "${model_name}" | cut -d/ -f2)
+# shellcheck disable=SC2317 # Reachable via run() call.
+model_init() {
+    if [[ ! -d "${model_path}" ]]; then
+        git clone "https://huggingface.co/${model_name}"
+    fi
+}
+run "${model_name}" "${model_path}" model_init
+
 
 echo 
 echo "===== RESULTS ======"
