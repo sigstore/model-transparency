@@ -4,6 +4,17 @@ This project demonstrates how to protect the integrity of a model by signing it 
 
 ## Installation and usage
 
+### Prerequisites
+
+```shell
+sudo apt install git git-lfs python3-venv
+git lfs install
+python3 -m venv test_env
+```
+
+
+### Installation
+
 ```shell
 git clone git@github.com:google/model-transparency.git
 cd model-transparency/model_signing
@@ -131,4 +142,14 @@ python3 main.py sign --path "${model_path}"
 python3 main.py verify --path "${model_path}" \
     --identity-provider https://accounts.google.com \
     --identity myemail@gmail.com
+```
+
+## Benchmarking
+
+Install as per [Prerequisites section](#prerequisites)
+
+To run the benchmarks:
+
+```bash
+bash benchmarksrun.sh
 ```
