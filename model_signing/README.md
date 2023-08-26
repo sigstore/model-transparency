@@ -171,7 +171,7 @@ A single run was performed.
 | M2 | hustvl/YOLOP | 355M | 3.9s | 2.1s |
 | M2 | bertseq2seq |    2.8G   |   26.4s |  26.1s |
 | M2 | bert-base-uncased |  6.5G | 9.8s | 9.4s |
-| M2 | tiiuae/falcon-7b | 27GB | TODO | TODO |
+| M2 | tiiuae/falcon-7b | 27GB | 3m47 | 3m48 |
 
 
 
