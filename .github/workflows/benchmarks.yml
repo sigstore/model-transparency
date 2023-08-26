@@ -1,0 +1,20 @@
+name: benchmarks run
+
+on:
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  e2e:
+    name: End-to-end sign and verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
+      - run: |
+          set -euo pipefail
+          cd model_signing
+          sudo apt -y install git git-lfs python3-venv python3-pip
+          git lfs install
+          bash benchmarks/run.sh https://github.com/login/oauth https://github.com/"$GITHUB_REPOSITORY"/.github/workflows/benchmarks.yml@refs/heads/main
