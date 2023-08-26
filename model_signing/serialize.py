@@ -35,8 +35,8 @@ class Hasher:
         return hashlib.sha256(value).digest()
 
     @staticmethod
-    def root_file(path: Path) -> bytes:
-        return Hasher._node_file_compute(path, header=b'')
+    def root_file(path: Path, chunk: int) -> bytes:
+        return Hasher._node_file_compute(path, b'', chunk)
 
     @staticmethod
     def node_file(path: Path, chunk: int = 0) -> bytes:
@@ -66,7 +66,7 @@ class Serializer:
     @staticmethod
     def serialize(path: Path, chunk: int, ignorefn: Path = None) -> bytes:
         if path.is_file():
-            return Hasher.root_file(path)
+            return Hasher.root_file(path, chunk)
 
         if not path.is_dir():
             raise ValueError(f"{str(path)} is not a dir")
