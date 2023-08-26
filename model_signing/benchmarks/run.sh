@@ -58,7 +58,7 @@ python3 -m pip install --require-hashes -r install/requirements.txt
 # =========================================
 # We need to have the identity in the environment, so perform one signature.
 file=$(mktemp)
-python3 main.py sign --path "${file}" 1>/dev/null
+python3 main.py sign --path "${file}"
 rm "${file}" "${file}.sig"
 
 # =========================================
