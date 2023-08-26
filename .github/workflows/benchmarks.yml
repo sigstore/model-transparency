@@ -15,6 +15,6 @@ jobs:
       - run: |
           set -euo pipefail
           cd model_signing
-          sudo apt -y install git git-lfs python3-venv
+          sudo apt -y install git git-lfs python3-venv python3-pip
           git lfs install
           bash benchmarks/run.sh https://github.com/login/oauth https://github.com/"$GITHUB_REPOSITORY"/.github/workflows/benchmarks.yml@refs/heads/main
