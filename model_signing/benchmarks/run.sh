@@ -69,7 +69,7 @@ model_path=$(echo "${model_name}" | cut -d/ -f2)
 # shellcheck disable=SC2317 # Reachable via run() call.
 model_init() {
     if [[ ! -d "${model_path}" ]]; then
-        git clone "https://github.com/${model_name}.git"
+        git clone --depth=1 "https://github.com/${model_name}.git"
     fi
 }
 run "${model_name}" "${model_path}" model_init
@@ -114,7 +114,7 @@ model_path="${model_name}"
 # shellcheck disable=SC2317 # Reachable via run() call.
 model_init() {
     if [[ ! -d "${model_path}" ]]; then
-        git clone "https://huggingface.co/${model_name}"
+        git clone --depth=1 "https://huggingface.co/${model_name}"
     fi
 }
 run "${model_name}" "${model_path}" model_init
@@ -128,7 +128,7 @@ model_path=$(echo "${model_name}" | cut -d/ -f2)
 # shellcheck disable=SC2317 # Reachable via run() call.
 model_init() {
     if [[ ! -d "${model_path}" ]]; then
-        git clone "https://huggingface.co/${model_name}"
+        git clone --depth=1 "https://huggingface.co/${model_name}"
     fi
 }
 run "${model_name}" "${model_path}" model_init
@@ -137,9 +137,10 @@ run "${model_name}" "${model_path}" model_init
 echo 
 echo "===== RESULTS ======"
 # NOTE: Requires bash >= 4.4.
+echo "${!results[@]}"
 mapfile -d '' sorted < <(printf '%s\0' "${!results[@]}" | sort -z)
 for key in "${sorted[@]}"; do
-    echo "$key = ${results[$key]}"
+    echo "$key = ${results[${key}]}"
 done
 
 deactivate
