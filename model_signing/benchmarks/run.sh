@@ -20,10 +20,11 @@ run() {
     local model_init="$3"
     
     eval "${model_init}"
+    # Replace the '/' character.
+    model_name="${model_name/\//_}"
     results["${model_name}[size]"]=$(du -hs "${model_path}" | cut -f1)
     results["${model_name}[sign_time]"]=$(time_cmd python3 "main.py sign --path ${model_path}")
     results["${model_name}[verify_time]"]=$(time_cmd python3 "main.py verify --path ${model_path} --identity-provider ${identity_provider} --identity ${identity}")
-
     if [[ "${cleanup}" == "true" ]]; then
         rm -rf "${model_path}" "${model_path}.sig" 2>/dev/null || true
     fi
@@ -137,7 +138,7 @@ run "${model_name}" "${model_path}" model_init
 echo 
 echo "===== RESULTS ======"
 # NOTE: Requires bash >= 4.4.
-echo "${!results[@]}"
+echo "results:" "${!results[@]}"
 mapfile -d '' sorted < <(printf '%s\0' "${!results[@]}" | sort -z)
 for key in "${sorted[@]}"; do
     echo "$key = ${results[${key}]}"

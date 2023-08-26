@@ -156,7 +156,9 @@ cd model-transparency/model_signing
 bash benchmarks/run.sh https://accounts.google.com myemail@gmail.com [true]
 ```
 
-Machine M1: Debian 6.3.11 (2023-07-18) x86_64 GNU/Linux, 100GB RAM, 48 vCPUs, 512KB cache, AMD EPYC 7B12 chip:
+Machine M1: Debian 6.3.11 x86_64 GNU/Linux, 100GB RAM, 48 vCPUs, 512KB cache, AMD EPYC 7B12.
+Machine M2: Debian 5.10.1 x86_64 GNU/Linux, 4GB RAM, 2 vCPUs, 56320 KB, Intel(R) Xeon(R) CPU @ 2.20GHz.
+A single run was performed.
 
 | Machine | Model   |      Size      |  Sign Time | Verify Time | 
 |--------|----------|:-------------:|:------:|:------:|
@@ -164,4 +166,12 @@ Machine M1: Debian 6.3.11 (2023-07-18) x86_64 GNU/Linux, 100GB RAM, 48 vCPUs, 51
 | M1 | hustvl/YOLOP | 355M |  1s | 1s |
 | M1 | bertseq2seq |    2.8G   |   1.4s |  1.2s |
 | M1 | bert-base-uncased |  6.5G | 9.8s | 9.4s |
-| M1 | tiiuae/falcon-7b | 27GB | 50s | 47s |
+| M1 | tiiuae/falcon-7b | 27GB | 47s | 46s |
+| M2 | roberta-base-11 | 8K | 58.5s | 58.2s |
+| M2 | hustvl/YOLOP | 355M | 3.9s | 2.1s |
+| M2 | bertseq2seq |    2.8G   |   26.4s |  26.1s |
+| M2 | bert-base-uncased |  6.5G | 9.8s | 9.4s |
+| M2 | tiiuae/falcon-7b | 27GB | TODO | TODO |
+
+
+
