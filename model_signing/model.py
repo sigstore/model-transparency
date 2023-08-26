@@ -40,7 +40,7 @@ from serialize import Serializer
 import psutil
 
 def chunk_size() -> int:
-    return int(psutil.virtual_memory().available // 1.2)
+    return int(psutil.virtual_memory().available // 2)
 
 #TODO: Update this class to have a status instead of success.
 class BaseResult:
