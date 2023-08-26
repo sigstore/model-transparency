@@ -7,7 +7,7 @@ This project demonstrates how to protect the integrity of a model by signing it 
 ### Prerequisites
 
 ```shell
-sudo apt install git git-lfs python3-venv
+sudo apt install git git-lfs python3-venv python3-pip
 git lfs install
 ```
 
