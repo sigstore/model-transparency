@@ -17,40 +17,56 @@ from pathlib import Path
 
 class Hasher:
     @staticmethod
-    def root_file(path: Path) -> bytes:
-        with open(path,"rb") as f:
-            content = f.read()
-            return content
-        raise ValueError("not reachable")
+    def node_header(name: str, ty: str) -> bytes:
+        header = ty.encode('utf-8') + b'.' + base64.b64encode(name.encode('utf-8')) + b'.'
+        return header
 
     @staticmethod
     def root_folder(path: Path, content:bytes) -> str:
-        return Hasher._node_compute(name="root", ty="dir", content=content)
-
-    @staticmethod
-    def _node_compute(name: str, ty: str, content: bytes) -> bytes:
-        value = ty.encode('utf-8') + b'.' + base64.b64encode(name.encode('utf-8')) + b'.' + content
-        return hashlib.sha256(value).digest()
+        return Hasher._node_folder_compute(name="root", content=content)
     
     @staticmethod
-    def node_folder(path: Path, content:bytes) -> bytes:
-        return Hasher._node_compute(name=path.name, ty="dir", content=content)
+    def node_folder(path: Path, content:bytes) -> str:
+        return Hasher._node_folder_compute(name=path.name, content=content)
 
     @staticmethod
-    def node_file(path: Path) -> bytes:
+    def _node_folder_compute(name: str, content: bytes) -> bytes:
+        value = Hasher.node_header(name, "dir") + content
+        return hashlib.sha256(value).digest()
+
+    @staticmethod
+    def root_file(path: Path, chunk: int) -> bytes:
+        return Hasher._node_file_compute(path, b'', chunk)
+
+    @staticmethod
+    def node_file(path: Path, chunk: int = 0) -> bytes:
         if not path.is_file():
             raise ValueError(f"path {path} is not a file")
+        header = Hasher.node_header(path.name, "file")
+        return Hasher._node_file_compute(path, header, chunk)
+
+    @staticmethod
+    def _node_file_compute(path: Path, header: bytes, chunk: int) -> bytes:
+        h = hashlib.sha256(header)
         with open(path,"rb") as f:
-            content = f.read()
-            return Hasher._node_compute(name=path.name, ty="file", content=content)
-        raise ValueError("not reachable")
+            if chunk == 0:
+                all_data = f.read()
+                h.update(all_data)
+            else:
+                # Compute the hash by reading chunk bytes at a time.
+                while True:
+                    chunk_data = f.read(chunk)
+                    if not chunk_data:
+                        break
+                    h.update(chunk_data)
+        return h.digest()
 
 # TODO(): add a context "AI model"?
 class Serializer:
     @staticmethod
-    def serialize(path: Path, ignorefn: Path = None) -> bytes:
+    def serialize(path: Path, chunk: int, ignorefn: Path = None) -> bytes:
         if path.is_file():
-            return Hasher.root_file(path)
+            return Hasher.root_file(path, chunk)
 
         if not path.is_dir():
             raise ValueError(f"{str(path)} is not a dir")
@@ -66,15 +82,15 @@ class Serializer:
 
         hash = hashlib.sha256()
         for child in children:
-            child_hash = Serializer._serialize_node(child, " ")
+            child_hash = Serializer._serialize_node(child, chunk, " ")
             hash.update(child_hash)
         content = hash.digest()
         return Hasher.root_folder(path, content)
     
     @staticmethod
-    def _serialize_node(path: Path, indent = "") -> bytes:
+    def _serialize_node(path: Path, chunk: int, indent = "") -> bytes:
         if path.is_file():
-            return Hasher.node_file(path)
+            return Hasher.node_file(path, chunk)
 
         if not path.is_dir():
             raise ValueError(f"{str(path)} is not a dir")
@@ -86,7 +102,7 @@ class Serializer:
 
         hash = hashlib.sha256()
         for child in children:
-            child_hash = Serializer._serialize_node(child, indent + " ")
+            child_hash = Serializer._serialize_node(child, chunk, indent + " ")
             hash.update(child_hash)
         content = hash.digest()
         return Hasher.node_folder(path, content)

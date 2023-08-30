@@ -37,6 +37,10 @@ import os, io, hashlib, base64, json
 from pathlib import Path
 from typing import Optional
 from serialize import Serializer
+import psutil
+
+def chunk_size() -> int:
+    return int(psutil.virtual_memory().available // 2)
 
 #TODO: Update this class to have a status instead of success.
 class BaseResult:
@@ -90,7 +94,7 @@ class SigstoreSigner():
             if not token:
                 raise ValueError("No identity token supplied or detected!")
 
-            contentio = io.BytesIO(Serializer.serialize(inputfn, signaturefn))
+            contentio = io.BytesIO(Serializer.serialize(inputfn, chunk_size(), signaturefn))
             result = self.signer.sign(input_=contentio, identity_token=token)
             with signaturefn.open(mode="w") as b:
                 print(result._to_bundle().to_json(), file=b)
@@ -116,7 +120,7 @@ class SigstoreVerifier():
             bundle = Bundle().from_json(bundle_bytes)
 
             material: tuple[Path, VerificationMaterials]
-            contentio = io.BytesIO(Serializer.serialize(inputfn, signaturefn))
+            contentio = io.BytesIO(Serializer.serialize(inputfn, chunk_size(), signaturefn))
             material = VerificationMaterials.from_bundle(input_=contentio, bundle=bundle, offline=offline)
             policy_ = policy.Identity(
                 identity=self.identity,
