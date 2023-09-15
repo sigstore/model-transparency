@@ -11,7 +11,6 @@ sudo apt install git git-lfs python3-venv python3-pip
 git lfs install
 ```
 
-
 ### Installation
 
 ```shell
@@ -165,20 +164,20 @@ bash benchmarks/run.sh https://accounts.google.com myemail@gmail.com [true]
 ```
 
 Machine M1: Debian 6.3.11 x86_64 GNU/Linux, 200GB RAM, 48 vCPUs, 512KB cache, AMD EPYC 7B12.
+
 Machine M2: Debian 5.10.1 x86_64 GNU/Linux, 4GB RAM, 2 vCPUs, 56320 KB, Intel(R) Xeon(R) CPU @ 2.20GHz.
+
 A single run was performed.
 
 | Machine | Model   |      Size      |  Sign Time | Verify Time | 
 |--------|----------|:-------------:|:------:|:------:|
-| M1 | roberta-base-11 | 8K | 0.8s | 0.6s |
-| M1 | hustvl/YOLOP | 215M |  1.2s | 0.8s |
-| M1 | bertseq2seq |    2.8G   |   4.6s |  4.4s |
-| M1 | bert-base-uncased |  3.3G | 5s | 4.7s |
-| M1 | tiiuae/falcon-7b | 14GB | 17.3s | 16.7s |
-
-| M2 | roberta-base-11 | 8K | 1s | 0.8s |
-| M2 | hustvl/YOLOP | 215M | 2.1s | 1.7s |
-| M2 | bertseq2seq |    2.8G   |   26.4s |  26.1s |
-| M2 | bert-base-uncased |  6.5G | 1m1s | 57s |
-| M2 | tiiuae/falcon-7b | 15GB | 3m47s | 3m48s |
-
+| M1 | roberta-base-11      | 8K    | 0.8s  | 0.6s  |
+| M1 | hustvl/YOLOP         | 215M  | 1.2s  | 0.8s  |
+| M1 | bertseq2seq          | 2.8G  | 4.6s  | 4.4s  |
+| M1 | bert-base-uncased    | 3.3G  | 5s    | 4.7s  |
+| M1 | tiiuae/falcon-7b     | 14GB  | 12.2s | 11.8s |
+| M2 | roberta-base-11      | 8K    | 1.1s  | 0.7s  |
+| M2 | hustvl/YOLOP         | 215M  | 1.9s  | 1.7s  |
+| M2 | bertseq2seq          | 2.8G  | 18s   | 23.2s |
+| M2 | bert-base-uncased    | 3.3G  | 23.4s | 18.9s |
+| M2 | tiiuae/falcon-7b     | 14GB  | 2m4s | 2m2s   |

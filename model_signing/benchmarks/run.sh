@@ -99,7 +99,7 @@ model_init() {
         download_github_repository "${model_name}" "${model_path}"
     fi
 }
-run "${model_name}" "${model_path}" model_init
+#run "${model_name}" "${model_path}" model_init
 
 # =========================================
 #       ONNX Roberta-base-11 model
@@ -112,7 +112,7 @@ model_init() {
         wget "https://github.com/onnx/models/tree/857a3434216bd6f2be1ea1ff045fb94a437cbe10/text/machine_comprehension/roberta/model/${model_name}.onnx"
     fi
 }
-run "${model_name}" "${model_path}" model_init
+#run "${model_name}" "${model_path}" model_init
 
 # =========================================
 #       tfhub bertseq2seq model
@@ -127,7 +127,7 @@ model_init() {
         cd "${model_path}" && tar xvzf ../"${model_path}".tgz && rm ../"${model_path}".tgz && cd -
     fi
 }
-run "${model_name}" "${model_path}" model_init
+#run "${model_name}" "${model_path}" model_init
 
 # =========================================
 #       Huggingface bert base model
@@ -141,7 +141,7 @@ model_init() {
         download_hf_repository "${model_name}" "${model_path}"
     fi
 }
-run "${model_name}" "${model_path}" model_init
+#run "${model_name}" "${model_path}" model_init
 
 # =========================================
 #           PyTorch falcon-7b model
