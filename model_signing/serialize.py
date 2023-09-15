@@ -220,19 +220,21 @@ class Serializer:
         # worker = current_process()
         # print(f'Task {task_info}, worker name={worker.name}, pid={worker.pid}', flush=True)
 
-        path, chunk, (name, ty, start_pos, end_pos) = task_info
+        model_path, chunk, (name, ty, start_pos, end_pos) = task_info
 
         # Header format is: "type.b64(filename).start-end."
         header = ty.encode('utf-8') + b'.' + base64.b64encode(name.encode('utf-8')) + b'.' + f"{start_pos}-{end_pos}".encode('utf-8') + b'.'
 
-        # For a directory, we use "empty" content.        
+        # To hash a directory, we use "empty" content.        
         if ty == "dir":
             value = header + b'empty'
             return hashlib.sha256(value).digest()
 
+        # We need to hash a file.
+
         # The model is a directory.
-        if path.is_dir():
-            return Hasher._node_file_compute_v1(path.joinpath(name), header, start_pos, end_pos, chunk)
+        if model_path.is_dir():
+            return Hasher._node_file_compute_v1(model_path.joinpath(name), header, start_pos, end_pos, chunk)
         
         # The model is a single file.
         return Hasher._node_file_compute_v1(name, header, start_pos, end_pos, chunk)
