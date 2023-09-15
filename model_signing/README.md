@@ -93,7 +93,7 @@ Example for Bert base model:
 # NOTE: 6.4 GB model (TensorFlow and PyTorch).
 model_name=bert-base-uncased
 model_path="${model_name}"
-git clone "https://huggingface.co/${model_name}"
+git clone --depth=1 "https://huggingface.co/${model_name}" && rm -rf "${model_name}"/.git
 python3 main.py sign --path "${model_path}"
 python3 main.py verify --path "${model_path}" \
     --identity-provider https://accounts.google.com \
@@ -106,7 +106,7 @@ Example for Falcon model:
 # NOTE: 27 GB model (PyTorch).
 model_name=tiiuae/falcon-7b
 model_path=$(echo "${model_name}" | cut -d/ -f2)
-git clone "https://huggingface.co/${model_name}"
+git clone --depth=1 "https://huggingface.co/${model_name}" && rm -rf "${model_name}"/.git
 python3 main.py sign --path "${model_path}"
 python3 main.py verify --path "${model_path}" \
     --identity-provider https://accounts.google.com \
@@ -121,13 +121,15 @@ Example for YOLOP model:
 # NOTE: 350M model.
 model_name=hustvl/YOLOP
 model_path=$(echo "${model_name}" | cut -d/ -f2)
-git clone "https://github.com/${model_name}.git"
+wget "https://github.com/${model_name}/archive/main.zip" -O "${model_path}".zip
+mkdir -p "${model_path}"
+cd "${model_path}" && unzip ../"${model_path}".zip && rm ../"${model_path}".zip && mv -f YOLOP-main/{.,}* . && rmdir YOLOP-main/ && cd -
 python3 main.py sign --path "${model_path}"
 python3 main.py verify --path "${model_path}" \
     --identity-provider https://accounts.google.com \
     --identity myemail@gmail.com
 ```
-
+curl -L -O https://github.com/ziyaddin/xampp/archive/main.zip
 #### ONNX
 
 Example for Roberta model:

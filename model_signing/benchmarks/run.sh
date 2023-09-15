@@ -18,8 +18,9 @@ run() {
     local model_name="$1"
     local model_path="$2"
     local model_init="$3"
-    
+
     eval "${model_init}"
+
     # Replace the '/' character.
     model_name="${model_name/\//_}"
     results["${model_name}[size]"]=$(du -hs "${model_path}" | cut -f1)
@@ -28,6 +29,24 @@ run() {
     if [[ "${cleanup}" == "true" ]]; then
         rm -rf "${model_path}" "${model_path}.sig" 2>/dev/null || true
     fi
+}
+
+# shellcheck disable=SC2317 # Called via model_init().
+download_github_repository() {
+    local repository="$1"
+    local model_path="$2"
+
+    wget "https://github.com/${repository}/archive/main.zip" -O "${model_path}".zip
+    mkdir -p "${model_path}"
+    cd "${model_path}" && unzip ../"${model_path}".zip && rm ../"${model_path}".zip && mv -f "${model_path}"-main/{.,}* . && rmdir "${model_path}"-main/ && cd -
+}
+
+# shellcheck disable=SC2317 # Called via model_init().
+download_hf_repository() {
+    local repository="$1"
+    local model_path="$2"
+    git clone --depth=1 "https://huggingface.co/${model_name}" "${model_path}"
+    rm -rf "${model_path}"/.git
 }
 
 # User inputs.
@@ -70,11 +89,10 @@ model_path=$(echo "${model_name}" | cut -d/ -f2)
 # shellcheck disable=SC2317 # Reachable via run() call.
 model_init() {
     if [[ ! -d "${model_path}" ]]; then
-        git clone --depth=1 "https://github.com/${model_name}.git"
+        download_github_repository "${model_name}" "${model_path}"
     fi
 }
 run "${model_name}" "${model_path}" model_init
-
 
 # =========================================
 #       ONNX Roberta-base-11 model
@@ -88,7 +106,6 @@ model_init() {
     fi
 }
 run "${model_name}" "${model_path}" model_init
-
 
 # =========================================
 #       tfhub bertseq2seq model
@@ -105,7 +122,6 @@ model_init() {
 }
 run "${model_name}" "${model_path}" model_init
 
-
 # =========================================
 #       Huggingface bert base model
 #       (Tensorflow and PyTorch)
@@ -115,11 +131,10 @@ model_path="${model_name}"
 # shellcheck disable=SC2317 # Reachable via run() call.
 model_init() {
     if [[ ! -d "${model_path}" ]]; then
-        git clone --depth=1 "https://huggingface.co/${model_name}"
+        download_hf_repository "${model_name}" "${model_path}"
     fi
 }
 run "${model_name}" "${model_path}" model_init
-
 
 # =========================================
 #           PyTorch falcon-7b model
@@ -129,7 +144,7 @@ model_path=$(echo "${model_name}" | cut -d/ -f2)
 # shellcheck disable=SC2317 # Reachable via run() call.
 model_init() {
     if [[ ! -d "${model_path}" ]]; then
-        git clone --depth=1 "https://huggingface.co/${model_name}"
+        download_hf_repository "${model_name}" "${model_path}"
     fi
 }
 run "${model_name}" "${model_path}" model_init
