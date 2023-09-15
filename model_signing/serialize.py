@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import hashlib, base64, os
+from typing import IO
 from multiprocessing import current_process
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import wait
@@ -66,6 +67,33 @@ class Hasher:
                     h.update(chunk_data)
         return h.digest()
 
+    @staticmethod
+    def _node_file_compute_v1(path: Path, header: bytes, start: int, end: int, chunk: int) -> bytes:
+        h = hashlib.sha256(header)
+        with open(path,"rb") as f:
+            f.seek(start)
+            # Read all at once.
+            if chunk == 0 or chunk >= (end - start):
+                content = f.read(end - start)
+                print(f"all: {f.name}: {start}-{end}")
+                h.update(content)
+            else:
+                # Compute the hash by reading chunk bytes at a time.
+                o_start = 0
+                o_end = chunk # chunk is < total number of bytes to read.
+                while True:
+                    chunk_data = f.read(o_end - o_start)
+                    print(f"loop {o_start/chunk}: {f.name}: {start + o_start}-{start + o_end}")
+                    # NOTE: len(chunk_data) may be < the request number of bytes (o_end - o_start)
+                    # when we reach the EOF.
+                    if not chunk_data:
+                        break
+                    h.update(chunk_data)
+                    o_start += chunk
+                    o_end += chunk
+
+        return h.digest()
+
 def remove_prefix(text, prefix):
     if text.startswith(prefix):
         return text[len(prefix):]
@@ -107,11 +135,6 @@ class Serializer:
         total_size = 0
         for child in children:
             if child in ignorepaths:
-                continue
-
-            # TODO: support other files like .gitattributes, should be given by caller.
-            # du --exclude .git --exclude .gitattributes -sh
-            if child.is_relative_to(path.joinpath(".git")):
                 continue
             
             if not path.is_file() and not path.is_dir():
@@ -200,7 +223,7 @@ class Serializer:
         all_hashes = [1] * (32*len(grouped_tasks))
         all_hashes[10:12] = [2,2]
         org_len = len(all_hashes)
-        print(bytes(all_hashes))
+        #print(bytes(all_hashes))
         #pool = multiprocessing.Pool()
         # https://superfastpython.com/processpoolexecutor-in-python/#How_to_Get_Results_From_Futures
         set_start_method('fork')
@@ -243,7 +266,7 @@ class Serializer:
         # TODO: make this a function.
         header = ty.encode('utf-8') + b'.' + base64.b64encode(name.encode('utf-8')) + b'.' + f"{start_pos}-{end_pos}".encode('utf-8') + b'.'
         # TODO: that's for dir.
-        return Hasher._node_file_compute(path.joinpath(name), header, chunk)
+        return Hasher._node_file_compute_v1(path.joinpath(name), header, start_pos, end_pos, chunk)
         # That's for single file.
         #return Hasher._node_file_compute(name, header, chunk)
 
