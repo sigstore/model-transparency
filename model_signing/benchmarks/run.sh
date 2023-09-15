@@ -19,10 +19,13 @@ run() {
     local model_path="$2"
     local model_init="$3"
 
+    echo "Initializing ${model_name} ..."
     eval "${model_init}"
 
     # Replace the '/' character.
     model_name="${model_name/\//_}"
+
+    echo "Running sign / verify for ${model_name} ..."
     results["${model_name}[size]"]=$(du -hs "${model_path}" | cut -f1)
     results["${model_name}[sign_time]"]=$(time_cmd python3 "main.py sign --path ${model_path}")
     results["${model_name}[verify_time]"]=$(time_cmd python3 "main.py verify --path ${model_path} --identity-provider ${identity_provider} --identity ${identity}")
@@ -36,6 +39,7 @@ download_github_repository() {
     local repository="$1"
     local model_path="$2"
 
+    # We download the zip which does _not_ contain the .git folder.
     wget "https://github.com/${repository}/archive/main.zip" -O "${model_path}".zip
     mkdir -p "${model_path}"
     cd "${model_path}" && unzip ../"${model_path}".zip && rm ../"${model_path}".zip && mv -f "${model_path}"-main/{.,}* . && rmdir "${model_path}"-main/ && cd -
@@ -45,7 +49,8 @@ download_github_repository() {
 download_hf_repository() {
     local repository="$1"
     local model_path="$2"
-    git clone --depth=1 "https://huggingface.co/${model_name}" "${model_path}"
+    git clone --depth=1 "https://huggingface.co/${repository}" "${model_path}"
+    # We delete the .git folder.
     rm -rf "${model_path}"/.git
 }
 
