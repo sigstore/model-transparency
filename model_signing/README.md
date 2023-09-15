@@ -117,6 +117,12 @@ python3 main.py verify --path "${model_path}" \
 
 Example for YOLOP model:
 
+Pre-requisite: Install unzip:
+
+```shell
+sudo apt install unzip
+```
+
 ```shell
 # NOTE: 350M model.
 model_name=hustvl/YOLOP
@@ -158,7 +164,7 @@ cd model-transparency/model_signing
 bash benchmarks/run.sh https://accounts.google.com myemail@gmail.com [true]
 ```
 
-Machine M1: Debian 6.3.11 x86_64 GNU/Linux, 100GB RAM, 48 vCPUs, 512KB cache, AMD EPYC 7B12.
+Machine M1: Debian 6.3.11 x86_64 GNU/Linux, 200GB RAM, 48 vCPUs, 512KB cache, AMD EPYC 7B12.
 Machine M2: Debian 5.10.1 x86_64 GNU/Linux, 4GB RAM, 2 vCPUs, 56320 KB, Intel(R) Xeon(R) CPU @ 2.20GHz.
 A single run was performed.
 

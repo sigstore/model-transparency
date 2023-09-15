@@ -42,7 +42,9 @@ download_github_repository() {
     # We download the zip which does _not_ contain the .git folder.
     wget "https://github.com/${repository}/archive/main.zip" -O "${model_path}".zip
     mkdir -p "${model_path}"
-    cd "${model_path}" && unzip ../"${model_path}".zip && rm ../"${model_path}".zip && mv -f "${model_path}"-main/{.,}* . && rmdir "${model_path}"-main/ && cd -
+    shopt -s dotglob
+    cd "${model_path}" && unzip ../"${model_path}".zip && rm ../"${model_path}".zip && mv "${model_path}"-main/* . && rmdir "${model_path}"-main/ && cd -
+    shopt -u dotglob
 }
 
 # shellcheck disable=SC2317 # Called via model_init().
