@@ -21,7 +21,6 @@ run() {
 
     echo "Initializing ${model_name} ..."
     eval "${model_init}"
-
     # Replace the '/' character.
     model_name="${model_name/\//_}"
 
@@ -86,6 +85,7 @@ python3 -m pip install --require-hashes -r install/requirements.txt
 # We need to have the identity in the environment, so perform one signature.
 file=$(mktemp)
 python3 main.py sign --path "${file}"
+python3 main.py verify --path "${file}" --identity-provider "${identity_provider}" --identity "${identity}"
 rm "${file}" "${file}.sig"
 
 # =========================================
