@@ -14,10 +14,8 @@
 
 import hashlib, base64, os
 from typing import IO
-from multiprocessing import current_process
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import set_start_method
-from time import sleep
 from pathlib import Path
 
 class Hasher:
