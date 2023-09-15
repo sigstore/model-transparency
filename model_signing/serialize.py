@@ -113,6 +113,9 @@ class Serializer:
             children = [path]
         else:
             # NOTE: the parent (..) and current directory (.) are not present.
+            # NOTE: this returns hidden files as well.
+            # TODO: tests that this pattern reports all files, regardless of their
+            # depth.
             children = sorted(path.glob("**/*"))
 
         filtered = []
