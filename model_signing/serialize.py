@@ -122,9 +122,16 @@ class Serializer:
         for child in children:
             if child in ignorepaths:
                 continue
-            
-            if not path.is_file() and not path.is_dir():
-                raise ValueError(f"{str(path)} is not a dir or file")
+
+            # To avoid bugs where we read the link rather than its target,
+            # we don't allow symlinks for now.
+            # NOTE: It seems that Python's read() *always* follows symlinks,
+            # so it may be safe to allow them. (readlink() is the function to read the link metadata).
+            if child.is_symlink():
+                raise ValueError(f"{str(child)} is symlink")
+
+            if not child.is_file() and not child.is_dir():
+                raise ValueError(f"{str(child)} is not a dir or file")
 
             # The recorded path must *not* contains the folder name,
             # since users may rename it.
@@ -138,7 +145,7 @@ class Serializer:
     @staticmethod
     # TODO: type of returned value.
     def _create_tasks(children :[], shard_size: int) -> [[]]:
-        grouped_tasks = [[]] * 0
+        tasks = [[]] * 0
         curr_file = 0
         curr_bytes = 0
         total_bytes = 0
@@ -154,7 +161,7 @@ class Serializer:
             # NOTE: It is fast to commupte the hash because there's no data besides the name and the type.
             if typ == "dir":
                 curr_bytes = 0
-                grouped_tasks += [(name, typ, 0, size)]
+                tasks += [(name, typ, 0, size)]
                 curr_file += 1
                 continue
 
@@ -175,14 +182,14 @@ class Serializer:
             total_bytes += processed_bytes
 
             # Record the task.
-            grouped_tasks += [(name, typ, start_pos, end_pos)]
+            tasks += [(name, typ, start_pos, end_pos)]
 
             # If we have processed all bytes, we move on to the next file.
             if available_bytes - processed_bytes == 0:
                 curr_file += 1
                 curr_bytes = 0
 
-        return grouped_tasks
+        return tasks
 
     @staticmethod
     # TODO: type of tasks
@@ -196,7 +203,6 @@ class Serializer:
         set_start_method('fork')
         with ProcessPoolExecutor() as ppe:
             futures = [ ppe.submit(Serializer.task, (path, chunk, tasks[i])) for i in range(len(tasks)) ]
-
             results = [ f.result() for f in futures ]
             for i in range(len(results)):
                 all_hashes[i*digest_len:(i+1)*digest_len] = results[i]
@@ -243,14 +249,16 @@ class Serializer:
         
         # We shard the computation by creating independent "tasks".
         shard_size = 1000000000 # 1GB
-        grouped_tasks = Serializer._create_tasks(children, shard_size)
+        tasks = Serializer._create_tasks(children, shard_size)
+        for t in tasks:
+            print (t)
         
         # Share the computation of hashes.
-        # Fr=or cimplicity, we pre-allocate the entire array that will hold
+        # For simplicity, we pre-allocate the entire array that will hold
         # the concatenation of all hashes.
-        all_hashes = Serializer._run_tasks(path, chunk, grouped_tasks)
+        all_hashes = Serializer._run_tasks(path, chunk, tasks)
         
-        # Finally, we we hash everything.
+        # Finally, we hash everything.
         return hashlib.sha256(bytes(all_hashes)).digest()
 
     @staticmethod
