@@ -241,6 +241,9 @@ class Serializer:
 
     @staticmethod
     def serialize_v1(path: Path, chunk: int, signature_path: Path, ignorepaths: [Path] = []) -> bytes:
+        if path.is_symlink():
+            raise ValueError(f"{str(path)} is a symlink")
+
         if not path.is_file() and not path.is_dir():
             raise ValueError(f"{str(path)} is not a dir or file")
 
@@ -266,6 +269,9 @@ class Serializer:
 
     @staticmethod
     def serialize_v0(path: Path, chunk: int, signature_path: Path, ignorepaths: [Path] = []) -> bytes:
+        if path.is_symlink():
+            raise ValueError(f"{str(path)} is a symlink")
+
         if path.is_file():
             return Hasher.root_file(path, chunk)
 
@@ -289,6 +295,9 @@ class Serializer:
     
     @staticmethod
     def _serialize_node(path: Path, chunk: int, indent = "") -> bytes:
+        if path.is_symlink():
+            raise ValueError(f"{str(path)} is a symlink")
+    
         if path.is_file():
             return Hasher.node_file(path, chunk)
 
