@@ -167,9 +167,9 @@ Machine M1: Debian 6.3.11 x86_64 GNU/Linux, 200GB RAM, 48 vCPUs, 512KB cache, AM
 
 Machine M2: Debian 5.10.1 x86_64 GNU/Linux, 4GB RAM, 2 vCPUs, 56320 KB, Intel(R) Xeon(R) CPU @ 2.20GHz.
 
-H1: hashing using a tree.
+H1: Hashing using a tree representation of the directory.
 
-H2: hashing using a list. (Implementation is parallized with shards of 1GB sizes).
+H2: Hashing using a list representation of the directory. (Implementation is parallized with shards of 1GB sizes across vCPUs).
 
 A single run was performed.
 
@@ -180,13 +180,18 @@ A single run was performed.
 | H1 | M1 | bertseq2seq          | 2.8G  | 4.6s  | 4.4s  |
 | H1 | M1 | bert-base-uncased    | 3.3G  | 5s    | 4.7s  |
 | H1 | M1 | tiiuae/falcon-7b     | 14GB  | 12.2s | 11.8s |
+| H2 | M1 | roberta-base-11      | 8K    | 1s    | 0.6s  |
+| H2 | M1 | hustvl/YOLOP         | 215M  | 1s    | 1s    |
+| H2 | M1 | bertseq2seq          | 2.8G  | 1.9s  | 1.4s  |
+| H2 | M1 | bert-base-uncased    | 3.3G  | 1.6s  | 1.1s  |
+| H2 | M1 | tiiuae/falcon-7b     | 14GB  | 2.1s | 1.8s   |
 | H1 | M2 | roberta-base-11      | 8K    | 1.1s  | 0.7s  |
 | H1 | M2 | hustvl/YOLOP         | 215M  | 1.9s  | 1.7s  |
 | H1 | M2 | bertseq2seq          | 2.8G  | 18s   | 23.2s |
 | H1 | M2 | bert-base-uncased    | 3.3G  | 23.4s | 18.9s |
 | H1 | M2 | tiiuae/falcon-7b     | 14GB  | 2m4s | 2m2s   |
-| H2 | M1 | roberta-base-11      | 8K    | 1s    | 0.6s  |
-| H2 | M1 | hustvl/YOLOP         | 215M  | 1s    | 1s    |
-| H2 | M1 | bertseq2seq          | 2.8G  | 1.9s  | 1.4s  |
-| H2 | M1 | bert-base-uncased    | 3.3G  | 1.6s  | 1.1s  |
-| H2 | M1 | tiiuae/falcon-7b     | 14GB  | 2.1s | 1.8s |
+| H2 | M1 | roberta-base-11      | 8K    | 1.1s  | 0.8s  |
+| H2 | M1 | hustvl/YOLOP         | 215M  | 1.9s  | 1.6s  |
+| H2 | M1 | bertseq2seq          | 2.8G  | 13.8s | 25.9s |
+| H2 | M1 | bert-base-uncased    | 3.3G  | 22.7s | 23.3s |
+| H2 | M1 | tiiuae/falcon-7b     | 14GB  | 2m.1s | 2m3s  |
