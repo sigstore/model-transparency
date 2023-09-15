@@ -18,6 +18,9 @@ from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import set_start_method
 from pathlib import Path
 
+# Use for testing whilst keeping disk size low.
+allow_symlinks = True
+
 class Hasher:
     @staticmethod
     def node_header(name: str, ty: str) -> bytes:
@@ -128,7 +131,7 @@ class Serializer:
             # we don't allow symlinks for now.
             # NOTE: It seems that Python's read() *always* follows symlinks,
             # so it may be safe to allow them. (readlink() is the function to read the link metadata).
-            if child.is_symlink():
+            if not allow_symlinks and child.is_symlink():
                 raise ValueError(f"{str(child)} is symlink")
 
             if not child.is_file() and not child.is_dir():
@@ -241,7 +244,7 @@ class Serializer:
 
     @staticmethod
     def serialize_v1(path: Path, chunk: int, signature_path: Path, ignorepaths: [Path] = []) -> bytes:
-        if path.is_symlink():
+        if not allow_symlinks and path.is_symlink():
             raise ValueError(f"{str(path)} is a symlink")
 
         if not path.is_file() and not path.is_dir():
@@ -256,8 +259,6 @@ class Serializer:
         # We shard the computation by creating independent "tasks".
         shard_size = 1000000000 # 1GB
         tasks = Serializer._create_tasks(children, shard_size)
-        for t in tasks:
-            print (t)
         
         # Share the computation of hashes.
         # For simplicity, we pre-allocate the entire array that will hold
@@ -269,7 +270,7 @@ class Serializer:
 
     @staticmethod
     def serialize_v0(path: Path, chunk: int, signature_path: Path, ignorepaths: [Path] = []) -> bytes:
-        if path.is_symlink():
+        if not allow_symlinks and path.is_symlink():
             raise ValueError(f"{str(path)} is a symlink")
 
         if path.is_file():
@@ -295,7 +296,7 @@ class Serializer:
     
     @staticmethod
     def _serialize_node(path: Path, chunk: int, indent = "") -> bytes:
-        if path.is_symlink():
+        if not allow_symlinks and path.is_symlink():
             raise ValueError(f"{str(path)} is a symlink")
     
         if path.is_file():
