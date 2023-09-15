@@ -71,6 +71,13 @@ def remove_prefix(text, prefix):
         return text[len(prefix):]
     return text
 
+def validate_signature_path(model_path: Path, sig_path: Path):
+    if model_path.is_file():
+        return
+    # Note: Only allow top-level folder to have the signature for simplicity.
+    if sig_path is not None and sig_path.is_relative_to(model_path) and sig_path.parent != model_path:
+        raise ValueError(f"{sig_path} must be in the folder root")
+
 # TODO(): add a context "AI model"?
 class Serializer:
     # TODO: use number of vCPUs to split work.
@@ -79,16 +86,15 @@ class Serializer:
     # by the number of vCPUs. The main thread will create a list of
     # offsets to hash the file at, and will wait for all to finish.
     @staticmethod
-    def serialize_v1(path: Path, chunk: int, ignorefn: Path = None) -> bytes:
+    def serialize_v1(path: Path, chunk: int, signature_path: Path, ignorepaths: [Path] = []) -> bytes:
         # if path.is_file():
         #     return Hasher.root_file(path, chunk)
 
         # if not path.is_dir():
         #     raise ValueError(f"{str(path)} is not a dir")
 
-        # Note: Only allow top-level folder to have the signature for simplicity.
-        if ignorefn is not None and ignorefn.is_relative_to(path) and ignorefn.parent != path:
-            raise ValueError(f"{ignorefn} must be in the folder root")
+        # Validate the signature path.
+        validate_signature_path(path, signature_path)
         
         # NOTE: the parent (..) and current directory (.) are not prsent.
         # TODO: cleanup for handle both cases.
@@ -100,7 +106,7 @@ class Serializer:
         filtered = []
         total_size = 0
         for child in children:
-            if child == ignorefn:
+            if child in ignorepaths:
                 continue
 
             # TODO: support other files like .gitattributes, should be given by caller.
@@ -249,9 +255,8 @@ class Serializer:
         if not path.is_dir():
             raise ValueError(f"{str(path)} is not a dir")
 
-        # Note: Only allow top-level folder to have the signature for simplicity.
-        if signature_path is not None and signature_path.is_relative_to(path) and signature_path.parent != path:
-            raise ValueError(f"{signature_path} must be in the folder root")
+        # Validate the signature path.
+        validate_signature_path(path, signature_path)
 
         children = sorted([x for x in path.iterdir() if x != signature_path and x not in ignorepaths])
         # TODO: remove this special case?
