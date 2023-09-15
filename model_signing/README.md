@@ -175,11 +175,10 @@ A single run was performed.
 | M1 | bertseq2seq |    2.8G   |   4.6s |  4.4s |
 | M1 | bert-base-uncased |  3.3G | 5s | 4.7s |
 | M1 | tiiuae/falcon-7b | 14GB | 17.3s | 16.7s |
-| M2 | roberta-base-11 | 8K | 1.4s | 0.7s |
-| M2 | hustvl/YOLOP | 355M | 3.9s | 2.1s |
+
+| M2 | roberta-base-11 | 8K | 1s | 0.8s |
+| M2 | hustvl/YOLOP | 215M | 2.1s | 1.7s |
 | M2 | bertseq2seq |    2.8G   |   26.4s |  26.1s |
 | M2 | bert-base-uncased |  6.5G | 1m1s | 57s |
 | M2 | tiiuae/falcon-7b | 15GB | 3m47s | 3m48s |
-
-
 
