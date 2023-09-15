@@ -70,11 +70,11 @@ class Serializer:
 
         if not path.is_dir():
             raise ValueError(f"{str(path)} is not a dir")
-        
+
         # Note: Only allow top-level folder to have the signature for simplicity.
         if signature_path is not None and signature_path.is_relative_to(path) and signature_path.parent != path:
             raise ValueError(f"{signature_path} must be in the folder root")
-            
+
         children = sorted([x for x in path.iterdir() if x != signature_path and x not in ignorepaths])
         # TODO: remove this special case?
         if len(children) == 0:
