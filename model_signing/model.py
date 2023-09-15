@@ -88,13 +88,14 @@ class SigstoreSigner():
 
         return token
 
-    def sign(self, inputfn: Path, signaturefn: Path) -> SignatureResult:
+    # NOTE: Only path in the top-level folder are considered for ignorepaths.
+    def sign(self, inputfn: Path, signaturefn: Path, ignorepaths: [Path]) -> SignatureResult:
         try:
             token = self.get_identity_token()
             if not token:
                 raise ValueError("No identity token supplied or detected!")
 
-            contentio = io.BytesIO(Serializer.serialize(inputfn, chunk_size(), signaturefn))
+            contentio = io.BytesIO(Serializer.serialize(inputfn, chunk_size(), signaturefn, ignorepaths))
             result = self.signer.sign(input_=contentio, identity_token=token)
             with signaturefn.open(mode="w") as b:
                 print(result._to_bundle().to_json(), file=b)
@@ -114,13 +115,14 @@ class SigstoreVerifier():
         self.identity = identity
         self.verifier = Verifier.production()
 
-    def verify(self, inputfn: Path, signaturefn: Path, offline: bool) -> VerificationResult:
+    # NOTE: Only path in the top-level folder are considered for ignorepaths.
+    def verify(self, inputfn: Path, signaturefn: Path, ignorepaths: [Path], offline: bool) -> VerificationResult:
         try:
             bundle_bytes = signaturefn.read_bytes()
             bundle = Bundle().from_json(bundle_bytes)
 
             material: tuple[Path, VerificationMaterials]
-            contentio = io.BytesIO(Serializer.serialize(inputfn, chunk_size(), signaturefn))
+            contentio = io.BytesIO(Serializer.serialize(inputfn, chunk_size(), signaturefn, ignorepaths))
             material = VerificationMaterials.from_bundle(input_=contentio, bundle=bundle, offline=offline)
             policy_ = policy.Identity(
                 identity=self.identity,

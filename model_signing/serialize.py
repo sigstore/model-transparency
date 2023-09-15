@@ -64,7 +64,7 @@ class Hasher:
 # TODO(): add a context "AI model"?
 class Serializer:
     @staticmethod
-    def serialize(path: Path, chunk: int, ignorefn: Path = None) -> bytes:
+    def serialize(path: Path, chunk: int, signature_path: Path, ignorepaths: [Path] = []) -> bytes:
         if path.is_file():
             return Hasher.root_file(path, chunk)
 
@@ -72,10 +72,10 @@ class Serializer:
             raise ValueError(f"{str(path)} is not a dir")
         
         # Note: Only allow top-level folder to have the signature for simplicity.
-        if ignorefn is not None and ignorefn.is_relative_to(path) and ignorefn.parent != path:
-            raise ValueError(f"{ignorefn} must be in the folder root")
-        
-        children = sorted([x for x in path.iterdir() if x != ignorefn])
+        if signature_path is not None and signature_path.is_relative_to(path) and signature_path.parent != path:
+            raise ValueError(f"{signature_path} must be in the folder root")
+            
+        children = sorted([x for x in path.iterdir() if x != signature_path and x not in ignorepaths])
         # TODO: remove this special case?
         if len(children) == 0:
             return Hasher.root_folder(path, b"empty")

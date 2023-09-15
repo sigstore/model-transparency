@@ -49,14 +49,19 @@ def signature_path(modelfn: Path) -> Path:
 		return Path(modelfn.parent).joinpath(f"{modelfn.name}.sig")
 	return modelfn.joinpath("model.sig")
 
+def ignored_paths(modelfn: Path) -> [Path]:
+	if modelfn.is_file():
+		return []
+	return [ modelfn.joinpath(".git") ]
+
 # Sign function
 def sign(modelfn: Path, use_ambiant: bool) -> model.SignatureResult:
 	signer = model.SigstoreSigner(use_ambiant = use_ambiant)
-	return signer.sign(modelfn, signature_path(modelfn))
+	return signer.sign(modelfn, signature_path(modelfn), ignored_paths(modelfn))
 
 def verify(modelfn: Path, issuer:str, identity:str, offline = False)-> model.VerificationResult:
 	verifier = model.SigstoreVerifier(oidc_provider=issuer, identity=identity)
-	return verifier.verify(modelfn, signature_path(modelfn), offline)
+	return verifier.verify(modelfn, signature_path(modelfn),  ignored_paths(modelfn), offline)
 
 def main(args) -> int:
 	if args.subcommand == "sign":
