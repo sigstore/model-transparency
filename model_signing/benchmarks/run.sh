@@ -18,16 +18,42 @@ run() {
     local model_name="$1"
     local model_path="$2"
     local model_init="$3"
-    
+
+    echo "Initializing ${model_name} ..."
     eval "${model_init}"
+
     # Replace the '/' character.
     model_name="${model_name/\//_}"
+
+    echo "Running sign / verify for ${model_name} ..."
     results["${model_name}[size]"]=$(du -hs "${model_path}" | cut -f1)
     results["${model_name}[sign_time]"]=$(time_cmd python3 "main.py sign --path ${model_path}")
     results["${model_name}[verify_time]"]=$(time_cmd python3 "main.py verify --path ${model_path} --identity-provider ${identity_provider} --identity ${identity}")
     if [[ "${cleanup}" == "true" ]]; then
         rm -rf "${model_path}" "${model_path}.sig" 2>/dev/null || true
     fi
+}
+
+# shellcheck disable=SC2317 # Called via model_init().
+download_github_repository() {
+    local repository="$1"
+    local model_path="$2"
+
+    # We download the zip which does _not_ contain the .git folder.
+    wget "https://github.com/${repository}/archive/main.zip" -O "${model_path}".zip
+    mkdir -p "${model_path}"
+    shopt -s dotglob
+    cd "${model_path}" && unzip ../"${model_path}".zip && rm ../"${model_path}".zip && mv "${model_path}"-main/* . && rmdir "${model_path}"-main/ && cd -
+    shopt -u dotglob
+}
+
+# shellcheck disable=SC2317 # Called via model_init().
+download_hf_repository() {
+    local repository="$1"
+    local model_path="$2"
+    git clone --depth=1 "https://huggingface.co/${repository}" "${model_path}"
+    # We delete the .git folder.
+    rm -rf "${model_path}"/.git
 }
 
 # User inputs.
@@ -70,11 +96,10 @@ model_path=$(echo "${model_name}" | cut -d/ -f2)
 # shellcheck disable=SC2317 # Reachable via run() call.
 model_init() {
     if [[ ! -d "${model_path}" ]]; then
-        git clone --depth=1 "https://github.com/${model_name}.git"
+        download_github_repository "${model_name}" "${model_path}"
     fi
 }
-run "${model_name}" "${model_path}" model_init
-
+#run "${model_name}" "${model_path}" model_init
 
 # =========================================
 #       ONNX Roberta-base-11 model
@@ -87,8 +112,7 @@ model_init() {
         wget "https://github.com/onnx/models/tree/857a3434216bd6f2be1ea1ff045fb94a437cbe10/text/machine_comprehension/roberta/model/${model_name}.onnx"
     fi
 }
-run "${model_name}" "${model_path}" model_init
-
+#run "${model_name}" "${model_path}" model_init
 
 # =========================================
 #       tfhub bertseq2seq model
@@ -103,8 +127,7 @@ model_init() {
         cd "${model_path}" && tar xvzf ../"${model_path}".tgz && rm ../"${model_path}".tgz && cd -
     fi
 }
-run "${model_name}" "${model_path}" model_init
-
+#run "${model_name}" "${model_path}" model_init
 
 # =========================================
 #       Huggingface bert base model
@@ -115,11 +138,10 @@ model_path="${model_name}"
 # shellcheck disable=SC2317 # Reachable via run() call.
 model_init() {
     if [[ ! -d "${model_path}" ]]; then
-        git clone --depth=1 "https://huggingface.co/${model_name}"
+        download_hf_repository "${model_name}" "${model_path}"
     fi
 }
-run "${model_name}" "${model_path}" model_init
-
+#run "${model_name}" "${model_path}" model_init
 
 # =========================================
 #           PyTorch falcon-7b model
@@ -129,7 +151,7 @@ model_path=$(echo "${model_name}" | cut -d/ -f2)
 # shellcheck disable=SC2317 # Reachable via run() call.
 model_init() {
     if [[ ! -d "${model_path}" ]]; then
-        git clone --depth=1 "https://huggingface.co/${model_name}"
+        download_hf_repository "${model_name}" "${model_path}"
     fi
 }
 run "${model_name}" "${model_path}" model_init
