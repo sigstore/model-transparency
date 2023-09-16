@@ -18,7 +18,7 @@ from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import set_start_method
 from pathlib import Path
 
-# Use for testing whilst keeping disk size low.
+# Use for testing while keeping disk size low.
 allow_symlinks = False
 
 class Hasher:
@@ -81,13 +81,12 @@ class Hasher:
                 # Compute the hash by reading chunk bytes at a time.
                 remains = end - start
                 while remains != 0:
+                    #read = (end - start) - remains
+                    #print(f"loop {i}: {f.name}: {read}-{read + min(chunk, remains)}")
                     process_n = min(chunk, remains)
                     chunk_data = f.read(process_n)
                     if process_n != len(chunk_data):
                         raise ValueError(f"internal: unread bytes: {process_n} != {len(chunk_data)}")
-                    #print(f"loop {o_start/chunk}: {f.name}: {start + o_start}-{start + o_end}")
-                    # NOTE: len(chunk_data) may be < the request number of bytes (o_end - o_start)
-                    # when we reach the EOF.
                     if not chunk_data:
                         raise ValueError(f"internal: no data: filename={str(path)}, remains={remains}, {process_n} != {len(chunk_data)}")
                     h.update(chunk_data)
@@ -205,7 +204,7 @@ class Serializer:
         org_len = len(all_hashes)
                 
         set_start_method('fork')
-        with ProcessPoolExecutor() as ppe:
+        with ProcessPoolExecutor(max_workers=1) as ppe:
             futures = [ ppe.submit(Serializer.task, (path, chunk, tasks[i])) for i in range(len(tasks)) ]
             results = [ f.result() for f in futures ]
             for i in range(len(results)):
