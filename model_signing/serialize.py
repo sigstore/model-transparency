@@ -150,7 +150,7 @@ class Serializer:
     def _create_tasks(children :[], shard_size: int) -> [[]]:
         tasks = [[]] * 0
         curr_file = 0
-        curr_bytes = 0
+        curr_pos = 0
 
         while True:
             # All files have been processed.
@@ -162,33 +162,35 @@ class Serializer:
             ### It's a directory.
             # NOTE: It is fast to commupte the hash because there's no data besides the name and the type.
             if typ == "dir":
-                curr_bytes = 0
+                # Record the task.
                 tasks += [(name, typ, 0, size)]
                 curr_file += 1
+                curr_pos = 0
                 continue
 
             ### It's a file.
 
             # Sanity checks.
-            if size <= curr_bytes and size > 0:
-                raise ValueError(f"internal: size={size}, curr_bytes={curr_bytes} for {children[curr_file]}")
+            if size <= curr_pos and size > 0:
+                raise ValueError(f"internal: size={size}, curr_pos={curr_pos} for {children[curr_file]}")
 
             # Compute the number of bytes to process.
-            start_pos = curr_bytes
-            available_bytes = size - start_pos
-            if available_bytes < 0:
-                raise ValueError(f"internal: available_bytes is {available_bytes}")
-            processed_bytes = min(available_bytes, shard_size)
-            end_pos = curr_bytes + processed_bytes
-            curr_bytes += processed_bytes
+            remains = size - curr_pos
+            if remains < 0:
+                raise ValueError(f"internal: remains is {remains}")
+            processed = min(remains, shard_size)
+            end_pos = curr_pos + processed
 
             # Record the task.
-            tasks += [(name, typ, start_pos, end_pos)]
+            tasks += [(name, typ, curr_pos, end_pos)]
+
+            # Update position.
+            curr_pos += processed
 
             # If we have processed all bytes, we move on to the next file.
-            if available_bytes - processed_bytes == 0:
+            if remains == processed:
                 curr_file += 1
-                curr_bytes = 0
+                curr_pos = 0
 
         return tasks
 
@@ -202,7 +204,7 @@ class Serializer:
         org_len = len(all_hashes)
                 
         set_start_method('fork')
-        with ProcessPoolExecutor(max_workers=1) as ppe:
+        with ProcessPoolExecutor() as ppe:
             futures = [ ppe.submit(Serializer.task, (path, chunk, tasks[i])) for i in range(len(tasks)) ]
             results = [ f.result() for f in futures ]
             for i in range(len(results)):
