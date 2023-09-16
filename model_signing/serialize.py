@@ -192,7 +192,6 @@ class Serializer:
             if remains == processed:
                 curr_file += 1
                 curr_pos = 0
-
         return tasks
 
     @staticmethod
