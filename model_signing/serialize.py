@@ -162,6 +162,8 @@ class Serializer:
 
             ### It's a directory.
             # NOTE: It is fast to commupte the hash because there's no data besides the name and the type.
+            # TODO(#12): do we need this at all? This only matters
+            # if we care about empty directories, since non-empty ones have their file + path recorded.
             if typ == "dir":
                 # Record the task.
                 tasks += [(name, typ, 0, size)]
@@ -227,9 +229,11 @@ class Serializer:
         # Header format is: "type.b64(filename).start-end."
         header = ty.encode('utf-8') + b'.' + base64.b64encode(name.encode('utf-8')) + b'.' + f"{start_pos}-{end_pos}".encode('utf-8') + b'.'
 
-        # To hash a directory, we use "empty" content.        
+        # To hash a directory, we use "none" content.
+        # TODO(#12): do we need this at all? This only matters
+        # if we care about empty directories, since non-empty ones have their file + path recorded.
         if ty == "dir":
-            value = header + b'empty'
+            value = header + b'none'
             return hashlib.sha256(value).digest()
 
         # We need to hash a file.
