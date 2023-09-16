@@ -19,7 +19,7 @@ from multiprocessing import set_start_method
 from pathlib import Path
 
 # Use for testing whilst keeping disk size low.
-allow_symlinks = True
+allow_symlinks = False
 
 class Hasher:
     @staticmethod
@@ -92,7 +92,6 @@ class Hasher:
                         raise ValueError(f"internal: no data: filename={str(path)}, remains={remains}, {process_n} != {len(chunk_data)}")
                     h.update(chunk_data)
                     remains -= process_n
-
         return h.digest()
 
 def remove_prefix(text, prefix):
