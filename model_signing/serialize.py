@@ -71,6 +71,7 @@ class Hasher:
     def _node_file_compute_v1(path: Path, header: bytes, start: int, end: int, chunk: int) -> bytes:
         h = hashlib.sha256(header)
         with open(path,"rb") as f:
+            # WARNING: We must start reading the file at the starting offset.
             f.seek(start)
             # Read all at once.
             if chunk == 0 or chunk >= (end - start):
@@ -83,14 +84,14 @@ class Hasher:
                 while remains != 0:
                     #read = (end - start) - remains
                     #print(f"loop {i}: {f.name}: {read}-{read + min(chunk, remains)}")
-                    process_n = min(chunk, remains)
-                    chunk_data = f.read(process_n)
-                    if process_n != len(chunk_data):
-                        raise ValueError(f"internal: unread bytes: {process_n} != {len(chunk_data)}")
+                    processed = min(chunk, remains)
+                    chunk_data = f.read(processed)
+                    if processed != len(chunk_data):
+                        raise ValueError(f"internal: unread bytes: {processed} != {len(chunk_data)}")
                     if not chunk_data:
-                        raise ValueError(f"internal: no data: filename={str(path)}, remains={remains}, {process_n} != {len(chunk_data)}")
+                        raise ValueError(f"internal: no data: filename={str(path)}, remains={remains}, {processed} != {len(chunk_data)}")
                     h.update(chunk_data)
-                    remains -= process_n
+                    remains -= processed
         return h.digest()
 
 def remove_prefix(text, prefix):
