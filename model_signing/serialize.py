@@ -19,7 +19,7 @@ from multiprocessing import set_start_method
 from pathlib import Path
 
 # Use for testing whilst keeping disk size low.
-allow_symlinks = False
+allow_symlinks = True
 
 class Hasher:
     @staticmethod
@@ -79,18 +79,19 @@ class Hasher:
                 h.update(content)
             else:
                 # Compute the hash by reading chunk bytes at a time.
-                o_start = 0
-                o_end = chunk # chunk is < total number of bytes to read.
-                while True:
-                    chunk_data = f.read(o_end - o_start)
+                remains = end - start
+                while remains != 0:
+                    process_n = min(chunk, remains)
+                    chunk_data = f.read(process_n)
+                    if process_n != len(chunk_data):
+                        raise ValueError(f"internal: unread bytes: {process_n} != {len(chunk_data)}")
                     #print(f"loop {o_start/chunk}: {f.name}: {start + o_start}-{start + o_end}")
                     # NOTE: len(chunk_data) may be < the request number of bytes (o_end - o_start)
                     # when we reach the EOF.
                     if not chunk_data:
-                        break
+                        raise ValueError(f"internal: no data: filename={str(path)}, remains={remains}, {process_n} != {len(chunk_data)}")
                     h.update(chunk_data)
-                    o_start += chunk
-                    o_end += chunk
+                    remains -= process_n
 
         return h.digest()
 
@@ -244,6 +245,9 @@ class Serializer:
 
     @staticmethod
     def serialize_v1(path: Path, chunk: int, signature_path: Path, ignorepaths: [Path] = []) -> bytes:
+        if not path.exists():
+            raise ValueError(f"{str(path)} does not eixst")
+
         if not allow_symlinks and path.is_symlink():
             raise ValueError(f"{str(path)} is a symlink")
 
@@ -270,6 +274,9 @@ class Serializer:
 
     @staticmethod
     def serialize_v0(path: Path, chunk: int, signature_path: Path, ignorepaths: [Path] = []) -> bytes:
+        if not path.exists():
+            raise ValueError(f"{str(path)} does not eixst")
+
         if not allow_symlinks and path.is_symlink():
             raise ValueError(f"{str(path)} is a symlink")
 
