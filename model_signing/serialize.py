@@ -151,7 +151,6 @@ class Serializer:
         tasks = [[]] * 0
         curr_file = 0
         curr_bytes = 0
-        total_bytes = 0
 
         while True:
             # All files have been processed.
@@ -182,7 +181,6 @@ class Serializer:
             processed_bytes = min(available_bytes, shard_size)
             end_pos = curr_bytes + processed_bytes
             curr_bytes += processed_bytes
-            total_bytes += processed_bytes
 
             # Record the task.
             tasks += [(name, typ, start_pos, end_pos)]
