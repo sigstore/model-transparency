@@ -243,6 +243,8 @@ class Serializer:
             return Hasher._node_file_compute_v1(model_path.joinpath(name), header, start_pos, end_pos, chunk)
         
         # The model is a single file.
+        # We update the file name to a generic "root".
+        header = ty.encode('utf-8') + b'.' + base64.b64encode("root".encode('utf-8')) + b'.' + f"{start_pos}-{end_pos}".encode('utf-8') + b'.'
         return Hasher._node_file_compute_v1(name, header, start_pos, end_pos, chunk)
 
     @staticmethod
