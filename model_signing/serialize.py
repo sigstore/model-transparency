@@ -19,7 +19,7 @@ from multiprocessing import set_start_method
 from pathlib import Path
 
 # Use for testing while keeping disk size low.
-allow_symlinks = False
+allow_symlinks = True
 
 class Hasher:
     @staticmethod
