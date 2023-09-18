@@ -12,8 +12,14 @@
 # See the License for the specific language governing perepo_managerissions and
 # limitations under the License.
 
-import hashlib, base64, json
+import hashlib, base64, os
+from typing import IO
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import set_start_method
 from pathlib import Path
+
+# Use for testing while keeping disk size low.
+allow_symlinks = False
 
 class Hasher:
     @staticmethod
@@ -61,19 +67,231 @@ class Hasher:
                     h.update(chunk_data)
         return h.digest()
 
+    @staticmethod
+    def _node_file_compute_v1(path: Path, header: bytes, start: int, end: int, chunk: int) -> bytes:
+        h = hashlib.sha256(header)
+        with open(path,"rb") as f:
+            # WARNING: We must start reading the file at the starting offset.
+            f.seek(start)
+            # Read all at once.
+            if chunk == 0 or chunk >= (end - start):
+                content = f.read(end - start)
+                #print(f"all: {f.name}: {start}-{end}")
+                h.update(content)
+            else:
+                # Compute the hash by reading chunk bytes at a time.
+                remains = end - start
+                while remains != 0:
+                    #read = (end - start) - remains
+                    #print(f"loop {i}: {f.name}: {read}-{read + min(chunk, remains)}")
+                    processed = min(chunk, remains)
+                    chunk_data = f.read(processed)
+                    if processed != len(chunk_data):
+                        raise ValueError(f"internal: unread bytes: {processed} != {len(chunk_data)}")
+                    if not chunk_data:
+                        raise ValueError(f"internal: no data: filename={str(path)}, remains={remains}, {processed} != {len(chunk_data)}")
+                    h.update(chunk_data)
+                    remains -= processed
+        return h.digest()
+
+def remove_prefix(text, prefix):
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text
+
+def validate_signature_path(model_path: Path, sig_path: Path):
+    if model_path.is_file():
+        return
+    # Note: Only allow top-level folder to have the signature for simplicity.
+    if sig_path is not None and sig_path.is_relative_to(model_path) and sig_path.parent != model_path:
+        raise ValueError(f"{sig_path} must be in the folder root")
+
 # TODO(): add a context "AI model"?
 class Serializer:
     @staticmethod
-    def serialize(path: Path, chunk: int, signature_path: Path, ignorepaths: [Path] = []) -> bytes:
+    # TODO: type of returned value.
+    def _ordered_files(path: Path, ignorepaths: [Path]) -> []:
+        children: [Path]
+        if path.is_file():
+            children = [path]
+        else:
+            # NOTE: the parent (..) and current directory (.) are not present.
+            # NOTE: this returns hidden files as well.
+            # TODO: tests that this pattern reports all files, regardless of their
+            # depth.
+            children = sorted(path.glob("**/*"))
+
+        filtered = []
+        total_size = 0
+        for child in children:
+            if child in ignorepaths:
+                continue
+
+            # To avoid bugs where we read the link rather than its target,
+            # we don't allow symlinks for now.
+            # NOTE: It seems that Python's read() *always* follows symlinks,
+            # so it may be safe to allow them. (readlink() is the function to read the link metadata).
+            if not allow_symlinks and child.is_symlink():
+                raise ValueError(f"{str(child)} is symlink")
+
+            if not child.is_file() and not child.is_dir():
+                raise ValueError(f"{str(child)} is not a dir or file")
+
+            # The recorded path must *not* contains the folder name,
+            # since users may rename it.
+            record_path = remove_prefix(str(child), str(path.as_posix()) + os.sep)
+            record_type = "file" if child.is_file() else "dir"
+            record_size = os.path.getsize(str(child)) if record_type == "file" else 0
+            filtered += [(record_path, record_type, record_size)]
+            total_size += record_size
+        return filtered
+
+    @staticmethod
+    # TODO: type of returned value.
+    def _create_tasks(children :[], shard_size: int) -> [[]]:
+        tasks = [[]] * 0
+        curr_file = 0
+        curr_pos = 0
+
+        while True:
+            # All files have been processed.
+            if curr_file >= len(children):
+                break
+            
+            name, typ, size = children[curr_file]
+
+            ### It's a directory.
+            # NOTE: It is fast to commupte the hash because there's no data besides the name and the type.
+            # TODO(#12): do we need this at all? This only matters
+            # if we care about empty directories, since non-empty ones have their file + path recorded.
+            if typ == "dir":
+                # Record the task.
+                tasks += [(name, typ, 0, size)]
+                curr_file += 1
+                curr_pos = 0
+                continue
+
+            ### It's a file.
+
+            # Sanity checks.
+            if size <= curr_pos and size > 0:
+                raise ValueError(f"internal: size={size}, curr_pos={curr_pos} for {children[curr_file]}")
+
+            # Compute the number of bytes to process.
+            remains = size - curr_pos
+            if remains < 0:
+                raise ValueError(f"internal: remains is {remains}")
+            processed = min(remains, shard_size)
+            end_pos = curr_pos + processed
+
+            # Record the task.
+            tasks += [(name, typ, curr_pos, end_pos)]
+
+            # Update position.
+            curr_pos += processed
+
+            # If we have processed all bytes, we move on to the next file.
+            if remains == processed:
+                curr_file += 1
+                curr_pos = 0
+        return tasks
+
+    @staticmethod
+    # TODO: type of tasks
+    def _run_tasks(path: Path, chunk: int, tasks :[]) -> bytes:
+        # See https://superfastpython.com/processpoolexecutor-in-python/
+        # NOTE: 32 = length of sha256 digest.
+        digest_len = 32
+        all_hashes = [None] * (digest_len*len(tasks))
+        org_len = len(all_hashes)
+                
+        set_start_method('fork')
+        with ProcessPoolExecutor() as ppe:
+            futures = [ ppe.submit(Serializer.task, (path, chunk, tasks[i])) for i in range(len(tasks)) ]
+            results = [ f.result() for f in futures ]
+            for i in range(len(results)):
+                all_hashes[i*digest_len:(i+1)*digest_len] = results[i]
+        # Sanity check.
+        if len(all_hashes) != org_len:
+            raise ValueError(f"internal: {len(all_hashes)} != {org_len}")
+        return bytes(all_hashes)
+
+    @staticmethod
+    # TODO: type of task_info.
+    def task(task_info: []):
+        # NOTE: we can get process info using:
+        # from multiprocessing import current_process
+        # worker = current_process()
+        # print(f'Task {task_info}, worker name={worker.name}, pid={worker.pid}', flush=True)
+
+        model_path, chunk, (name, ty, start_pos, end_pos) = task_info
+
+        # Header format is: "type.b64(filename).start-end."
+        header = ty.encode('utf-8') + b'.' + base64.b64encode(name.encode('utf-8')) + b'.' + f"{start_pos}-{end_pos}".encode('utf-8') + b'.'
+
+        # To hash a directory, we use "none" content.
+        # TODO(#12): do we need this at all? This only matters
+        # if we care about empty directories, since non-empty ones have their file + path recorded.
+        if ty == "dir":
+            value = header + b'none'
+            return hashlib.sha256(value).digest()
+
+        # We need to hash a file.
+
+        # The model is a directory.
+        if model_path.is_dir():
+            return Hasher._node_file_compute_v1(model_path.joinpath(name), header, start_pos, end_pos, chunk)
+        
+        # The model is a single file.
+        # We update the file name to a generic "root".
+        header = ty.encode('utf-8') + b'.' + base64.b64encode("root".encode('utf-8')) + b'.' + f"{start_pos}-{end_pos}".encode('utf-8') + b'.'
+        return Hasher._node_file_compute_v1(name, header, start_pos, end_pos, chunk)
+
+    @staticmethod
+    def serialize_v1(path: Path, chunk: int, signature_path: Path, ignorepaths: [Path] = []) -> bytes:
+        if not path.exists():
+            raise ValueError(f"{str(path)} does not eixst")
+
+        if not allow_symlinks and path.is_symlink():
+            raise ValueError(f"{str(path)} is a symlink")
+
+        if not path.is_file() and not path.is_dir():
+            raise ValueError(f"{str(path)} is not a dir or file")
+
+        # Validate the signature path.
+        validate_signature_path(path, signature_path)
+        
+        # Children to hash.
+        children = Serializer._ordered_files(path, [signature_path] + ignorepaths)
+        
+        # We shard the computation by creating independent "tasks".
+        shard_size = 1000000000 # 1GB
+        tasks = Serializer._create_tasks(children, shard_size)
+        
+        # Share the computation of hashes.
+        # For simplicity, we pre-allocate the entire array that will hold
+        # the concatenation of all hashes.
+        all_hashes = Serializer._run_tasks(path, chunk, tasks)
+        
+        # Finally, we hash everything.
+        return hashlib.sha256(bytes(all_hashes)).digest()
+
+    @staticmethod
+    def serialize_v0(path: Path, chunk: int, signature_path: Path, ignorepaths: [Path] = []) -> bytes:
+        if not path.exists():
+            raise ValueError(f"{str(path)} does not eixst")
+
+        if not allow_symlinks and path.is_symlink():
+            raise ValueError(f"{str(path)} is a symlink")
+
         if path.is_file():
             return Hasher.root_file(path, chunk)
 
         if not path.is_dir():
             raise ValueError(f"{str(path)} is not a dir")
 
-        # Note: Only allow top-level folder to have the signature for simplicity.
-        if signature_path is not None and signature_path.is_relative_to(path) and signature_path.parent != path:
-            raise ValueError(f"{signature_path} must be in the folder root")
+        # Validate the signature path.
+        validate_signature_path(path, signature_path)
 
         children = sorted([x for x in path.iterdir() if x != signature_path and x not in ignorepaths])
         # TODO: remove this special case?
@@ -89,6 +307,9 @@ class Serializer:
     
     @staticmethod
     def _serialize_node(path: Path, chunk: int, indent = "") -> bytes:
+        if not allow_symlinks and path.is_symlink():
+            raise ValueError(f"{str(path)} is a symlink")
+    
         if path.is_file():
             return Hasher.node_file(path, chunk)
 
