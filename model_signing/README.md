@@ -172,7 +172,7 @@ Machine M1: Debian 6.3.11 x86_64 GNU/Linux, 200GB RAM, 48 vCPUs, 512KB cache, AM
 | H1 | hustvl/YOLOP         | 215M  | 1.2s  | 0.8s  |
 | H1 | bertseq2seq          | 2.8G  | 4.6s  | 4.4s  |
 | H1 | bert-base-uncased    | 3.3G  | 5s    | 4.7s  |
-| H1 | tiiuae/falcon-7b     | 14GB  | 12.2s | 11.8s |
+| H1 | tiiuae/falcon-7b     | 14GB  | 2.2s  | 1.8s  |
 | H2 | roberta-base-11      | 8K    | 1s    | 0.6s  |
 | H2 | hustvl/YOLOP         | 215M  | 1s    | 1s    |
 | H2 | bertseq2seq          | 2.8G  | 1.9s  | 1.4s  |
