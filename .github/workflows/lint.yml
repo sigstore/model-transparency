@@ -2,6 +2,8 @@ name: Lint
 
 on: [push, pull_request]
 
+permissions: read-all
+
 jobs:
   flake8-lint:
     runs-on: ubuntu-latest
