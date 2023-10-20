@@ -24,61 +24,68 @@ from sigstore.oidc import (
 )
 from sigstore_protobuf_specs.dev.sigstore.bundle.v1 import Bundle
 from sigstore.verify import (
-    VerificationMaterials,
     policy,
     Verifier,
 )
 from sigstore.verify.models import (
     VerificationMaterials,
-    VerificationResult,
 )
 
-import os, io, hashlib, base64, json
+import os
+import io
 from pathlib import Path
 from typing import Optional
 from serialize import Serializer
 import psutil
 
+
 def chunk_size() -> int:
     return int(psutil.virtual_memory().available // 2)
 
-#TODO: Update this class to have a status instead of success.
+
+# TODO: Update this class to have a status instead of success.
 class BaseResult:
     def __init__(self, success: bool = True, reason: str = "success"):
         self.success = success
         self.reason = reason
+
     def __bool__(self) -> bool:
         return self.success
+
     def __str__(self) -> str:
         return f"success=\"{self.success}\" reason=\"{self.reason}\""
+
 
 class SignatureResult(BaseResult):
     pass
 
+
 class SigstoreSigner():
-    def __init__(self, 
-                 use_ambiant:bool = True,
+    def __init__(self,
+                 use_ambiant: bool = True,
                  start_default_browser: bool = False,
                  name: str = None):
         self.signer = Signer.production()
         self.use_ambiant = use_ambiant
         self.start_default_browser = start_default_browser
         if not start_default_browser:
-            # TODO(https://github.com/sigstore/sigstore-python/issues/666): Update this code.
+            # TODO(https://github.com/sigstore/sigstore-python/issues/666)
+            # Update this code.
             os.environ["SIGSTORE_OAUTH_FORCE_OOB"] = "1"
         self.name = name
         self.client_id = DEFAULT_AUDIENCE
-    
+
     def get_identity_token(self) -> Optional[str]:
         token: str
         client_id = self.client_id
         if self.use_ambiant:
             token = detect_credential()
-            # Happy path: we've detected an ambient credential, so we can return early.
+            # Happy path: we've detected an ambient credential,
+            # so we can return early.
             if token:
                 return token
 
-        #TODO(): Support staging for testing.
+        # TODO(): Support staging for testing.
         if self.name is not None:
             issuer = Issuer(self.name)
         else:
@@ -89,25 +96,29 @@ class SigstoreSigner():
         return token
 
     # NOTE: Only path in the top-level folder are considered for ignorepaths.
-    def sign(self, inputfn: Path, signaturefn: Path, ignorepaths: [Path]) -> SignatureResult:
+    def sign(self, inputfn: Path, signaturefn: Path,
+             ignorepaths: [Path]) -> SignatureResult:
         try:
             token = self.get_identity_token()
             if not token:
                 raise ValueError("No identity token supplied or detected!")
 
-            contentio = io.BytesIO(Serializer.serialize_v1(inputfn, chunk_size(), signaturefn, ignorepaths))
+            contentio = io.BytesIO(Serializer.serialize_v1(
+                inputfn, chunk_size(), signaturefn, ignorepaths))
             result = self.signer.sign(input_=contentio, identity_token=token)
             with signaturefn.open(mode="w") as b:
                 print(result._to_bundle().to_json(), file=b)
             return SignatureResult()
         except Exception as e:
-            return SignatureResult(success=False, reason=f"exception caught: {str(e)}")
-        raise ValueError("unreachable")
+            return SignatureResult(success=False,
+                                   reason=f"exception caught: {str(e)}")
 
-#TODO: re-visit error handling and use a verbosity mode
+
+# TODO: re-visit error handling and use a verbosity mode
 # to avoid leaking info
 class VerificationResult(BaseResult):
     pass
+
 
 class SigstoreVerifier():
     def __init__(self, oidc_provider: str, identity: str):
@@ -116,14 +127,18 @@ class SigstoreVerifier():
         self.verifier = Verifier.production()
 
     # NOTE: Only path in the top-level folder are considered for ignorepaths.
-    def verify(self, inputfn: Path, signaturefn: Path, ignorepaths: [Path], offline: bool) -> VerificationResult:
+    def verify(self, inputfn: Path, signaturefn: Path,
+               ignorepaths: [Path], offline: bool) -> VerificationResult:
         try:
             bundle_bytes = signaturefn.read_bytes()
             bundle = Bundle().from_json(bundle_bytes)
 
             material: tuple[Path, VerificationMaterials]
-            contentio = io.BytesIO(Serializer.serialize_v1(inputfn, chunk_size(), signaturefn, ignorepaths))
-            material = VerificationMaterials.from_bundle(input_=contentio, bundle=bundle, offline=offline)
+            contentio = io.BytesIO(Serializer.serialize_v1(
+                inputfn, chunk_size(), signaturefn, ignorepaths))
+            material = VerificationMaterials.from_bundle(input_=contentio,
+                                                         bundle=bundle,
+                                                         offline=offline)
             policy_ = policy.Identity(
                 identity=self.identity,
                 issuer=self.oidc_provider,
@@ -131,7 +146,8 @@ class SigstoreVerifier():
             result = self.verifier.verify(materials=material, policy=policy_)
             if result:
                 return VerificationResult()
-            return VerificationResult(success = False, reason = result.reason)
+            return VerificationResult(success=False, reason=result.reason)
         except Exception as e:
-            return VerificationResult(success=False, reason=f"exception caught: {str(e)}")
+            return VerificationResult(success=False,
+                                      reason=f"exception caught: {str(e)}")
         raise ValueError("unreachable")
