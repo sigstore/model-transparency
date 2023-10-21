@@ -133,15 +133,12 @@ def save_model(model, model_format):
   saver(model, './' + model_format)
 
 
-def main():
+def model_pipeline(model_format):
+  """Train a model and save it in the requested format."""
   pretraining()
   data = load_data()
   model = create_model(data[0][0].shape[1:])
   model = prepare_model(model)
   train_model(model, data[0], data[1])
   score_model(model, data[1])
-  save_model(model, 'tensorflow_model.keras')
-
-
-if __name__ == '__main__':
-  main()
+  save_model(model, model_format)
