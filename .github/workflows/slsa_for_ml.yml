@@ -23,6 +23,8 @@ jobs:
   train:
     name: Train model and save as ${{ github.event.inputs.model_type }}
     runs-on: ubuntu-latest
+    outputs:
+      hash: ${{ steps.hash.outputs.hash }}
     steps:
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
     - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
@@ -48,3 +50,21 @@ jobs:
         path: ${{ github.event.inputs.model_type }}
         name: ${{ github.event.inputs.model_type }}
         if-no-files-found: error
+    - id: hash
+      env:
+        MODEL: ${{ github.event.inputs.model_type }}
+      run: |
+        set -euo pipefail
+        sha256sum "$MODEL" > checksum
+        echo "hash=$(cat checksum | base64 -w0)" >> "${GITHUB_OUTPUT}"
+
+  provenance:
+    needs: [train]
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.4.0
+    with:
+      base64-subjects: "${{ needs.train.outputs.hash }}"
+      upload-assets: true
