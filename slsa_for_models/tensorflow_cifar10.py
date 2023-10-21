@@ -30,7 +30,8 @@ def pretraining():
   global tfds
   import tensorflow as tf
   import tensorflow_datasets as tfds
-  tf.config.optimizer.set_jit(False)  # TODO
+  # Also compile model using XLA for ~20% performance gain
+  tf.config.optimizer.set_jit(True)
 
 
 def load_data():
@@ -109,7 +110,7 @@ def train_model(model, train, test):
   """
   x, y = train
   model.fit(x, y, batch_size=256, epochs=25,
-            validation_data=test, shuffle=True, verbose=0)
+            validation_data=test, shuffle=True)
 
 
 def score_model(model, test):
