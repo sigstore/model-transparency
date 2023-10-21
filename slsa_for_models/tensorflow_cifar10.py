@@ -12,12 +12,24 @@
 # See the License for the specific language governing perepo_managerissions and
 # limitations under the License.
 
-import tensorflow as tf
-import tensorflow_datasets as tfds
+
+# We will do a lazy import for these 2 modules, exploiting Python's symbol
+# resolution. The lazy import is needed to make sure we only import TensorFlow
+# libraries only if we want to train a TensorFlow model.
+tf = None
+tfds = None
 
 
 def pretraining():
-  """Perform setup required before training."""
+  """Perform setup required before training.
+
+  Does the lazy loading of TensorFlow too, to prevent compatibility issues with
+  mixing TensorFlow and PyTorch imports.
+  """
+  global tf
+  global tfds
+  import tensorflow as tf
+  import tensorflow_datasets as tfds
   tf.config.optimizer.set_jit(False)  # TODO
 
 
