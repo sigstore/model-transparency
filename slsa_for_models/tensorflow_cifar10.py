@@ -108,24 +108,29 @@ def score_model(model, test):
   print(f'Test accuracy: {scores[1]}')
 
 
-def save_model(model):
+def supported_models():
+  """Returns supported model types paired with method to save them."""
+  return {
+      # New Keras format
+      'tensorflow_model.keras': lambda m, p: m.save(p, save_format='keras'),
+      # TF SavedModel formats, full model and weights only
+      'tensorflow_saved_model': lambda m, p: m.save(p, save_format='tf'),
+      'tensorflow_exported_model': lambda m, p: m.export(p),
+      # Legacy HDFS format, full model and weights only
+      'tensorflow_hdf5_model.h5': lambda m, p: m.save(p, save_format='h5'),
+      'tensorflow_hdf5.weights.h5': lambda m, p: m.save_weights(p),
+  }
+
+
+def save_model(model, model_format):
   """Save the model after training to be transferred to production.
 
-  Save in multiple formats supported by TensorFlow.
+  Saves in the requested format, if supported by TensorFlow.
   """
-  # New Keras format
-  path = './model.keras'
-  model.save(path, save_format='keras')
-  # TF SavedModel formats, full model and weights only
-  path = './model_tf'
-  model.save(path, save_format='tf')
-  path = './exported_model'
-  model.export(path)
-  # Legacy HDFS format, full model and weights only
-  path = './model.h5'
-  model.save(path, save_format='h5')
-  path = './serialized.weights.h5'
-  model.save_weights(path)
+  saver = supported_models().get(model_format, None)
+  if not saver:
+    raise ValueError('Requested a model format not supported by TensorFlow')
+  saver(model, './' + model_format)
 
 
 def main():
@@ -135,7 +140,7 @@ def main():
   model = prepare_model(model)
   train_model(model, data[0], data[1])
   score_model(model, data[1])
-  save_model(model)
+  save_model(model, 'tensorflow_model.keras')
 
 
 if __name__ == '__main__':

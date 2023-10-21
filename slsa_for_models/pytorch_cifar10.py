@@ -133,17 +133,24 @@ def score_model(model, test):
   print(f'Test accuracy: {correct / total}')
 
 
-def save_model(model):
+def supported_models():
+  """Returns supported model types paired with method to save them."""
+  return {
+      'pytorch_model.pth': lambda m, p: torch.save(m.state_dict(), p),
+      'pytorch_full_model.pth': lambda m, p: torch.save(m, p),
+      'pytorch_jitted_model.pt': lambda m, p: torch.jit.script(m).save(p),
+  }
+
+
+def save_model(model, model_format):
   """Save the model after training to be transferred to production.
 
-  Save in multiple formats supported by PyTorch.
+  Saves in the requested format, if supported by PyTorch.
   """
-  path = './model.pth'
-  torch.save(model.state_dict(), path)
-  path = './full_model.pth'
-  torch.save(model, path)
-  path = './jitted_model.pt'
-  torch.jit.script(model).save(path)
+  saver = supported_models().get(model_format, None)
+  if not saver:
+    raise ValueError('Requested a model format not supported by PyTorch')
+  saver(model, './' + model_format)
 
 
 def main():
@@ -153,7 +160,7 @@ def main():
   loss, optimizer = prepare_model(model)
   train_model(model, loss, optimizer, data[0])
   score_model(model, data[1])
-  save_model(model)
+  save_model(model, 'pytorch_model.pth')
 
 
 if __name__ == '__main__':
