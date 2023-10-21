@@ -109,7 +109,7 @@ def train_model(model, train, test):
   The test set is used for cross validation.
   """
   x, y = train
-  model.fit(x, y, batch_size=256, epochs=25,
+  model.fit(x, y, batch_size=256, epochs=16,
             validation_data=test, shuffle=True)
 
 
