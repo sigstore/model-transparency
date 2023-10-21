@@ -2,20 +2,26 @@ name: SLSA for ML models example
 on:
   workflow_dispatch:
     inputs:
-      framework:
-        description: Train and generate provenance for TensorFlow models or for PyTorch ones
+      model_type:
+        description: Name of the model (implies framework)
         required: true
         type: choice
         options:
-        - tensorflow
-        - pytorch
+        - tensorflow_model.keras
+        - tensorflow_saved_model
+        - tensorflow_exported_model
+        - tensorflow_hdf5_model.h5
+        - tensorflow_hdf5.weights.h5
+        - pytorch_model.pth
+        - pytorch_full_model.pth
+        - pytorch_jitted_model.pt
 
 permissions:
   contents: write
 
 jobs:
   train:
-    name: Train model
+    name: Train model and save as ${{ github.event.inputs.model_type }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -32,66 +38,13 @@ jobs:
         python -m pip install --require-hashes -r slsa_for_models/install/requirements.txt
     - name: Build model
       env:
-        FRAMEWORK: ${{ github.event.inputs.framework }}
+        MODEL_TYPE: ${{ github.event.inputs.model_type }}
       run: |
         set -euo pipefail
         source venv/bin/activate
-        case "$FRAMEWORK" in
-          'tensorflow')
-            python slsa_for_models/tensorflow_cifar10.py
-            ;;
-          'pytorch')
-            python slsa_for_models/pytorch_cifar10.py
-            ;;
-          *)
-            echo 'Invalid input selected!'
-            ;;
-        esac
-    - name: Upload Keras TensorFlow model
-      if: ${{ github.event.inputs.framework == 'tensorflow' }}
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        python slsa_for_models/main.py "$MODEL_TYPE"
+    - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
       with:
-        path: model.keras
-        if-no-files-found: error
-    - name: Upload TensorFlow SavedModel model
-      if: ${{ github.event.inputs.framework == 'tensorflow' }}
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
-      with:
-        path: model_tf
-        if-no-files-found: error
-    - name: Upload weights-only TensorFlow SavedModel model
-      if: ${{ github.event.inputs.framework == 'tensorflow' }}
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
-      with:
-        path: exported_model
-        if-no-files-found: error
-    - name: Upload TensorFlow HDF5 model
-      if: ${{ github.event.inputs.framework == 'tensorflow' }}
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
-      with:
-        path: model.h5
-        if-no-files-found: error
-    - name: Upload weights-only TensorFlow HDF5 model
-      if: ${{ github.event.inputs.framework == 'tensorflow' }}
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
-      with:
-        path: serialized.weights.h5
-        if-no-files-found: error
-    - name: Upload regular PyTorch model
-      if: ${{ github.event.inputs.framework == 'pytorch' }}
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
-      with:
-        path: model.pth
-        if-no-files-found: error
-    - name: Upload full PyTorch model
-      if: ${{ github.event.inputs.framework == 'pytorch' }}
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
-      with:
-        path: full_model.pth
-        if-no-files-found: error
-    - name: Upload JITted PyTorch model
-      if: ${{ github.event.inputs.framework == 'pytorch' }}
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
-      with:
-        path: jitted_model.pt
+        path: ${{ github.event.inputs.model_type }}
+        name: ${{ github.event.inputs.model_type }}
         if-no-files-found: error
