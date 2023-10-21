@@ -67,12 +67,12 @@ def load_data():
   batch_size = 4
   num_workers = 2
 
-  trainset = torchvision.datasets.CIFAR10(root="./data", train=True,
+  trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                           download=True, transform=transform)
   trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                             shuffle=True,
                                             num_workers=num_workers)
-  testset = torchvision.datasets.CIFAR10(root="./data", train=False,
+  testset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                           download=True, transform=transform)
   testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
                                             shuffle=True,
@@ -138,11 +138,11 @@ def save_model(model):
 
   Save in multiple formats supported by PyTorch.
   """
-  path = "./model.pth"
+  path = './model.pth'
   torch.save(model.state_dict(), path)
-  path = "./full_model.pth"
+  path = './full_model.pth'
   torch.save(model, path)
-  path = "./jitted_model.pt"
+  path = './jitted_model.pt'
   torch.jit.script(model).save(path)
 
 

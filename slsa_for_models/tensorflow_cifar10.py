@@ -114,17 +114,17 @@ def save_model(model):
   Save in multiple formats supported by TensorFlow.
   """
   # New Keras format
-  path = "./model.keras"
-  model.save(path, save_format="keras")
+  path = './model.keras'
+  model.save(path, save_format='keras')
   # TF SavedModel formats, full model and weights only
-  path = "./model_tf"
-  model.save(path, save_format="tf")
-  path = "./exported_model"
+  path = './model_tf'
+  model.save(path, save_format='tf')
+  path = './exported_model'
   model.export(path)
   # Legacy HDFS format, full model and weights only
-  path = "./model.h5"
-  model.save(path, save_format="h5")
-  path = "./serialized.weights.h5"
+  path = './model.h5'
+  model.save(path, save_format='h5')
+  path = './serialized.weights.h5'
   model.save_weights(path)
 
 
