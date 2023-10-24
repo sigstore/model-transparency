@@ -55,7 +55,7 @@ jobs:
         MODEL: ${{ github.event.inputs.model_type }}
       run: |
         set -euo pipefail
-        sha256sum "$MODEL" > checksum
+        find "$MODEL" -type f -exec sha256sum {} \; > checksum
         echo "hash=$(cat checksum | base64 -w0)" >> "${GITHUB_OUTPUT}"
 
   provenance:
