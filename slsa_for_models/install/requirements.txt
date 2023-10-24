@@ -187,7 +187,7 @@ dm-tree==0.1.8 \
     # via
     #   -r requirements.in
     #   tensorflow-datasets
-etils[array-types,enp,epath,epy,etqdm,etree]==1.5.1 \
+etils[epath]==1.5.1 \
     --hash=sha256:2c1bfa2817eb4881cb509097f1e65ac6160126ba74ec47b3bb47ee678628d8c8 \
     --hash=sha256:b530c0d1b2ed1b8da1af367d4b97891e680a6a4658d4190183210bbbb8cf1fb9
     # via
