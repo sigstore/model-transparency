@@ -1,6 +1,22 @@
 # Model Signing
 
-This project demonstrates how to protect the integrity of a model by signing it with [Sigstore](https://www.sigstore.dev/).
+This project demonstrates how to protect the integrity of a model by signing it
+with [Sigstore](https://www.sigstore.dev/), a tool for making code signatures
+transparent without requiring key maintenance.
+
+When users download a given version of a signed model they can check that the
+signature comes from a known or trusted identity and thus that the model hasn't
+been tampered with after training.
+
+Signing events are recorded to Sigstore's append-only transparency log.
+Transparency logs make signing events discoverable, so that model signers can
+monitor the logs and determine if any signing events are unexpected. During
+verification, model verifiers will verify a proof of inclusion from the log,
+which is handled by the model signing library.
+
+Model signers should monitor for occurences of their signing identity in the
+log. Sigstore is actively developing a [log
+monitor](https://github.com/sigstore/rekor-monitor) that runs on GitHub Actions.
 
 ## Installation and usage
 
