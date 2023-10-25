@@ -9,10 +9,11 @@ signature comes from a known or trusted identity and thus that the model hasn't
 been tampered with after training.
 
 Signing events are recorded to Sigstore's append-only transparency log.
-Transparency logs make signing events discoverable, so that model signers can
-monitor the logs and determine if any signing events are unexpected. During
-verification, model verifiers will verify a proof of inclusion from the log,
-which is handled by the model signing library.
+Transparency logs make signing events discoverable: Model verifiers can validate
+that the models they are looking at exist in the transparency log by checking a
+proof of inclusion (which is handled by the model signing library).
+Furthermore, model signers that monitor the log can check for any unexpected
+signing events.
 
 Model signers should monitor for occurences of their signing identity in the
 log. Sigstore is actively developing a [log

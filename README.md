@@ -25,8 +25,8 @@ towards creating trustworhty AI applications. The first principle of SAIF is
 > Expand strong security foundations to the AI ecosystem
 
 Building on the work with [Open Source Security Foundation][openssf], we are
-creating this repository to demonstrate how the ML supply chain can be strengthened in
-_the same way_ as the traditional software supply chain.
+creating this repository to demonstrate how the ML supply chain can be
+strengthened in _the same way_ as the traditional software supply chain.
 
 This repository hosts a collection of utilities and examples related to the
 security of machine learning pipelines. The focus is on providing *verifiable*
@@ -36,7 +36,7 @@ trust the model trainer.
 
 ## Projects
 
-Currently, there are 2 main projects in the repository: model signing (to
+Currently, there are two main projects in the repository: model signing (to
 prevent tampering of models after publication to ML model hubs) and
 [SLSA](https://slsa.dev/) (to prevent tampering of models during the build
 process).
@@ -45,7 +45,7 @@ process).
 
 This project demonstrates how to protect the integrity of a model by signing it
 with [Sigstore](https://www.sigstore.dev/), a tool for making code signatures
-transparent without requiring key maintenance.
+transparent without requiring management of cryptographic key material.
 
 When users download a given version of a signed model they can check that the
 signature comes from a known or trusted identity and thus that the model hasn't
@@ -73,9 +73,9 @@ example by using the [SLSA L3 GitHub generator][slsa-generator].
 This projects shows how we can use the same generator for training models via
 GitHub Actions. While most of the ML models are too expensive to train in such a
 fashion, this is a proof of concept to prove that _the same traditional software
-supply chain protections can be applied to ML_. Future work will involve
-covering training ML models that require access to accelerators (i.e., GPUs,
-TPUs) or that require multiple hours for training.
+supply chain protections can be applied to ML_. Future work will involve cover
+the training of ML models that require access to accelerators (i.e., GPUs, TPUs)
+or that require multiple hours for training.
 
 See [slsa_for_models/README.md](slsa_for_models/README.md) for more information.
 
