@@ -25,7 +25,7 @@ towards creating trustworhty AI applications. The first principle of SAIF is
 > Expand strong security foundations to the AI ecosystem
 
 Building on the work with [Open Source Security Foundation][openssf], we are
-creating this repository to prove how the ML supply chain can be strengthen in
+creating this repository to demonstrate how the ML supply chain can be strengthened in
 _the same way_ as the traditional software supply chain.
 
 This repository hosts a collection of utilities and examples related to the
