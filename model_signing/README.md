@@ -2,7 +2,7 @@
 
 This project demonstrates how to protect the integrity of a model by signing it
 with [Sigstore](https://www.sigstore.dev/), a tool for making code signatures
-transparent without requiring key maintenance.
+transparent without requiring management of cryptographic key material.
 
 When users download a given version of a signed model they can check that the
 signature comes from a known or trusted identity and thus that the model hasn't
