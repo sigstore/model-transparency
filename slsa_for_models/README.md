@@ -36,8 +36,6 @@ supported formats are:
 | Workflow Argument            | Training Framework | Model format                    |
 |------------------------------|--------------------|---------------------------------|
 | `tensorflow_model.keras`     | TensorFlow         | Keras format (default)          |
-| `tensorflow_saved_model`     | TensorFlow         | SavedModel format               |
-| `tensorflow_exported_model`  | TensorFlow         | Exported SavedModel format      |
 | `tensorflow_hdf5_model.h5`   | TensorFlow         | Legacy HDF5 format              |
 | `tensorflow_hdf5.weights.h5` | TensorFlow         | Legacy HDF5 weights only format |
 | `pytorch_model.pth`          | PyTorch            | PyTorch default format          |
@@ -73,41 +71,6 @@ PASSED: Verified SLSA provenance
 
 TODO: link to a PyTorch model provenance from running GHA within the repo, fix
 the output to match
-
-**Note**: Because the SavedModel format is a directory, you will need to pass
-multiple arguments to the verify command, to validate provenance for the entire
-model. Passing a subset of the arguments will only partially check the
-provenance of the model, covering only the files given as argument.
-
-```console
-[...]$ slsa-verifier verify-artifact \
-       --provenance-path multiple.intoto.jsonl \
-       --source-uri github.com/google/model-transparency \
-       {fingerprint.pb,keras_metadata.pb,saved_model.pb,variables/*}
-Verified signature against tlog entry index 45180918 at URL: https://rekor.sigstore.dev/api/v1/log/entries/24296fb24b8ad77a11ce42c9f7aa985a05c7d30467a77d14c9d96bddf7b9fa29657f72a86cde7b82
-Verified build using builder "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@refs/tags/v1.9.0" at commit 831b9521692f564156a61998b2478378e7dc6f49
-Verifying artifact fingerprint.pb: PASSED
-
-Verified signature against tlog entry index 45180918 at URL: https://rekor.sigstore.dev/api/v1/log/entries/24296fb24b8ad77a11ce42c9f7aa985a05c7d30467a77d14c9d96bddf7b9fa29657f72a86cde7b82
-Verified build using builder "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@refs/tags/v1.9.0" at commit 831b9521692f564156a61998b2478378e7dc6f49
-Verifying artifact keras_metadata.pb: PASSED
-
-Verified signature against tlog entry index 45180918 at URL: https://rekor.sigstore.dev/api/v1/log/entries/24296fb24b8ad77a11ce42c9f7aa985a05c7d30467a77d14c9d96bddf7b9fa29657f72a86cde7b82
-Verified build using builder "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@refs/tags/v1.9.0" at commit 831b9521692f564156a61998b2478378e7dc6f49
-Verifying artifact saved_model.pb: PASSED
-
-Verified signature against tlog entry index 45180918 at URL: https://rekor.sigstore.dev/api/v1/log/entries/24296fb24b8ad77a11ce42c9f7aa985a05c7d30467a77d14c9d96bddf7b9fa29657f72a86cde7b82
-Verified build using builder "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@refs/tags/v1.9.0" at commit 831b9521692f564156a61998b2478378e7dc6f49
-Verifying artifact variables/variables.data-00000-of-00001: PASSED
-
-Verified signature against tlog entry index 45180918 at URL: https://rekor.sigstore.dev/api/v1/log/entries/24296fb24b8ad77a11ce42c9f7aa985a05c7d30467a77d14c9d96bddf7b9fa29657f72a86cde7b82
-Verified build using builder "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@refs/tags/v1.9.0" at commit 831b9521692f564156a61998b2478378e7dc6f49
-Verifying artifact variables/variables.index: PASSED
-
-PASSED: Verified SLSA provenance
-```
-
-TODO: link to a TF model from the repo, ensure output is correct
 
 The verification of provenance can be done just before model gets loaded in the
 serving pipeline.
