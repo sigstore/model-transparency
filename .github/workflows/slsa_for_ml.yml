@@ -8,16 +8,13 @@ on:
         type: choice
         options:
         - tensorflow_model.keras
-        - tensorflow_saved_model
-        - tensorflow_exported_model
         - tensorflow_hdf5_model.h5
         - tensorflow_hdf5.weights.h5
         - pytorch_model.pth
         - pytorch_full_model.pth
         - pytorch_jitted_model.pt
 
-permissions:
-  contents: write
+permissions: read-all
 
 jobs:
   train:
@@ -67,4 +64,4 @@ jobs:
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.9.0
     with:
       base64-subjects: "${{ needs.train.outputs.hash }}"
-      upload-assets: true
+      upload-assets: true # NOTE: This does nothing unless 'upload-tag-name' parameter is also set to an existing tag
