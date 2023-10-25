@@ -19,8 +19,9 @@
 
 There is a significant growth in the number of ML-powered applications. However,
 this also provides grounds for attackers to exploit unsuspecting ML users. This
-is why Google launched [Secure AI Framework (SAIF)][saif] to help chart a path
-towards creating trustworthy AI applications. The first principle of SAIF is
+is why Google launched [Secure AI Framework (SAIF)][saif] to establish industry
+standards for creating trustworthy and responsible AI applications. The first
+principle of SAIF is
 
 > Expand strong security foundations to the AI ecosystem
 
