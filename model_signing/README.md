@@ -77,11 +77,22 @@ python3 main.py verify --path "${path}" \
     --identity myemail@gmail.com
 ```
 
-There are 3 identity providers that could be used at the moment:
+For developers signing models, there are 3 identity providers that can
+be used at the moment:
 
 * Google's provider is `https://accounts.google.com`.
 * GitHub's provider is `https://github.com/login/oauth`.
 * Microsoft's provider is `https://login.microsoftonline.com`.
+
+For automated signing using a workload identity, the following platforms
+are currently supported, shown with their expected identities:
+
+* GitHub Actions
+  (`https://github.com/octo-org/octo-automation/.github/workflows/oidc.yml@refs/heads/main`)
+* GitLab CI
+  (`https://gitlab.com/my-group/my-project//path/to/.gitlab-ci.yml@refs/heads/main`)
+* Google Cloud Platform (`SERVICE_ACCOUNT_NAME@PROJECT_ID.iam.gserviceaccount.com`)
+* Buildkite CI (`https://buildkite.com/ORGANIZATION_SLUG/PIPELINE_SLUG`)
 
 ### Supported Models
 
