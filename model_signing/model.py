@@ -102,9 +102,9 @@ class SigstoreSigner():
             token = self.get_identity_token()
             if not token:
                 raise ValueError("No identity token supplied or detected!")
-            oidc_identity = Identity(token)
 
             # Print identity used to sign the model.
+            oidc_identity = Identity(token)
             print(f"identity-provider: {oidc_identity.issuer}", file=sys. stderr)
             print(f"identity: {oidc_identity.proof}", file=sys. stderr)
 
