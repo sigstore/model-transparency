@@ -19,16 +19,17 @@ Model signers should monitor for occurences of their signing identity in the
 log. Sigstore is actively developing a [log
 monitor](https://github.com/sigstore/rekor-monitor) that runs on GitHub Actions.
 
-## Installation and usage
+## Usage
 
-### Prerequisites
+You will need to install a few prerequisites:
 
 ```shell
 sudo apt install git git-lfs python3-venv python3-pip
 git lfs install
 ```
 
-### Installation
+After this, you can clone the repository, create a Python virtual environment
+and install the dependencies needed by the project:
 
 ```shell
 git clone git@github.com:google/model-transparency.git

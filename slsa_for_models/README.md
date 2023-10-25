@@ -1,17 +1,19 @@
 # SLSA for Models
 
 To protect the supply chain of traditional software against tampering (like in
-the [Solarwinds attack][solarwinds]), we can generate [SLSA][slsa] provenance,
-for example by using the [SLSA L3 GitHub generator][slsa-generator].
+the [Solarwinds attack][solarwinds]), we can generate SLSA provenance, for
+example by using the [SLSA L3 GitHub generator][slsa-generator].
 
-This projects shows how we can use the same generator for training models via
-GitHub Actions. While most of the ML models are too expensive to train in such a
-fashion, this is a proof of concept to prove that _the same traditional software
-supply chain protections can be applied to ML_. Future work will involve
-covering training ML models that require access to accelerators (i.e., GPUs,
-TPUs) or that require multiple hours for training. As an example, we could use
-[Tekton Chains][tekton-chains] to support [training ML models using
-Kubeflow][tekton-kubeflow].
+This project shows how we can use the [SLSA L3 GitHub generator][slsa-generator]
+to generate SLSA provenance for ML models. The SLSA generator was originally
+developed for traditional software to protect against tampering with builds,
+such as in the [Solarwinds attack][solarwinds], and this project is a proof of
+concept that the _same supply chain protections can be applied to ML_.
+
+Future work will involve covering training ML models that require access to
+accelerators (i.e., GPUs, TPUs) or that require multiple hours for training. As
+an example, we could use [Tekton Chains][tekton-chains] to support [training ML
+models using Kubeflow][tekton-kubeflow].
 
 When users download a given version of a model they can also check its
 provenance by using [the SLSA verifier][slsa-verifier] repository. This can be
