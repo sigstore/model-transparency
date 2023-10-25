@@ -1,17 +1,38 @@
 # Model Signing
 
-This project demonstrates how to protect the integrity of a model by signing it with [Sigstore](https://www.sigstore.dev/).
+This project demonstrates how to protect the integrity of a model by signing it
+with [Sigstore](https://www.sigstore.dev/), a tool for making code signatures
+transparent without requiring management of cryptographic key material.
 
-## Installation and usage
+When users download a given version of a signed model they can check that the
+signature comes from a known or trusted identity and thus that the model hasn't
+been tampered with after training.
 
-### Prerequisites
+Signing events are recorded to Sigstore's append-only transparency log.
+Transparency logs make signing events discoverable: Model verifiers can validate
+that the models they are looking at exist in the transparency log by checking a
+proof of inclusion (which is handled by the model signing library).
+Furthermore, model signers that monitor the log can check for any unexpected
+signing events.
+
+Model signers should monitor for occurences of their signing identity in the
+log. Sigstore is actively developing a [log
+monitor](https://github.com/sigstore/rekor-monitor) that runs on GitHub Actions.
+
+![Signing models with Sigstore](images/sigstore-model-diagram.png)
+
+## Usage
+
+You will need to install a few prerequisites to be able to run all of the
+examples below:
 
 ```shell
-sudo apt install git git-lfs python3-venv python3-pip
+sudo apt install git git-lfs python3-venv python3-pip unzip
 git lfs install
 ```
 
-### Installation
+After this, you can clone the repository, create a Python virtual environment
+and install the dependencies needed by the project:
 
 ```shell
 git clone git@github.com:google/model-transparency.git
@@ -19,51 +40,67 @@ cd model-transparency/model_signing
 python3 -m venv test_env
 source test_env/bin/activate
 python3 -m pip install --require-hashes -r install/requirements.txt
-deactivate
 ```
 
-## Running the CLI
+After this point, you can use the project to sing and verify models and
+checkpoints. A help message with all arguments can be obtained by passing `-h`
+argument, either to the main driver or to the two subcommands:
 
 ```shell
 python3 main.py -h
+python3 main.py sign -h
+python3 main.py verify -h
 ```
 
-### Signing and Verifying Models / Training Checkpoints
+Signing a model requires passing an argument for the path to the model. This can
+be a path to a file or a directory (for model formats such as SavedModel which
+are stored as a directory of related files):
 
 ```shell
-# Enter the virtual environment.
-source test_env/bin/activate
-
 path=path/to/model
-
-# Signing.
-python3 main.py sign -h
-# Note: the example stores the signature as `<file>.sig` for a file, and `<dir>/model.sig` for a folder.
 python3 main.py sign --path "${path}"
+```
 
-# Verification.
-python3 main.py verify -h
+The sign process will start an OIDC workflow to generate a short lived
+certificate based on an identity provider. This will be relevant when verifying
+the signature, as shown below.
+
+**Note**: The signature is stored as `<file>.sig` for a model serialized as a
+single file, and `<dir>/model.sig` for a model in a folder-based format.
+
+For verification, we need to pass both the path to the model and identity
+related arguments:
+
+```shell
 python3 main.py verify --path "${path}" \
     --identity-provider https://accounts.google.com \
     --identity myemail@gmail.com
-
-# Leave the venv.
-deactivate
 ```
 
-### Supported Identity Providers
+For developers signing models, there are 3 identity providers that can
+be used at the moment:
 
-Google's provider is `https://accounts.google.com`.
+* Google's provider is `https://accounts.google.com`.
+* GitHub's provider is `https://github.com/login/oauth`.
+* Microsoft's provider is `https://login.microsoftonline.com`.
 
-GitHub's provider is `https://github.com/login/oauth`.
+For automated signing using a workload identity, the following platforms
+are currently supported, shown with their expected identities:
 
-Microsoft's provider is `https://login.microsoftonline.com`.
+* GitHub Actions
+  (`https://github.com/octo-org/octo-automation/.github/workflows/oidc.yml@refs/heads/main`)
+* GitLab CI
+  (`https://gitlab.com/my-group/my-project//path/to/.gitlab-ci.yml@refs/heads/main`)
+* Google Cloud Platform (`SERVICE_ACCOUNT_NAME@PROJECT_ID.iam.gserviceaccount.com`)
+* Buildkite CI (`https://buildkite.com/ORGANIZATION_SLUG/PIPELINE_SLUG`)
 
 ### Supported Models
 
-#### TensorFlow / Tf Hub
+The library supports multiple models, from multiple training frameworks and
+model hubs.
 
-Example for Bertseq2seq model:
+For example, to sign and verify a Bertseq2seq model, trained with TensorFlow,
+stored in TFHub, run the following commands:
 
 ```shell
 model_path=bertseq2seq
@@ -76,16 +113,15 @@ python3 main.py verify --path "${model_path}" \
     --identity myemail@gmail.com
 ```
 
-#### Hugging face
-
-Pre-requisite: Install large file support for git:
+For models stored in Hugginface we need the large file support from git, which
+can be obtained via
 
 ```shell
 sudo apt install git-lfs
 git lfs install
 ```
 
-Example for Bert base model:
+After this, we can sign and verify a Bert base model:
 
 ```shell
 model_name=bert-base-uncased
@@ -97,7 +133,7 @@ python3 main.py verify --path "${model_path}" \
     --identity myemail@gmail.com
 ```
 
-Example for Falcon model:
+Similarly, we can sign and verify a Falcon model:
 
 ```shell
 model_name=tiiuae/falcon-7b
@@ -109,15 +145,7 @@ python3 main.py verify --path "${model_path}" \
     --identity myemail@gmail.com
 ```
 
-#### PyTorch Hub
-
-Example for YOLOP model:
-
-Pre-requisite: Install unzip:
-
-```shell
-sudo apt install unzip
-```
+We can also support models from  the PyTorch Hub:
 
 ```shell
 model_name=hustvl/YOLOP
@@ -131,9 +159,7 @@ python3 main.py verify --path "${model_path}" \
     --identity myemail@gmail.com
 ```
 
-#### ONNX
-
-Example for Roberta model:
+We also support ONNX models, for example Roberta:
 
 ```shell
 model_name=roberta-base-11
@@ -166,7 +192,7 @@ Hashes used:
 
 Machine M1: Debian 6.3.11 x86_64 GNU/Linux, 200GB RAM, 48 vCPUs, 512KB cache, AMD EPYC 7B12:
 
-| Hash | Model              | Size  |  Sign Time | Verify Time | 
+| Hash | Model              | Size  |  Sign Time | Verify Time |
 |------|--------------------|-------|:------:|:-----:|
 | H1 | roberta-base-11      | 8K    | 0.8s  | 0.6s  |
 | H1 | hustvl/YOLOP         | 215M  | 1.2s  | 0.8s  |
@@ -181,7 +207,7 @@ Machine M1: Debian 6.3.11 x86_64 GNU/Linux, 200GB RAM, 48 vCPUs, 512KB cache, AM
 
 Machine M2: Debian 5.10.1 x86_64 GNU/Linux, 4GB RAM, 2 vCPUs, 56320 KB, Intel(R) Xeon(R) CPU @ 2.20GHz:
 
-| Hash | Model              | Size  |  Sign Time | Verify Time | 
+| Hash | Model              | Size  |  Sign Time | Verify Time |
 |------|--------------------|-------|:------:|:-----:|
 | H1 | roberta-base-11      | 8K    | 1.1s  | 0.7s  |
 | H1 | hustvl/YOLOP         | 215M  | 1.9s  | 1.7s  |
