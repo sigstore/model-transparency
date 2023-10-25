@@ -40,6 +40,7 @@ from serialize import Serializer
 import psutil
 import sys
 
+
 def chunk_size() -> int:
     return int(psutil.virtual_memory().available // 2)
 
@@ -59,6 +60,7 @@ class BaseResult:
 
 class SignatureResult(BaseResult):
     pass
+
 
 class SigstoreSigner():
     def __init__(self,
@@ -105,7 +107,8 @@ class SigstoreSigner():
 
             # Print identity used to sign the model.
             oidc_identity = Identity(token)
-            print(f"identity-provider: {oidc_identity.issuer}", file=sys. stderr)
+            print(f"identity-provider: {oidc_identity.issuer}",
+                  file=sys. stderr)
             print(f"identity: {oidc_identity.proof}", file=sys. stderr)
 
             contentio = io.BytesIO(Serializer.serialize_v1(
