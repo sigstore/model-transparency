@@ -17,6 +17,7 @@ from sigstore.sign import (
 )
 from sigstore._internal.oidc import (
     DEFAULT_AUDIENCE,
+    Identity
 )
 from sigstore.oidc import (
     Issuer,
@@ -37,6 +38,7 @@ from pathlib import Path
 from typing import Optional
 from serialize import Serializer
 import psutil
+import sys
 
 
 def chunk_size() -> int:
@@ -102,6 +104,12 @@ class SigstoreSigner():
             token = self.get_identity_token()
             if not token:
                 raise ValueError("No identity token supplied or detected!")
+
+            # Print identity used to sign the model.
+            oidc_identity = Identity(token)
+            print(f"identity-provider: {oidc_identity.issuer}",
+                  file=sys. stderr)
+            print(f"identity: {oidc_identity.proof}", file=sys. stderr)
 
             contentio = io.BytesIO(Serializer.serialize_v1(
                 inputfn, chunk_size(), signaturefn, ignorepaths))
