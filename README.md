@@ -70,7 +70,9 @@ To protect the supply chain of traditional software against tampering (like in
 the [Solarwinds attack][solarwinds]), we can generate SLSA provenance, for
 example by using the [SLSA L3 GitHub generator][slsa-generator].
 
-This projects shows how we can use the same generator for training models via
+This project shows how we can use the [SLSA L3 GitHub generator][slsa-generator] to generate SLSA provenance for ML models. The SLSA generator was originally developed for traditional software to protect against tampering with builds, such as in the [Solarwinds attack](solarwinds), and this project is a proof of concept that the same supply chain protections can be applied to ML.
+
+While most of the ML models are currently too expensive to train using the SLSA generator on GitHub Actions, future work will cover the training of ML models that require access to accelerators (i.e., GPUs, TPUs) or that require multiple hours for training.
 GitHub Actions. While most of the ML models are too expensive to train in such a
 fashion, this is a proof of concept to prove that _the same traditional software
 supply chain protections can be applied to ML_. Future work will involve cover
