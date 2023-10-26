@@ -1,9 +1,5 @@
 # SLSA for Models
 
-To protect the supply chain of traditional software against tampering (like in
-the [Solarwinds attack][solarwinds]), we can generate SLSA provenance, for
-example by using the [SLSA L3 GitHub generator][slsa-generator].
-
 This project shows how we can use the [SLSA L3 GitHub generator][slsa-generator]
 to generate SLSA provenance for ML models. The SLSA generator was originally
 developed for traditional software to protect against tampering with builds,
@@ -58,7 +54,7 @@ SLSA provenance attached to the model.
 
 To verify the provenance, download both archives, unzip each and then run
 `slsa-verifier`, making sure to replace the `--source-uri` argument with the
-_path to your fork_. For example, for a PyTorch model, which has been [build on
+_path to your fork_. For example, for a PyTorch model, which has been [built on
 this repository](https://github.com/google/model-transparency/actions/runs/6646816974):
 
 ```console
@@ -73,7 +69,7 @@ Verifying artifact pytorch_model.pth: PASSED
 PASSED: Verified SLSA provenance
 ```
 
-The verification of provenance can be done just before model gets loaded in the
+The verification of provenance can be done just before the model gets loaded in the
 serving pipeline.
 
 **Note**: TensorFlow also supports saving models in `SavedModel` format. This is
@@ -85,8 +81,8 @@ during model signing, we have decided to add support for these model formats at
 a future time, after standardizing a way to generate and verify provenance in
 SLSA (in general, not just for ML).
 
-While this example has been targeting GitHub actions, we aim to bring support
-for other platforms (i.e., GCB, GitLab) and model training environments.
+While this example has targeted GitHub Actions, we aim to bring support
+for other platforms (e.g., GCB and GitLab) and model training environments.
 
 [cifar10]: https://www.cs.toronto.edu/~kriz/cifar.html
 [slsa-generator]: https://github.com/slsa-framework/slsa-github-generator

@@ -42,7 +42,7 @@ source test_env/bin/activate
 python3 -m pip install --require-hashes -r install/requirements.txt
 ```
 
-After this point, you can use the project to sing and verify models and
+After this point, you can use the project to sign and verify models and
 checkpoints. A help message with all arguments can be obtained by passing `-h`
 argument, either to the main driver or to the two subcommands:
 
@@ -77,7 +77,7 @@ python3 main.py verify --path "${path}" \
     --identity myemail@gmail.com
 ```
 
-For developers signing models, there are 3 identity providers that can
+For developers signing models, there are three identity providers that can
 be used at the moment:
 
 * Google's provider is `https://accounts.google.com`.
@@ -113,7 +113,7 @@ python3 main.py verify --path "${model_path}" \
     --identity myemail@gmail.com
 ```
 
-For models stored in Hugginface we need the large file support from git, which
+For models stored in Hugging Face we need the large file support from git, which
 can be obtained via
 
 ```shell
@@ -173,7 +173,7 @@ python3 main.py verify --path "${model_path}" \
 
 ## Benchmarking
 
-Install as per [Prerequisites section](#prerequisites)
+Install as per [Prerequisites section](#prerequisites).
 Ensure you have enough disk space: >= 50GB when passing 3rd script argument as "true", else >= 100GB.
 
 To run the benchmarks:
