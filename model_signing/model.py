@@ -108,8 +108,8 @@ class SigstoreSigner():
             # Print identity used to sign the model.
             oidc_identity = Identity(token)
             print(f"identity-provider: {oidc_identity.issuer}",
-                  file=sys. stderr)
-            print(f"identity: {oidc_identity.proof}", file=sys. stderr)
+                  file=sys.stderr)
+            print(f"identity: {oidc_identity.proof}", file=sys.stderr)
 
             contentio = io.BytesIO(Serializer.serialize_v1(
                 inputfn, chunk_size(), signaturefn, ignorepaths))
