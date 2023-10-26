@@ -127,8 +127,8 @@ def supported_models():
     return {
         # New Keras format
         'tensorflow_model.keras': lambda m, p: m.save(p, save_format='keras'),
+        # TF SavedModel formats, full model and weights only
         # TODO: Re-enable support for these when SLSA supports directories
-        ## TF SavedModel formats, full model and weights only
         #'tensorflow_saved_model': lambda m, p: m.save(p, save_format='tf'),
         #'tensorflow_exported_model': lambda m, p: m.export(p),
         # Legacy HDFS format, full model and weights only
