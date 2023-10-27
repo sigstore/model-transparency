@@ -120,4 +120,4 @@ class Test_serialize_v0:
             cleanup_model(altered_model)
         cleanup_model(model)
 
-    # TODO(#57): directoty support.
+    # TODO(#57): directory support.
