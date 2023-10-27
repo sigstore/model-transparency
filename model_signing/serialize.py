@@ -281,7 +281,7 @@ class Serializer:
     def serialize_v1(path: Path, chunk: int, signature_path: Path,
                      ignorepaths: [Path] = []) -> bytes:
         if not path.exists():
-            raise ValueError(f"{str(path)} does not eixst")
+            raise ValueError(f"{str(path)} does not exist")
 
         if not allow_symlinks and path.is_symlink():
             raise ValueError(f"{str(path)} is a symlink")
@@ -312,7 +312,7 @@ class Serializer:
     def serialize_v0(path: Path, chunk: int, signature_path: Path,
                      ignorepaths: [Path] = []) -> bytes:
         if not path.exists():
-            raise ValueError(f"{str(path)} does not eixst")
+            raise ValueError(f"{str(path)} does not exist")
 
         if not allow_symlinks and path.is_symlink():
             raise ValueError(f"{str(path)} is a symlink")
