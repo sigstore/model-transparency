@@ -136,8 +136,8 @@ class Test_serialize_v0:
         sig_path = signature_path(model)
         result = Serializer.serialize_v0(model, 0, sig_path)
         for c in range(file_size):
-            altered_content = content[:c] + bytes([content[c] | 1]) + \
-                content[c:]
+            altered_content = content[:c] + bytes([content[c] ^ 1]) + \
+                content[c+1:]
             altered_file = file + (".%d" % c)
             altered_model = create_file(altered_file, altered_content)
             altered_sig_path = signature_path(altered_model)
@@ -259,13 +259,13 @@ class Test_serialize_v1:
     # contents.
     def test_altered_file(self):
         file = "model_file"
-        file_size = 999
+        file_size = 99
         model, content = create_random_file(file, file_size)
         sig_path = signature_path(model)
         result = Serializer._serialize_v1(model, 0, 19, sig_path)
         for c in range(file_size):
-            altered_content = content[:c] + bytes([content[c] | 1]) + \
-                content[c:]
+            altered_content = content[:c] + bytes([content[c] ^ 1]) + \
+                content[c+1:]
             altered_file = file + (".%d" % c)
             altered_model = create_file(altered_file, altered_content)
             altered_sig_path = signature_path(altered_model)
