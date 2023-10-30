@@ -16,7 +16,9 @@ jobs:
       with:
         python-version: 3.11
         cache: pip
-        cache-dependency-path: model_signing/install/requirements.txt
+        cache-dependency-path: |
+          model_signing/install/requirements.txt
+          model_signing/install/requirements.test.txt
     - name: Install dependencies
       run: |
         set -euo pipefail

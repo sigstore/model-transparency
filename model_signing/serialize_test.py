@@ -100,6 +100,23 @@ class Test_serialize_v0:
             assert (r == result)
         cleanup_model(model)
 
+    # File serialization returns the same results for different file names.
+    def test_different_filename(self):
+        file = "model_file"
+        data = b"hellow world content"
+        model = create_file(file, data)
+        sig_path = signature_path(model)
+        r0 = Serializer.serialize_v0(model, 0, sig_path)
+        cleanup_model(model)
+
+        file = "model_file2"
+        model = create_file(file, data)
+        sig_path = signature_path(model)
+        r1 = Serializer.serialize_v0(model, 0, sig_path)
+        cleanup_model(model)
+
+        assert (r0 == r1)
+
     # File serialization returns a different result for different model
     # contents.
     def test_altered_file(self):
