@@ -16,7 +16,7 @@ import hashlib
 import base64
 import os
 from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import set_start_method
+from multiprocessing import get_start_method, set_start_method
 from pathlib import Path
 
 # Use for testing while keeping disk size low.
@@ -225,7 +225,8 @@ class Serializer:
         all_hashes = [None] * (digest_len*len(tasks))
         org_len = len(all_hashes)
 
-        set_start_method('fork')
+        if get_start_method() != "fork":
+            set_start_method('fork')
         with ProcessPoolExecutor() as ppe:
             futures = [ppe.submit(Serializer.task, (path, chunk, tasks[i]))
                        for i in range(len(tasks))]
@@ -278,8 +279,8 @@ class Serializer:
                                             header, start_pos, end_pos, chunk)
 
     @staticmethod
-    def serialize_v1(path: Path, chunk: int, signature_path: Path,
-                     ignorepaths: [Path] = []) -> bytes:
+    def _serialize_v1(path: Path, chunk: int, shard: int, signature_path: Path,
+                      ignorepaths: [Path] = []) -> bytes:
         if not path.exists():
             raise ValueError(f"{str(path)} does not exist")
 
@@ -297,8 +298,9 @@ class Serializer:
                                              [signature_path] + ignorepaths)
 
         # We shard the computation by creating independent "tasks".
-        shard_size = 1000000000  # 1GB
-        tasks = Serializer._create_tasks(children, shard_size)
+        if shard < 0:
+            raise ValueError(f"{str(shard)} is invalid")
+        tasks = Serializer._create_tasks(children, shard)
 
         # Share the computation of hashes.
         # For simplicity, we pre-allocate the entire array that will hold
@@ -308,6 +310,15 @@ class Serializer:
         # Finally, we hash everything.
         return hashlib.sha256(bytes(all_hashes)).digest()
 
+    def serialize_v1(path: Path, chunk: int, signature_path: Path,
+                     ignorepaths: [Path] = []) -> bytes:
+        # NOTE: The shard size must be the same for all clients for
+        # compatibility. We could make it configurable; but in this
+        # case the signature file must contain the value used by the signer.
+        shard_size = 1000000000  # 1GB
+        return Serializer._serialize_v1(path, chunk, shard_size,
+                                        signature_path, ignorepaths)
+
     @staticmethod
     def serialize_v0(path: Path, chunk: int, signature_path: Path,
                      ignorepaths: [Path] = []) -> bytes:
@@ -316,6 +327,9 @@ class Serializer:
 
         if not allow_symlinks and path.is_symlink():
             raise ValueError(f"{str(path)} is a symlink")
+
+        if chunk < 0:
+            raise ValueError(f"{str(chunk)} is invalid")
 
         if path.is_file():
             return Hasher.root_file(path, chunk)
