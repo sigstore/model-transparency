@@ -29,4 +29,5 @@ jobs:
     - name: Run unit tests
       run: |
         set -euo pipefail
+        source venv/bin/activate
         pytest .
