@@ -280,7 +280,7 @@ class Serializer:
 
     @staticmethod
     def _serialize_v1(path: Path, chunk: int, shard: int, signature_path: Path,
-                     ignorepaths: [Path] = []) -> bytes:
+                      ignorepaths: [Path] = []) -> bytes:
         if not path.exists():
             raise ValueError(f"{str(path)} does not exist")
 
@@ -312,9 +312,9 @@ class Serializer:
 
     def serialize_v1(path: Path, chunk: int, signature_path: Path,
                      ignorepaths: [Path] = []) -> bytes:
-        # NOTE: The shard size must be the same for all clients for compatibility.
-        # We could make it configurable; but in this case the signature file must
-        # contain the value used by the signer.
+        # NOTE: The shard size must be the same for all clients for
+        # compatibility. We could make it configurable; but in this
+        # case the signature file must contain the value used by the signer.
         shard_size = 1000000000  # 1GB
         return Serializer._serialize_v1(path, chunk, shard_size,
                                         signature_path, ignorepaths)

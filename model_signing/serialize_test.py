@@ -104,6 +104,7 @@ class Test_serialize_v0:
 
     # File serialization raises error for negativ chunk values.
     def test_file_negative_chuncks(self):
+        file = "model_file"
         data = b"hellow world content"
         model = create_file(file, data)
         sig_path = signature_path(model)
@@ -148,7 +149,8 @@ class Test_serialize_v0:
             cleanup_model(altered_model)
         cleanup_model(model)
 
-#     # TODO(#57): directory support.
+    # TODO(#57): directory support.
+
 
 class Test_serialize_v1:
     # symlink in root folder raises ValueError exception.
@@ -274,7 +276,7 @@ class Test_serialize_v1:
             assert (altered_result != result)
             cleanup_model(altered_model)
         cleanup_model(model)
-    
+
     # File serialization works on large files.
     def test_large_file(self):
         file = "model_file"
