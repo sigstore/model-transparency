@@ -94,12 +94,10 @@ class Test_serialize_v0:
         model, _ = create_random_file(file, file_size)
         sig_path = signature_path(model)
         result = Serializer.serialize_v0(model, 0, sig_path)
-        results = [result]
         # NOTE: we want to also test a chunk size larger than the files size.
         for c in range(1, file_size + 1):
             r = Serializer.serialize_v0(model, c, sig_path)
-            assert (r not in results)
-            results += [r]
+            assert (r == result)
         cleanup_model(model)
 
     # File serialization raises error for negativ chunk values.
