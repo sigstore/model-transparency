@@ -348,13 +348,15 @@ class Serializer:
 
         hash = hashlib.sha256()
         for child in children:
-            child_hash = Serializer._serialize_node(child, chunk, " ", ignorepaths)
+            child_hash = Serializer._serialize_node(child, chunk, " ",
+                                                    ignorepaths)
             hash.update(child_hash)
         content = hash.digest()
         return Hasher.root_folder(path, content)
 
     @staticmethod
-    def _serialize_node(path: Path, chunk: int, indent="", ignorepaths: [Path] = []) -> bytes:
+    def _serialize_node(path: Path, chunk: int, indent="",
+                        ignorepaths: [Path] = []) -> bytes:
         if not allow_symlinks and path.is_symlink():
             raise ValueError(f"{str(path)} is a symlink")
 
@@ -371,7 +373,8 @@ class Serializer:
 
         hash = hashlib.sha256()
         for child in children:
-            child_hash = Serializer._serialize_node(child, chunk, indent + " ", ignorepaths)
+            child_hash = Serializer._serialize_node(child, chunk, indent + " ",
+                                                    ignorepaths)
             hash.update(child_hash)
         content = hash.digest()
         return Hasher.node_folder(path, content)

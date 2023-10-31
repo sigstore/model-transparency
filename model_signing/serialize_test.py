@@ -361,6 +361,16 @@ class Test_serialize_v0:
             assert (r == result)
         cleanup_model(model)
 
+    # Folder serialization raises an exception if the signature
+    # file is not in the root folder.
+    def test_folfer_invalid_sign_path(self):
+        dir = "model_dir"
+        model = create_empty_folder(dir)
+        sig_path = model.joinpath("sub/model.sig")
+        with pytest.raises(ValueError):
+            _ = Serializer.serialize_v0(model, 0, sig_path)
+        cleanup_model(model)
+
 
 class Test_serialize_v1:
     # symlink in root folder raises ValueError exception.
