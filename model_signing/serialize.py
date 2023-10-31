@@ -348,13 +348,13 @@ class Serializer:
 
         hash = hashlib.sha256()
         for child in children:
-            child_hash = Serializer._serialize_node(child, chunk, " ")
+            child_hash = Serializer._serialize_node(child, chunk, " ", ignorepaths)
             hash.update(child_hash)
         content = hash.digest()
         return Hasher.root_folder(path, content)
 
     @staticmethod
-    def _serialize_node(path: Path, chunk: int, indent="") -> bytes:
+    def _serialize_node(path: Path, chunk: int, indent="", ignorepaths: [Path] = []) -> bytes:
         if not allow_symlinks and path.is_symlink():
             raise ValueError(f"{str(path)} is a symlink")
 
@@ -364,14 +364,14 @@ class Serializer:
         if not path.is_dir():
             raise ValueError(f"{str(path)} is not a dir")
 
-        children = sorted([x for x in path.iterdir()])
+        children = sorted([x for x in path.iterdir() if x not in ignorepaths])
         # TODO: remove this special case?
         if len(children) == 0:
             return Hasher.node_folder(path, b"empty")
 
         hash = hashlib.sha256()
         for child in children:
-            child_hash = Serializer._serialize_node(child, chunk, indent + " ")
+            child_hash = Serializer._serialize_node(child, chunk, indent + " ", ignorepaths)
             hash.update(child_hash)
         content = hash.digest()
         return Hasher.node_folder(path, content)

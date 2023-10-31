@@ -9,10 +9,44 @@ testdata_dir = "testdata"
 
 
 # Utility functions.
-def create_folder(name: str) -> Path:
+def create_empty_folder(name: str) -> Path:
     p = os.path.join(os.getcwd(), testdata_dir, name)
     os.makedirs(p)
     return Path(p)
+
+
+def create_random_folders(name: str) -> (Path, int, [Path], [Path]):
+    p = os.path.join(os.getcwd(), testdata_dir, name)
+
+    content = os.urandom(1)
+    dirs = [p]
+    # Generate 8 directories.
+    for i in range(8):
+        bit = (content[0] >> i) & 1
+        if bit > 0:
+            # Add depth to the previously-created directory.
+            dirs[-1] = os.path.join(dirs[-1], "dir_%d" % i)
+        else:
+            # Add a directory in the same directory as the previous entry.
+            parent = os.path.dirname(dirs[-1])
+            if Path(parent) == Path(p).parent:
+                parent = str(p)
+            dirs += [os.path.join(parent, "dir_%d" % i)]
+    for d in dirs:
+        os.makedirs(d)
+
+    # Create at most 3 files in each directory.
+    files = []
+    for d in dirs:
+        b = os.urandom(1)
+        n = b[0] & 3
+        for i in range(n):
+            files += [os.path.join(d, "file_%d" % n)]
+            content = os.urandom(28)
+            with open(files[-1], "wb") as f:
+                f.write(content)
+
+    return Path(p), 28, [Path(d) for d in sorted(dirs)], [Path(f) for f in sorted(files)]  # noqa: E501 ignore long line warning
 
 
 def create_symlinks(src: str, dst: str) -> Path:
@@ -58,7 +92,7 @@ class Test_serialize_v0:
     # symlink in root folder raises ValueError exception.
     def test_symlink_root(self):
         folder = "with_root_symlinks"
-        model = create_folder(folder)
+        model = create_empty_folder(folder)
         sig = signature_path(model)
         create_symlinks(".", os.path.join(folder, "root_link"))
         with pytest.raises(ValueError):
@@ -67,9 +101,9 @@ class Test_serialize_v0:
 
     # symlink in non-root folder raises ValueError exception.
     def test_symlink_nonroot(self):
-        model = create_folder("with_nonroot_symlinks")
+        model = create_empty_folder("with_nonroot_symlinks")
         sub_folder = model.joinpath("sub")
-        create_folder(str(sub_folder))
+        create_empty_folder(str(sub_folder))
         sig = signature_path(model)
         create_symlinks(".", os.path.join(sub_folder, "sub_link"))
         with pytest.raises(ValueError):
@@ -100,7 +134,7 @@ class Test_serialize_v0:
             assert (r == result)
         cleanup_model(model)
 
-    # File serialization raises error for negativ chunk values.
+    # File serialization raises error for negative chunk values.
     def test_file_negative_chuncks(self):
         file = "model_file"
         data = b"hellow world content"
@@ -127,6 +161,25 @@ class Test_serialize_v0:
 
         assert (r0 == r1)
 
+    # Folder serialization works.
+    def test_known_folder(self):
+        folder = "some_folder"
+        model = create_empty_folder(folder)
+        sig = signature_path(model)
+        os.mkdir(model.joinpath("dir1"))
+        os.mkdir(model.joinpath("dir2"))
+        os.mkdir(model.joinpath("dir3"))
+        with open(model.joinpath("dir1", "f11"), "wb") as f:
+            f.write(b"content f11")
+        with open(model.joinpath("dir1", "f12"), "wb") as f:
+            f.write(b"content f12")
+        with open(model.joinpath("dir3", "f31"), "wb") as f:
+            f.write(b"content f31")
+        result = Serializer.serialize_v0(model, 0, sig)
+        expected = b's\xac\xf7\xbdC\x14\x97fv\x97\x9c\xd3\xe4=,\xe7\x99.d(oP\xff\xe2\xd8~\xa2\x9cS\xe2/\xd9'  # noqa: E501 ignore long line warning
+        assert (result == expected)
+        cleanup_model(model)
+
     # File serialization returns a different result for different model
     # contents.
     def test_altered_file(self):
@@ -147,14 +200,173 @@ class Test_serialize_v0:
             cleanup_model(altered_model)
         cleanup_model(model)
 
-    # TODO(#57): directory support.
+    # Folder serialization raises error for negativ chunk values.
+    def test_folder_negative_chuncks(self):
+        dir = "model_dir"
+        model = create_empty_folder(dir)
+        sig_path = signature_path(model)
+        with pytest.raises(ValueError):
+            _ = Serializer.serialize_v0(model, -1, sig_path)
+        cleanup_model(model)
+
+    # Folder serialization returns the same results for different folder names.
+    def test_different_dirname(self):
+        folder = "model_dir"
+        model = create_empty_folder(folder)
+        sig = signature_path(model)
+        os.mkdir(model.joinpath("dir1"))
+        os.mkdir(model.joinpath("dir2"))
+        os.mkdir(model.joinpath("dir3"))
+        with open(model.joinpath("dir1", "f11"), "wb") as f:
+            f.write(b"content f11")
+        with open(model.joinpath("dir1", "f12"), "wb") as f:
+            f.write(b"content f12")
+        with open(model.joinpath("dir3", "f31"), "wb") as f:
+            f.write(b"content f31")
+        r0 = Serializer.serialize_v0(model, 0, sig)
+
+        # Rename the folder.
+        new_model = model.parent.joinpath("model_dir2")
+        os.rename(model, new_model)
+        sig_path = signature_path(new_model)
+        r1 = Serializer.serialize_v0(new_model, 0, sig_path)
+        cleanup_model(new_model)
+
+        assert (r0 == r1)
+
+    # Folder serialization returns the same results for different folder names
+    # that are ignored.
+    def test_different_ignored_paths(self):
+        folder = "model_dir"
+        model = create_empty_folder(folder)
+        sig = signature_path(model)
+        os.mkdir(model.joinpath("dir1"))
+        os.mkdir(model.joinpath("dir2"))
+        os.mkdir(model.joinpath("dir2/dir3"))
+        with open(model.joinpath("dir1", "f11"), "wb") as f:
+            f.write(b"content f11")
+        with open(model.joinpath("dir2", "f21"), "wb") as f:
+            f.write(b"content f21")
+        with open(model.joinpath("dir2/dir3", "f31"), "wb") as f:
+            f.write(b"content f31")
+        r1 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir1")])
+        r2 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir2")])
+        r3 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir2/dir3")])  # noqa: E501 ignore long line warning
+
+        # Rename the file under dir1.
+        new_file = model.joinpath("dir1/f11_altered")
+        os.rename(model.joinpath("dir1/f11"), new_file)
+        r11 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir1")])
+        assert (r11 == r1)
+        os.rename(new_file, model.joinpath("dir1/f11"))
+
+        # Update the file under dir1.
+        r11 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir1")])
+        with open(model.joinpath("dir1", "f11"), "wb") as f:
+            f.write(b"content f11 altered")
+        assert (r11 == r1)
+        with open(model.joinpath("dir1", "f11"), "wb") as f:
+            f.write(b"content f11")
+
+        # Rename the folder dir2.
+        new_dir = model.joinpath("dir2/dir3_altered")
+        os.rename(model.joinpath("dir2/dir3"), new_dir)
+        r22 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir2")])
+        assert (r22 == r2)
+        os.rename(new_dir, model.joinpath("dir2/dir3"))
+
+        # Add a file under dir2.
+        with open(model.joinpath("dir2", "new_file"), "wb") as f:
+            f.write(b"new file!!")
+        r22 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir2")])
+        assert (r22 == r2)
+        os.unlink(model.joinpath("dir2", "new_file"))
+
+        # Update the content of f31 file.
+        with open(model.joinpath("dir2/dir3", "f31"), "wb") as f:
+            f.write(b"content f31 altered")
+        r22 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir2")])
+        assert (r22 == r2)
+        r33 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir2/dir3")])  # noqa: E501 ignore long line warning
+        assert (r33 == r3)
+        with open(model.joinpath("dir2/dir3", "f31"), "wb") as f:
+            f.write(b"content f31")
+
+        cleanup_model(model)
+
+    # Folder serialization return different values for different
+    # sub-directory names.
+    def test_random_folder_different_folder_names(self):
+        dir = "model_dir"
+        model, _, dirs, _ = create_random_folders(dir)
+        sig_path = signature_path(model)
+        result = Serializer.serialize_v0(model, 0, sig_path)
+        for d in dirs:
+            if d == model:
+                # Ignore the model folder.
+                continue
+            new_folder = d.parent.joinpath(d.name + "_altered")
+            os.rename(d, new_folder)
+            r = Serializer.serialize_v0(model, 0, sig_path)
+            os.rename(new_folder, d)
+            assert (r != result)
+        cleanup_model(model)
+
+    # Folder serialization return different values for different file names.
+    def test_random_folder_different_filenames(self):
+        dir = "model_dir"
+        model, _, _, files = create_random_folders(dir)
+        sig_path = signature_path(model)
+        result = Serializer.serialize_v0(model, 0, sig_path)
+        for f in files:
+            new_file = f.parent.joinpath(f.name + "_altered")
+            os.rename(f, new_file)
+            r = Serializer.serialize_v0(model, 0, sig_path)
+            os.rename(new_file, f)
+            assert (r != result)
+        cleanup_model(model)
+
+    # Folder serialization return different values for different file contents.
+    def test_random_folder_different_file_content(self):
+        dir = "model_dir"
+        model, _, _, files = create_random_folders(dir)
+        sig_path = signature_path(model)
+        result = Serializer.serialize_v0(model, 0, sig_path)
+        for f in files:
+            content = b''
+            with open(f, "rb") as ff:
+                content = ff.read()
+            for c in range(len(content)):
+                # Alter the file content, one byte at a time.
+                altered_content = content[:c] + bytes([content[c] ^ 1]) + \
+                    content[c+1:]
+                with open(f, "wb") as ff:
+                    ff.write(altered_content)
+                r = Serializer.serialize_v0(model, 0, sig_path)
+                assert (r != result)
+            # Write the original content back to the file.
+            with open(f, "wb") as ff:
+                ff.write(content)
+        cleanup_model(model)
+
+    # Folder serialization return same results for different chunk sizes.
+    def test_random_folder_different_chunks(self):
+        dir = "model_dir"
+        model, max_size, _, _ = create_random_folders(dir)
+        sig_path = signature_path(model)
+        result = Serializer.serialize_v0(model, 0, sig_path)
+        # NOTE: we want to also test a chunk size larger than the files size.
+        for c in range(1, max_size + 1):
+            r = Serializer.serialize_v0(model, c, sig_path)
+            assert (r == result)
+        cleanup_model(model)
 
 
 class Test_serialize_v1:
     # symlink in root folder raises ValueError exception.
     def test_symlink_root(self):
         folder = "with_root_symlinks"
-        model = create_folder(folder)
+        model = create_empty_folder(folder)
         sig = signature_path(model)
         create_symlinks(".", os.path.join(folder, "root_link"))
         with pytest.raises(ValueError):
@@ -163,9 +375,9 @@ class Test_serialize_v1:
 
     # symlink in non-root folder raises ValueError exception.
     def test_symlink_nonroot(self):
-        model = create_folder("with_nonroot_symlinks")
+        model = create_empty_folder("with_nonroot_symlinks")
         sub_folder = model.joinpath("sub")
-        create_folder(str(sub_folder))
+        create_empty_folder(str(sub_folder))
         sig = signature_path(model)
         create_symlinks(".", os.path.join(sub_folder, "sub_link"))
         with pytest.raises(ValueError):
