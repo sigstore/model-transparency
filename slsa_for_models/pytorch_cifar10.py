@@ -119,13 +119,11 @@ def prepare_model(model):
 
 
 def train_model(model, loss, optimizer, train):
-    """Train a model on the training set."""
     num_epochs = 2
     batch_size = 2000
     for epoch in range(num_epochs):
         running_loss = 0.0
-        for i, data in enumerate(train, 1):
-            x, y = data
+        for i, (x, y) in enumerate(train, 1):
             optimizer.zero_grad()
             outputs = model(x)
             loss_score = loss(outputs, y)
@@ -133,10 +131,8 @@ def train_model(model, loss, optimizer, train):
             optimizer.step()
             running_loss += loss_score.item()
             if i % batch_size == 0:
-                print(f'[{epoch}, {i:5d}], '
-                      f'loss: {running_loss / batch_size :.3f}')
+                print(f'[{epoch}, {i:5d}], loss: {running_loss / batch_size :.3f}')
                 running_loss = 0.0
-
 
 def score_model(model, test):
     """Score a trained model on the test set."""
