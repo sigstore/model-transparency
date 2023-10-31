@@ -234,8 +234,8 @@ class Test_serialize_v0:
 
         assert (r0 == r1)
 
-    # Folder serialization returns the same results for different folder names
-    # that are ignored.
+    # Folder serialization returns the same results for different folder or
+    # file names and / or file contents.
     def test_different_ignored_paths(self):
         folder = "model_dir"
         model = create_empty_folder(folder)
@@ -252,6 +252,7 @@ class Test_serialize_v0:
         r1 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir1")])
         r2 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir2")])
         r3 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir2/dir3")])  # noqa: E501 ignore long line warning
+        r4 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir2/dir3/f31")])  # noqa: E501 ignore long line warning
 
         # Rename the file under dir1.
         new_file = model.joinpath("dir1/f11_altered")
@@ -289,6 +290,8 @@ class Test_serialize_v0:
         assert (r22 == r2)
         r33 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir2/dir3")])  # noqa: E501 ignore long line warning
         assert (r33 == r3)
+        r44 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir2/dir3/f31")])  # noqa: E501 ignore long line warning
+        assert (r44 == r4)
         with open(model.joinpath("dir2/dir3", "f31"), "wb") as f:
             f.write(b"content f31")
 
