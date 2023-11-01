@@ -200,7 +200,7 @@ class Test_serialize_v0:
             cleanup_model(altered_model)
         cleanup_model(model)
 
-    # Folder serialization raises error for negativ chunk values.
+    # Folder serialization raises error for negative chunk values.
     def test_folder_negative_chuncks(self):
         dir = "model_dir"
         model = create_empty_folder(dir)
@@ -295,6 +295,32 @@ class Test_serialize_v0:
         with open(model.joinpath("dir2/dir3", "f31"), "wb") as f:
             f.write(b"content f31")
 
+        cleanup_model(model)
+
+    # Folder serialization returns different results
+    # for an empty file or directory with the same name.
+    def test_file_dir(self):
+        folder = "model_dir"
+        model = create_empty_folder(folder)
+        sig = signature_path(model)
+        os.mkdir(model.joinpath("dir1"))
+        os.mkdir(model.joinpath("dir2"))
+        os.mkdir(model.joinpath("dir3"))
+        with open(model.joinpath("dir1", "f11"), "wb") as f:
+            f.write(b"content f11")
+        with open(model.joinpath("dir1", "f12"), "wb") as f:
+            f.write(b"content f12")
+        with open(model.joinpath("dir3", "f31"), "wb") as f:
+            f.write(b"content f31")
+        r0 = Serializer.serialize_v0(model, 0, sig)
+
+        # Remove dir2 and create an empty file with the same name.
+        dir2 = model.joinpath("dir2")
+        os.rmdir(dir2)
+        with open(dir2, 'w') as _:
+            pass
+        r1 = Serializer.serialize_v0(model, 0, sig)
+        assert (r0 != r1)
         cleanup_model(model)
 
     # Folder serialization return different values for different
