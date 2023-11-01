@@ -31,5 +31,6 @@ jobs:
         set -euo pipefail
         source venv/bin/activate
         # NOTE: option --full-trace may be useful for troubleshooting.
+        # TODO(#68): Remove the need to create this folder.
         mkdir testdata
         pytest -v .
