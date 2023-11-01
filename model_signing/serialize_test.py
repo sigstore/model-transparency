@@ -91,7 +91,7 @@ def signature_path(model: Path) -> Path:
 class Test_serialize_v0:
     # File serialization works.
     def test_known_file(self):
-        file = "model_file"
+        file = "v0_test_known_file"
         data = b"hellow world content"
         model = create_file(file, data)
         sig_path = signature_path(model)
@@ -102,7 +102,7 @@ class Test_serialize_v0:
 
     # File serialization returns the same results for different chunk sizes.
     def test_file_chuncks(self):
-        file = "model_file"
+        file = "v0_test_file_chuncks"
         file_size = 999
         model, _ = create_random_file(file, file_size)
         sig_path = signature_path(model)
@@ -115,7 +115,7 @@ class Test_serialize_v0:
 
     # File serialization raises error for negative chunk values.
     def test_file_negative_chuncks(self):
-        file = "model_file"
+        file = "v0_test_file_negative_chuncks"
         data = b"hellow world content"
         model = create_file(file, data)
         sig_path = signature_path(model)
@@ -125,14 +125,14 @@ class Test_serialize_v0:
 
     # File serialization returns the same results for different file names.
     def test_different_filename(self):
-        file = "model_file"
+        file = "v0_test_different_filename"
         data = b"hellow world content"
         model = create_file(file, data)
         sig_path = signature_path(model)
         r0 = Serializer.serialize_v0(model, 0, sig_path)
         cleanup_model(model)
 
-        file = "model_file2"
+        file = "v0_test_different_filename2"
         model = create_file(file, data)
         sig_path = signature_path(model)
         r1 = Serializer.serialize_v0(model, 0, sig_path)
@@ -143,7 +143,7 @@ class Test_serialize_v0:
     # File serialization returns a different result for different model
     # contents.
     def test_altered_file(self):
-        file = "model_file"
+        file = "v0_test_altered_file"
         file_size = 999
         model, content = create_random_file(file, file_size)
         sig_path = signature_path(model)
@@ -162,7 +162,7 @@ class Test_serialize_v0:
 
     # symlink in root folder raises ValueError exception.
     def test_folder_symlink_root(self):
-        folder = "with_root_symlinks"
+        folder = "v0_test_folder_symlink_root"
         model = create_empty_folder(folder)
         sig = signature_path(model)
         create_symlinks(".", os.path.join(folder, "root_link"))
@@ -172,7 +172,7 @@ class Test_serialize_v0:
 
     # symlink in non-root folder raises ValueError exception.
     def test_folder_symlink_nonroot(self):
-        model = create_empty_folder("with_nonroot_symlinks")
+        model = create_empty_folder("v0_test_folder_symlink_nonroot")
         sub_folder = model.joinpath("sub")
         create_empty_folder(str(sub_folder))
         sig = signature_path(model)
@@ -183,7 +183,7 @@ class Test_serialize_v0:
 
     # Folder serialization works.
     def test_known_folder(self):
-        folder = "some_folder"
+        folder = "v0_test_known_folder"
         model = create_empty_folder(folder)
         sig = signature_path(model)
         os.mkdir(model.joinpath("dir1"))
@@ -202,7 +202,7 @@ class Test_serialize_v0:
 
     # Folder serialization raises error for negative chunk values.
     def test_folder_negative_chuncks(self):
-        dir = "model_dir"
+        dir = "v0_test_folder_negative_chuncks"
         model = create_empty_folder(dir)
         sig_path = signature_path(model)
         with pytest.raises(ValueError):
@@ -211,7 +211,7 @@ class Test_serialize_v0:
 
     # Folder serialization returns the same results for different folder names.
     def test_different_dirname(self):
-        folder = "model_dir"
+        folder = "v0_test_different_dirname"
         model = create_empty_folder(folder)
         sig = signature_path(model)
         os.mkdir(model.joinpath("dir1"))
@@ -237,7 +237,7 @@ class Test_serialize_v0:
     # Folder serialization returns the same results for different folder or
     # file names and / or file contents.
     def test_different_ignored_paths(self):
-        folder = "model_dir"
+        folder = "v0_test_different_ignored_paths"
         model = create_empty_folder(folder)
         sig = signature_path(model)
         os.mkdir(model.joinpath("dir1"))
@@ -305,7 +305,7 @@ class Test_serialize_v0:
     # Folder serialization returns different results
     # for an empty file or directory with the same name.
     def test_file_dir(self):
-        folder = "model_dir"
+        folder = "v0_test_file_dir"
         model = create_empty_folder(folder)
         sig = signature_path(model)
         os.mkdir(model.joinpath("dir1"))
@@ -331,7 +331,7 @@ class Test_serialize_v0:
     # Folder serialization return different values for different
     # sub-directory names.
     def test_random_folder_different_folder_names(self):
-        dir = "model_dir"
+        dir = "v0_test_random_folder_different_folder_names"
         model, _, dirs, _ = create_random_folders(dir)
         sig_path = signature_path(model)
         result = Serializer.serialize_v0(model, 0, sig_path)
@@ -348,7 +348,7 @@ class Test_serialize_v0:
 
     # Folder serialization return different values for different file names.
     def test_random_folder_different_filenames(self):
-        dir = "model_dir"
+        dir = "v0_test_random_folder_different_filenames"
         model, _, _, files = create_random_folders(dir)
         sig_path = signature_path(model)
         result = Serializer.serialize_v0(model, 0, sig_path)
@@ -362,7 +362,7 @@ class Test_serialize_v0:
 
     # Folder serialization return different values for different file contents.
     def test_random_folder_different_file_content(self):
-        dir = "model_dir"
+        dir = "v0_test_random_folder_different_file_content"
         model, _, _, files = create_random_folders(dir)
         sig_path = signature_path(model)
         result = Serializer.serialize_v0(model, 0, sig_path)
@@ -385,7 +385,7 @@ class Test_serialize_v0:
 
     # Folder serialization return same results for different chunk sizes.
     def test_random_folder_different_chunks(self):
-        dir = "model_dir"
+        dir = "v0_test_random_folder_different_chunks"
         model, max_size, _, _ = create_random_folders(dir)
         sig_path = signature_path(model)
         result = Serializer.serialize_v0(model, 0, sig_path)
@@ -398,7 +398,7 @@ class Test_serialize_v0:
     # Folder serialization raises an exception if the signature
     # file is not in the root folder.
     def test_folfer_invalid_sign_path(self):
-        dir = "model_dir"
+        dir = "v0_test_folfer_invalid_sign_path"
         model = create_empty_folder(dir)
         sig_path = model.joinpath("sub/model.sig")
         with pytest.raises(ValueError):
@@ -409,7 +409,7 @@ class Test_serialize_v0:
 class Test_serialize_v1:
     # File serialization works.
     def test_known_file(self):
-        file = "model_file"
+        file = "v1_test_known_file"
         data = b"hellow world content"
         model = create_file(file, data)
         sig_path = signature_path(model)
@@ -420,7 +420,7 @@ class Test_serialize_v1:
 
     # File serialization returns the same results for different chunk sizes.
     def test_file_chuncks(self):
-        file = "model_file"
+        file = "v1_test_file_chuncks"
         file_size = 99
         model, _ = create_random_file(file, file_size)
         sig_path = signature_path(model)
@@ -433,7 +433,7 @@ class Test_serialize_v1:
 
     # File serialization raises an exception for negative shard sizes.
     def test_file_negative_shards(self):
-        file = "model_file"
+        file = "v1_test_file_negative_shards"
         data = b"hellow world content"
         model = create_file(file, data)
         sig_path = signature_path(model)
@@ -443,7 +443,7 @@ class Test_serialize_v1:
 
     # File serialization returns different results for different shard sizes.
     def test_file_shards(self):
-        file = "model_file"
+        file = "v1_test_file_shards"
         file_size = 99
         model, _ = create_random_file(file, file_size)
         sig_path = signature_path(model)
@@ -458,7 +458,7 @@ class Test_serialize_v1:
     # File serialization returns different results for different shard sizes
     # but same results for different chunk sizes with shard size fixed.
     def test_file_shard_chunks(self):
-        file = "model_file"
+        file = "v1_test_file_shard_chunks"
         file_size = 21
         model, _ = create_random_file(file, file_size)
         sig_path = signature_path(model)
@@ -475,14 +475,14 @@ class Test_serialize_v1:
 
     # File serialization returns the same results for different file names.
     def test_different_filename(self):
-        file = "model_file"
+        file = "v1_test_different_filename"
         data = b"hellow world content"
         model = create_file(file, data)
         sig_path = signature_path(model)
         r0 = Serializer.serialize_v1(model, 0, sig_path)
         cleanup_model(model)
 
-        file = "model_file2"
+        file = "v1_test_different_filename2"
         model = create_file(file, data)
         sig_path = signature_path(model)
         r1 = Serializer.serialize_v1(model, 0, sig_path)
@@ -493,7 +493,7 @@ class Test_serialize_v1:
     # File serialization returns a different result for different model
     # contents.
     def test_altered_file(self):
-        file = "model_file"
+        file = "v1_test_altered_file"
         file_size = 99
         model, content = create_random_file(file, file_size)
         sig_path = signature_path(model)
@@ -512,7 +512,7 @@ class Test_serialize_v1:
 
     # File serialization works on large files.
     def test_large_file(self):
-        file = "model_file"
+        file = "v1_test_large_file"
         file_size = 1000100001
         model, _ = create_random_file(file, file_size)
         sig_path = signature_path(model)
@@ -521,7 +521,7 @@ class Test_serialize_v1:
 
     # symlink in root folder raises ValueError exception.
     def test_folder_symlink_root(self):
-        folder = "with_root_symlinks"
+        folder = "v1_test_folder_symlink_root"
         model = create_empty_folder(folder)
         sig = signature_path(model)
         create_symlinks(".", os.path.join(folder, "root_link"))
@@ -531,7 +531,7 @@ class Test_serialize_v1:
 
     # symlink in non-root folder raises ValueError exception.
     def test_folder_symlink_nonroot(self):
-        model = create_empty_folder("with_nonroot_symlinks")
+        model = create_empty_folder("v1_test_folder_symlink_nonroot")
         sub_folder = model.joinpath("sub")
         create_empty_folder(str(sub_folder))
         sig = signature_path(model)
@@ -542,7 +542,7 @@ class Test_serialize_v1:
 
     # Folder serialization works.
     def test_known_folder(self):
-        folder = "some_folder"
+        folder = "v1_test_known_folder"
         model = create_empty_folder(folder)
         sig = signature_path(model)
         os.mkdir(model.joinpath("dir1"))
@@ -561,7 +561,7 @@ class Test_serialize_v1:
 
     # Folder serialization raises error for negative chunk values.
     def test_folder_negative_chuncks(self):
-        dir = "model_dir"
+        dir = "v1_test_folder_negative_chuncks"
         model = create_empty_folder(dir)
         sig_path = signature_path(model)
         with pytest.raises(ValueError):
@@ -570,7 +570,7 @@ class Test_serialize_v1:
 
     # Folder serialization returns the same results for different folder names.
     def test_different_dirname(self):
-        folder = "model_dir"
+        folder = "v1_test_different_dirname"
         model = create_empty_folder(folder)
         sig = signature_path(model)
         os.mkdir(model.joinpath("dir1"))
@@ -596,7 +596,7 @@ class Test_serialize_v1:
     # Folder serialization returns the same results for different folder or
     # file names and / or file contents.
     def test_different_ignored_paths(self):
-        folder = "model_dir"
+        folder = "v1_test_different_ignored_paths"
         model = create_empty_folder(folder)
         sig = signature_path(model)
         os.mkdir(model.joinpath("dir1"))
@@ -664,7 +664,7 @@ class Test_serialize_v1:
     # Folder serialization returns different results
     # for an empty file or directory with the same name.
     def test_file_dir(self):
-        folder = "model_dir"
+        folder = "v1_test_file_dir"
         model = create_empty_folder(folder)
         sig = signature_path(model)
         os.mkdir(model.joinpath("dir1"))
@@ -690,7 +690,7 @@ class Test_serialize_v1:
     # Folder serialization return different values for different
     # sub-directory names.
     def test_random_folder_different_folder_names(self):
-        dir = "model_dir"
+        dir = "v1_test_random_folder_different_folder_names"
         model, _, dirs, _ = create_random_folders(dir)
         sig_path = signature_path(model)
         result = Serializer.serialize_v1(model, 0, sig_path)
@@ -707,7 +707,7 @@ class Test_serialize_v1:
 
     # Folder serialization return different values for different file names.
     def test_random_folder_different_filenames(self):
-        dir = "model_dir"
+        dir = "v1_test_random_folder_different_filenames"
         model, _, _, files = create_random_folders(dir)
         sig_path = signature_path(model)
         result = Serializer.serialize_v1(model, 0, sig_path)
@@ -721,7 +721,7 @@ class Test_serialize_v1:
 
     # Folder serialization return different values for different file contents.
     def test_random_folder_different_file_content(self):
-        dir = "model_dir"
+        dir = "v1_test_random_folder_different_file_content"
         model, _, _, files = create_random_folders(dir)
         sig_path = signature_path(model)
         result = Serializer.serialize_v1(model, 0, sig_path)
@@ -744,7 +744,7 @@ class Test_serialize_v1:
 
     # Folder serialization return same results for different chunk sizes.
     def test_random_folder_different_chunks(self):
-        dir = "model_dir"
+        dir = "v1_test_random_folder_different_chunks"
         model, max_size, _, _ = create_random_folders(dir)
         sig_path = signature_path(model)
         result = Serializer.serialize_v1(model, 0, sig_path)
@@ -757,7 +757,7 @@ class Test_serialize_v1:
     # Folder serialization raises an exception if the signature
     # file is not in the root folder.
     def test_folfer_invalid_sign_path(self):
-        dir = "model_dir"
+        dir = "v1_test_folfer_invalid_sign_path"
         model = create_empty_folder(dir)
         sig_path = model.joinpath("sub/model.sig")
         with pytest.raises(ValueError):
@@ -766,7 +766,7 @@ class Test_serialize_v1:
 
     # Folder serialization raises an exception for negative shard sizes.
     def test_folder_negative_shards(self):
-        folder = "model_folder"
+        folder = "v1_test_folder_negative_shards"
         model = create_empty_folder(folder)
         sig_path = signature_path(model)
         with pytest.raises(ValueError):
@@ -775,7 +775,7 @@ class Test_serialize_v1:
 
     # Folder serialization returns different results for different shard sizes.
     def test_folder_shards(self):
-        dir = "model_dir"
+        dir = "v1_test_folder_shards"
         model, max_size, _, files = create_random_folders(dir)
         sig_path = signature_path(model)
         result = Serializer._serialize_v1(model, 1, 1, sig_path)
@@ -789,7 +789,7 @@ class Test_serialize_v1:
     # Folder serialization returns different results for different shard sizes
     # but same results for different chunk sizes with shard size fixed.
     def test_folder_shard_chunks(self):
-        dir = "model_dir"
+        dir = "v1_test_folder_shard_chunks"
         model, max_size, _, _ = create_random_folders(dir)
         sig_path = signature_path(model)
         result = Serializer._serialize_v1(model, 1, 1, sig_path)
