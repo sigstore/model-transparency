@@ -31,4 +31,5 @@ jobs:
         set -euo pipefail
         source venv/bin/activate
         # NOTE: option --full-trace may be useful for troubleshooting.
+        mkdir testdata
         pytest -v .
