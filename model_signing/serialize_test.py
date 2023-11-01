@@ -256,16 +256,8 @@ class Test_serialize_v0:
         r4 = Serializer.serialize_v0(model, 0, sig, [model.joinpath("dir2/dir3/f31")])  # noqa: E501 ignore long line warning
 
         # Sanity checks.
-        assert (r0 != r1)
-        assert (r0 != r2)
-        assert (r0 != r3)
-        assert (r0 != r4)
-        assert (r1 != r2)
-        assert (r1 != r3)
-        assert (r1 != r4)
-        assert (r2 != r3)
-        assert (r2 != r4)
-        assert (r3 != r4)
+        s = set({r0, r1, r2, r3, r4})
+        assert (len(s) == 5)
 
         # Rename the file under dir1.
         new_file = model.joinpath("dir1/f11_altered")
@@ -623,16 +615,8 @@ class Test_serialize_v1:
         r4 = Serializer.serialize_v1(model, 0, sig, [model.joinpath("dir2/dir3/f31")])  # noqa: E501 ignore long line warning
 
         # Sanity checks.
-        assert (r0 != r1)
-        assert (r0 != r2)
-        assert (r0 != r3)
-        assert (r0 != r4)
-        assert (r1 != r2)
-        assert (r1 != r3)
-        assert (r1 != r4)
-        assert (r2 != r3)
-        assert (r2 != r4)
-        assert (r3 != r4)
+        s = set({r0, r1, r2, r3, r4})
+        assert (len(s) == 5)
 
         # Rename the file under dir1.
         new_file = model.joinpath("dir1/f11_altered")
