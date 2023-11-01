@@ -171,7 +171,7 @@ class Test_serialize_v0:
         cleanup_model(model)
 
     # symlink in non-root folder raises ValueError exception.
-    def test_foler_symlink_nonroot(self):
+    def test_folder_symlink_nonroot(self):
         model = create_empty_folder("with_nonroot_symlinks")
         sub_folder = model.joinpath("sub")
         create_empty_folder(str(sub_folder))
@@ -260,6 +260,12 @@ class Test_serialize_v0:
         assert (r0 != r2)
         assert (r0 != r3)
         assert (r0 != r4)
+        assert (r1 != r2)
+        assert (r1 != r3)
+        assert (r1 != r4)
+        assert (r2 != r3)
+        assert (r2 != r4)
+        assert (r3 != r4)
 
         # Rename the file under dir1.
         new_file = model.joinpath("dir1/f11_altered")
@@ -621,6 +627,12 @@ class Test_serialize_v1:
         assert (r0 != r2)
         assert (r0 != r3)
         assert (r0 != r4)
+        assert (r1 != r2)
+        assert (r1 != r3)
+        assert (r1 != r4)
+        assert (r2 != r3)
+        assert (r2 != r4)
+        assert (r3 != r4)
 
         # Rename the file under dir1.
         new_file = model.joinpath("dir1/f11_altered")
