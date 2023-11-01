@@ -102,7 +102,7 @@ class Test_serialize_v0:
 
     # File serialization returns the same results for different chunk sizes.
     def test_file_chuncks(self):
-        file = "v0_test_file_chuncks"
+        file = "v0_test_file_chunks"
         file_size = 999
         model, _ = create_random_file(file, file_size)
         sig_path = signature_path(model)
