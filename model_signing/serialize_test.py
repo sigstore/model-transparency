@@ -101,7 +101,7 @@ class Test_serialize_v0:
         cleanup_model(model)
 
     # File serialization returns the same results for different chunk sizes.
-    def test_file_chuncks(self):
+    def test_file_chunks(self):
         file = "v0_test_file_chunks"
         file_size = 999
         model, _ = create_random_file(file, file_size)
@@ -114,7 +114,7 @@ class Test_serialize_v0:
         cleanup_model(model)
 
     # File serialization raises error for negative chunk values.
-    def test_file_negative_chuncks(self):
+    def test_file_negative_chunks(self):
         file = "v0_test_file_negative_chunks"
         data = b"hellow world content"
         model = create_file(file, data)
@@ -201,8 +201,8 @@ class Test_serialize_v0:
         cleanup_model(model)
 
     # Folder serialization raises error for negative chunk values.
-    def test_folder_negative_chuncks(self):
-        dir = "v0_test_folder_negative_chuncks"
+    def test_folder_negative_chunks(self):
+        dir = "v0_test_folder_negative_chunks"
         model = create_empty_folder(dir)
         sig_path = signature_path(model)
         with pytest.raises(ValueError):
@@ -419,8 +419,8 @@ class Test_serialize_v1:
         cleanup_model(model)
 
     # File serialization returns the same results for different chunk sizes.
-    def test_file_chuncks(self):
-        file = "v1_test_file_chuncks"
+    def test_file_chunks(self):
+        file = "v1_test_file_chunks"
         file_size = 99
         model, _ = create_random_file(file, file_size)
         sig_path = signature_path(model)
@@ -560,8 +560,8 @@ class Test_serialize_v1:
         cleanup_model(model)
 
     # Folder serialization raises error for negative chunk values.
-    def test_folder_negative_chuncks(self):
-        dir = "v1_test_folder_negative_chuncks"
+    def test_folder_negative_chunks(self):
+        dir = "v1_test_folder_negative_chunks"
         model = create_empty_folder(dir)
         sig_path = signature_path(model)
         with pytest.raises(ValueError):
