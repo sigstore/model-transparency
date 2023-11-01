@@ -143,7 +143,6 @@ class Serializer:
 
         filtered = []
         total_size = 0
-        print(ignorepaths)
         for child in children:
             if is_relative_to(child, ignorepaths):
                 continue
