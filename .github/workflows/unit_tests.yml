@@ -30,4 +30,5 @@ jobs:
       run: |
         set -euo pipefail
         source venv/bin/activate
-        pytest -v --full-trace .
+        # NOTE: option --full-trace may be useful for troubleshooting.
+        pytest -v .
