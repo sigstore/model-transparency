@@ -317,7 +317,7 @@ class Test_serialize_v0:
         # Remove dir2 and create an empty file with the same name.
         dir2 = model.joinpath("dir2")
         os.rmdir(dir2)
-        with open(dir2, 'w') as fp: 
+        with open(dir2, 'w') as _:
             pass
         r1 = Serializer.serialize_v0(model, 0, sig)
         assert (r0 != r1)
