@@ -818,6 +818,3 @@ class Test_serialize_v1:
                 rc = Serializer._serialize_v1(model, c, shard, sig_path)
                 assert (rc == r)
         cleanup_model(model)
-
-    # TODO(#57): directory support.
-    # TODO: different chunk and shard sizes.
