@@ -115,7 +115,7 @@ class Test_serialize_v0:
 
     # File serialization raises error for negative chunk values.
     def test_file_negative_chuncks(self):
-        file = "v0_test_file_negative_chuncks"
+        file = "v0_test_file_negative_chunks"
         data = b"hellow world content"
         model = create_file(file, data)
         sig_path = signature_path(model)
