@@ -119,6 +119,13 @@ def validate_signature_path(model_path: Path, sig_path: Path):
         raise ValueError(f"{sig_path} must be in the folder root")
 
 
+def is_relative_to(p: Path, path_list: [Path]) -> bool:
+    for e in path_list:
+        if p.is_relative_to(e):
+            return True
+    return False
+
+
 # TODO(): add a context "AI model"?
 class Serializer:
     @staticmethod
@@ -137,7 +144,7 @@ class Serializer:
         filtered = []
         total_size = 0
         for child in children:
-            if child in ignorepaths:
+            if is_relative_to(child, ignorepaths):
                 continue
 
             # To avoid bugs where we read the link rather than its target,
@@ -286,6 +293,9 @@ class Serializer:
 
         if not allow_symlinks and path.is_symlink():
             raise ValueError(f"{str(path)} is a symlink")
+
+        if chunk < 0:
+            raise ValueError(f"{str(chunk)} is invalid")
 
         if not path.is_file() and not path.is_dir():
             raise ValueError(f"{str(path)} is not a dir or file")
