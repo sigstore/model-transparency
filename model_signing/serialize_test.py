@@ -298,7 +298,7 @@ class Test_serialize_v0:
         cleanup_model(model)
 
     # Folder serialization returns different results
-    # for an ampty file or directory with the same name.
+    # for an empty file or directory with the same name.
     def test_file_dir(self):
         folder = "model_dir"
         model = create_empty_folder(folder)
