@@ -18,6 +18,7 @@ import os
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import get_start_method, set_start_method
 from pathlib import Path
+import platform
 
 # Use for testing while keeping disk size low.
 allow_symlinks = False
@@ -232,7 +233,8 @@ class Serializer:
         all_hashes = [None] * (digest_len*len(tasks))
         org_len = len(all_hashes)
 
-        if get_start_method() != "fork":
+        # Use fork on Linux as it's supposed to be faster.
+        if platform.system() == "Linux" and get_start_method() != "fork":
             set_start_method('fork')
         with ProcessPoolExecutor() as ppe:
             futures = [ppe.submit(Serializer.task, (path, chunk, tasks[i]))
