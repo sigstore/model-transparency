@@ -25,13 +25,13 @@ jobs:
         python-version: 3.11
         cache: pip
         cache-dependency-path: |
-          model_signing/install/requirements.txt
+          model_signing/install/requirements_${{ matrix.os }}.txt
           model_signing/install/requirements.test.txt
     - name: Install dependencies
       run: |
         set -euo pipefail
         bash .github/workflows/scripts/venv_setup.sh
-        python -m pip install --require-hashes -r model_signing/install/requirements.txt
+        python -m pip install --require-hashes -r model_signing/install/requirements_${{ matrix.os }}.txt
         python -m pip install --require-hashes -r model_signing/install/requirements.test.txt
     - name: Run unit tests
       run: |

@@ -32,12 +32,12 @@ jobs:
       with:
         python-version: 3.11
         cache: pip
-        cache-dependency-path: slsa_for_models/install/requirements.txt
+        cache-dependency-path: slsa_for_models/install/requirements_${{ matrix.os }}.txt
     - name: Install dependencies
       run: |
         set -euo pipefail
         bash .github/workflows/scripts/venv_setup.sh
-        python -m pip install --require-hashes -r slsa_for_models/install/requirements.txt
+        python -m pip install --require-hashes -r slsa_for_models/install/requirements_${{ matrix.os }}.txt
     - name: Build model
       env:
         MODEL_TYPE: ${{ github.event.inputs.model_type }}
