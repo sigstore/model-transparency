@@ -47,4 +47,4 @@ jobs:
       run: |
         set -euo pipefail
         bash .github/workflows/scripts/venv_setup.sh
-        python -m pip install --require-hashes -r slsa_for_models/install/requirements_${{ runner.os }}}.txt
+        python -m pip install --require-hashes -r slsa_for_models/install/requirements_${{ runner.os }}.txt
