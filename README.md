@@ -17,11 +17,12 @@
 
 ## Overview
 
-There is a significant growth in the number of ML-powered applications. However,
-this also provides grounds for attackers to exploit unsuspecting ML users. This
-is why Google launched [Secure AI Framework (SAIF)][saif] to establish industry
+There is currently significant growth in the number of ML-powered applications.
+This brings benefits, but it also provides grounds for attackers to exploit 
+unsuspecting ML users. This
+is why Google launched the [Secure AI Framework (SAIF)][saif] to establish industry
 standards for creating trustworthy and responsible AI applications. The first
-principle of SAIF is
+principle of SAIF is to
 
 > Expand strong security foundations to the AI ecosystem
 
@@ -66,10 +67,6 @@ table shows:
 See [model_signing/README.md](model_signing/README.md) for more information.
 
 ### SLSA for ML
-
-To protect the supply chain of traditional software against tampering (like in
-the [Solarwinds attack][solarwinds]), we can generate SLSA provenance, for
-example by using the [SLSA L3 GitHub generator][slsa-generator].
 
 This project shows how we can use the [SLSA L3 GitHub generator][slsa-generator]
 to generate SLSA provenance for ML models. The SLSA generator was originally
