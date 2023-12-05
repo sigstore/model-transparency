@@ -16,6 +16,10 @@ on:
 
 permissions: read-all
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   train:
     name: Train model and save as ${{ github.event.inputs.model_type }}
