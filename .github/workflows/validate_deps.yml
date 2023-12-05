@@ -15,7 +15,7 @@ defaults:
 jobs:
   model-signing:
     name: Test model signing dependencies
-    runs-on: ${RUNNER_OS}}
+    runs-on: ${{ runner.os }}}
     strategy:
       fail-fast: false # Don't cancel other jobs if one fails
       matrix:
@@ -31,7 +31,7 @@ jobs:
       run: |
         set -euo pipefail
         bash .github/workflows/scripts/venv_setup.sh
-        python -m pip install --require-hashes -r model_signing/install/requirements_${RUNNER_OS}}.txt
+        python -m pip install --require-hashes -r model_signing/install/requirements_${{ runner.os }}}.txt
 
   slsa-for-ml:
     name: Test SLSA for ML demo dependencies
@@ -47,4 +47,4 @@ jobs:
       run: |
         set -euo pipefail
         bash .github/workflows/scripts/venv_setup.sh
-        python -m pip install --require-hashes -r slsa_for_models/install/requirements_${RUNNER_OS}}.txt
+        python -m pip install --require-hashes -r slsa_for_models/install/requirements_${{ runner.os }}}.txt

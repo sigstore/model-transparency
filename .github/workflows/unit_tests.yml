@@ -31,8 +31,8 @@ jobs:
       run: |
         set -euo pipefail
         bash .github/workflows/scripts/venv_setup.sh
-        python -m pip install --require-hashes -r model_signing/install/requirements_${RUNNER_OS}.txt
-        python -m pip install --require-hashes -r model_signing/install/requirements_test_${RUNNER_OS}.txt
+        python -m pip install --require-hashes -r model_signing/install/requirements_${{ runner.os }}}.txt
+        python -m pip install --require-hashes -r model_signing/install/requirements_test_${{ runner.os }}}.txt
     - name: Run unit tests
       run: |
         set -euo pipefail
