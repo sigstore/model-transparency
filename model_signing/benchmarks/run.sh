@@ -77,7 +77,7 @@ if [[ ! -d "test_env/" ]]; then
 fi
 # shellcheck disable=SC1091 # We have access to source=test_env/bin/activate.
 source test_env/bin/activate
-python3 -m pip install --require-hashes -r install/requirements.txt
+python3 -m pip install --require-hashes -r install/requirements_Linux.txt
 
 # =========================================
 #               Warm up!
