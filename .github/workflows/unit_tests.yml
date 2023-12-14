@@ -29,14 +29,15 @@ jobs:
           model_signing/install/requirements_test_${{ runner.os }}.txt
     - name: Install dependencies
       run: |
-        set -euo pipefail
-        bash .github/workflows/scripts/venv_setup.sh
+        set -exuo pipefail
+        python -m venv venv
+        .github/workflows/scripts/venv_activate.sh
         python -m pip install --require-hashes -r model_signing/install/requirements_${{ runner.os }}.txt
         python -m pip install --require-hashes -r model_signing/install/requirements_test_${{ runner.os }}.txt
     - name: Run unit tests
       run: |
         set -euo pipefail
-        bash .github/workflows/scripts/venv_activate.sh
+        .github/workflows/scripts/venv_activate.sh
         # NOTE: option --full-trace may be useful for troubleshooting.
         # TODO(#68): Remove the need to create this folder.
         mkdir testdata
