@@ -35,8 +35,9 @@ jobs:
         cache-dependency-path: slsa_for_models/install/requirements_${{ runner.os }}.txt
     - name: Install dependencies
       run: |
-        set -euo pipefail
-        bash .github/workflows/scripts/venv_setup.sh
+        set -exuo pipefail
+        python -m venv venv
+        .github/workflows/scripts/venv_activate.sh
         python -m pip install --require-hashes -r slsa_for_models/install/requirements_${{ runner.os }}.txt
     - name: Build model
       env:
