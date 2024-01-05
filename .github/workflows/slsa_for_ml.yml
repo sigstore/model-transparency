@@ -64,6 +64,8 @@ jobs:
         echo "hash=$(cat checksum | base64 -w0)" >> "${GITHUB_OUTPUT}"
 
   provenance:
+    # TODO(mihaimaruseac): Don't run on pull requests for now
+    if: ${{ github.event_name != 'pull_request' }}
     needs: [train]
     permissions:
       actions: read
