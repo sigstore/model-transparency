@@ -42,8 +42,9 @@ jobs:
       env:
         MODEL_TYPE: ${{ github.event.inputs.model_type }}
       run: |
-        set -euo pipefail
-        bash .github/workflows/scripts/venv_activate.sh
+        set -exuo pipefail
+        python -m venv venv
+        .github/workflows/scripts/venv_activate.sh
         python slsa_for_models/main.py "$MODEL_TYPE"
     - uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
       with:
