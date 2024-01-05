@@ -13,6 +13,9 @@ on:
         - pytorch_model.pth
         - pytorch_full_model.pth
         - pytorch_jitted_model.pt
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
 
 permissions: read-all
 
@@ -22,7 +25,7 @@ defaults:
 
 jobs:
   train:
-    name: Train model and save as ${{ github.event.inputs.model_type }}
+    name: Train model
     runs-on: ubuntu-latest
     outputs:
       hash: ${{ steps.hash.outputs.hash }}
@@ -41,7 +44,7 @@ jobs:
         python -m pip install --require-hashes -r slsa_for_models/install/requirements_${{ runner.os }}.txt
     - name: Build model
       env:
-        MODEL_TYPE: ${{ github.event.inputs.model_type }}
+        MODEL_TYPE: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
       run: |
         set -exuo pipefail
         python -m venv venv
@@ -49,18 +52,20 @@ jobs:
         python slsa_for_models/main.py "$MODEL_TYPE"
     - uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
       with:
-        path: ${{ github.event.inputs.model_type }}
-        name: ${{ github.event.inputs.model_type }}
+        path: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
+        name: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
         if-no-files-found: error
     - id: hash
       env:
-        MODEL: ${{ github.event.inputs.model_type }}
+        MODEL: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
       run: |
         set -euo pipefail
         sha256sum "$MODEL" > checksum
         echo "hash=$(cat checksum | base64 -w0)" >> "${GITHUB_OUTPUT}"
 
   provenance:
+    # TODO(mihaimaruseac): Don't run on pull requests for now
+    if: ${{ github.event_name != 'pull_request' }}
     needs: [train]
     permissions:
       actions: read
