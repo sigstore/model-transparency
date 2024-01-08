@@ -31,9 +31,9 @@ def readOptions():
         "sign", formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     sign.add_argument("--path", required=True, help="The path to sign")
-    sign.add_argument("--disable-ambiant", required=False,
+    sign.add_argument("--disable-ambient", required=False,
                       default=False, action='store_true',
-                      help="Auto detect ambiant authority")
+                      help="Auto detect ambient authority")
 
     # Verify group.
     verify = subcommands.add_parser(
@@ -64,8 +64,8 @@ def ignored_paths(modelfn: Path) -> [Path]:
 
 
 # Sign function
-def sign(modelfn: Path, use_ambiant: bool) -> model.SignatureResult:
-    signer = model.SigstoreSigner(use_ambiant=use_ambiant)
+def sign(modelfn: Path, disable_ambient: bool) -> model.SignatureResult:
+    signer = model.SigstoreSigner(disable_ambient=disable_ambient)
     return signer.sign(modelfn, signature_path(modelfn),
                        ignored_paths(modelfn))
 
@@ -79,7 +79,7 @@ def verify(modelfn: Path, issuer: str, identity: str,
 
 def main(args) -> int:
     if args.subcommand == "sign":
-        result = sign(Path(args.path), use_ambiant=not args.disable_ambiant)
+        result = sign(Path(args.path), disable_ambient=args.disable_ambient)
         if result:
             print("signature success")
         else:

@@ -12,14 +12,11 @@
 # See the License for the specific language governing perepo_managerissions and
 # limitations under the License.
 
-from sigstore.sign import (
-    Signer,
-)
-from sigstore._internal.oidc import (
-    DEFAULT_AUDIENCE,
-    Identity
-)
+from sigstore.sign import SigningContext
+
 from sigstore.oidc import (
+    IdentityToken,
+    ExpiredIdentity,
     Issuer,
     detect_credential,
 )
@@ -30,6 +27,10 @@ from sigstore.verify import (
 )
 from sigstore.verify.models import (
     VerificationMaterials,
+)
+
+from sigstore._internal.fulcio.client import (
+    ExpiredCertificate,
 )
 
 import os
@@ -64,23 +65,20 @@ class SignatureResult(BaseResult):
 
 class SigstoreSigner():
     def __init__(self,
-                 use_ambiant: bool = True,
+                 disable_ambient: bool = True,
                  start_default_browser: bool = False,
-                 name: str = None):
-        self.signer = Signer.production()
-        self.use_ambiant = use_ambiant
+                 oidc_issuer: str = None):
+        self.signing_ctx = SigningContext.production()
+        self.disable_ambient = disable_ambient
         self.start_default_browser = start_default_browser
-        if not start_default_browser:
-            # TODO(https://github.com/sigstore/sigstore-python/issues/666)
-            # Update this code.
-            os.environ["SIGSTORE_OAUTH_FORCE_OOB"] = "1"
-        self.name = name
-        self.client_id = DEFAULT_AUDIENCE
+        self.oidc_issuer = oidc_issuer
+        # NOTE: The client ID to use during OAuth2 flow. 
+        self.client_id = "sigstore"
 
-    def get_identity_token(self) -> Optional[str]:
-        token: str
+    def get_identity_token(self) -> Optional[IdentityToken]:
+        token: IdentityToken
         client_id = self.client_id
-        if self.use_ambiant:
+        if not self.disable_ambient:
             token = detect_credential()
             # Happy path: we've detected an ambient credential,
             # so we can return early.
@@ -88,35 +86,38 @@ class SigstoreSigner():
                 return token
 
         # TODO(): Support staging for testing.
-        if self.name is not None:
-            issuer = Issuer(self.name)
+        if self.oidc_issuer is not None:
+            issuer = Issuer(self.oidc_issuer)
         else:
             issuer = Issuer.production()
 
-        token = issuer.identity_token(client_id=client_id)
-
+        token = issuer.identity_token(client_id=client_id, force_oob=not self.start_default_browser)
         return token
 
     # NOTE: Only path in the top-level folder are considered for ignorepaths.
     def sign(self, inputfn: Path, signaturefn: Path,
              ignorepaths: [Path]) -> SignatureResult:
         try:
-            token = self.get_identity_token()
-            if not token:
+            oidc_token = self.get_identity_token()
+            if not oidc_token:
                 raise ValueError("No identity token supplied or detected!")
-
-            # Print identity used to sign the model.
-            oidc_identity = Identity(token)
-            print(f"identity-provider: {oidc_identity.issuer}",
+            print(f"identity-provider: {oidc_token.issuer}",
                   file=sys.stderr)
-            print(f"identity: {oidc_identity.proof}", file=sys.stderr)
+            print(f"identity: {oidc_token.identity}", file=sys.stderr)
 
             contentio = io.BytesIO(Serializer.serialize_v1(
                 inputfn, chunk_size(), signaturefn, ignorepaths))
-            result = self.signer.sign(input_=contentio, identity_token=token)
-            with signaturefn.open(mode="w") as b:
-                print(result._to_bundle().to_json(), file=b)
+            with self.signing_ctx.signer(oidc_token) as signer:
+                result = signer.sign(input_=contentio)
+                with signaturefn.open(mode="w") as b:
+                    print(result.to_bundle().to_json(), file=b)
             return SignatureResult()
+        except ExpiredIdentity:
+            return SignatureResult(success=False,
+                                   reason=f"exception caught: Signature failed: identity token has expired")
+        except ExpiredCertificate:
+            return SignatureResult(success=False,
+                                   reason=f"exception caught: Signature failed: Fulcio signing certificate has expired")
         except Exception as e:
             return SignatureResult(success=False,
                                    reason=f"exception caught: {str(e)}")
