@@ -33,7 +33,6 @@ from sigstore._internal.fulcio.client import (
     ExpiredCertificate,
 )
 
-import os
 import io
 from pathlib import Path
 from typing import Optional
@@ -72,7 +71,7 @@ class SigstoreSigner():
         self.disable_ambient = disable_ambient
         self.start_default_browser = start_default_browser
         self.oidc_issuer = oidc_issuer
-        # NOTE: The client ID to use during OAuth2 flow. 
+        # NOTE: The client ID to use during OAuth2 flow.
         self.client_id = "sigstore"
 
     def get_identity_token(self) -> Optional[IdentityToken]:
@@ -91,7 +90,8 @@ class SigstoreSigner():
         else:
             issuer = Issuer.production()
 
-        token = issuer.identity_token(client_id=client_id, force_oob=not self.start_default_browser)
+        token = issuer.identity_token(client_id=client_id,
+                                      force_oob=not self.start_default_browser)
         return token
 
     # NOTE: Only path in the top-level folder are considered for ignorepaths.
@@ -114,10 +114,10 @@ class SigstoreSigner():
             return SignatureResult()
         except ExpiredIdentity:
             return SignatureResult(success=False,
-                                   reason=f"exception caught: Signature failed: identity token has expired")
+                                   reason="exception caught: Signature failed: identity token has expired")  # noqa: E501
         except ExpiredCertificate:
             return SignatureResult(success=False,
-                                   reason=f"exception caught: Signature failed: Fulcio signing certificate has expired")
+                                   reason="exception caught: Signature failed: Fulcio signing certificate has expired")  # noqa: E501
         except Exception as e:
             return SignatureResult(success=False,
                                    reason=f"exception caught: {str(e)}")
