@@ -64,7 +64,7 @@ class SignatureResult(BaseResult):
 
 class SigstoreSigner():
     def __init__(self,
-                 disable_ambient: bool = True,
+                 disable_ambient: bool = False,
                  start_default_browser: bool = False,
                  oidc_issuer: str = None):
         self.signing_ctx = SigningContext.production()
