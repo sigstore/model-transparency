@@ -53,7 +53,14 @@ spec:
         - name: revision
           value: $(params.model-source.revision)
       taskRef:
-        name: git-clone
+        resolver: git
+        params:
+        - name: url
+          value: https://github.com/google/model-transparency.git
+        - name: revision
+          value: $(params.model-source.revision)
+        - name: pathInRepo
+          value: slsa_for_models/gcp/tasks/git-clone.yml
     - name: build-model
       runAfter:
         - git-clone
@@ -70,7 +77,14 @@ spec:
         - name: python-version
           value: $(params.tool-versions.python)
       taskRef:
-        name: build-model
+        resolver: git
+        params:
+        - name: url
+          value: https://github.com/google/model-transparency.git
+        - name: revision
+          value: $(params.model-source.revision)
+        - name: pathInRepo
+          value: slsa_for_models/gcp/tasks/build-model.yml
     - name: upload-model
       runAfter:
         - build-model
@@ -88,4 +102,11 @@ spec:
           value:
             gcloud: $(params.tool-versions.gcloud)
       taskRef:
-        name: upload-model
+        resolver: git
+        params:
+        - name: url
+          value: https://github.com/google/model-transparency.git
+        - name: revision
+          value: $(params.model-source.revision)
+        - name: pathInRepo
+          value: slsa_for_models/gcp/tasks/upload-model.yml

@@ -21,7 +21,6 @@ spec:
   results:
     - name: output
     - name: json
-    - name: version
     - name: model_ARTIFACT_OUTPUTS
       properties:
         uri: {}
@@ -61,4 +60,4 @@ spec:
           "digest": "sha256:${DIGEST}"
         }
         EOF
-        printf "%s" "${DIGEST}" > "$(results.version.path)"
+
