@@ -73,7 +73,6 @@ jobs:
     # TODO(mihaimaruseac): Don't run on pull requests for now
     if: ${{ github.event_name != 'pull_request' }}
     needs: [train]
-    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false # Don't cancel other jobs if one fails
       matrix:
