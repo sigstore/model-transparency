@@ -1,2 +1,2 @@
-psutil==5.9.5
-sigstore==2.1.0
+psutil
+sigstore
