@@ -117,13 +117,39 @@ This project uses [Tekton][tekton] to generate SLSA provenance for ML models on 
    cosign generate-key-pair k8s://tekton-chains/signing-secrets
    ```
  
-8. Apply the `Tasks`:
+8. (Optional) View the Tekton resources:
+   
+   1. View the git-clone `Task`:
 
-   ```shell
-   kubectl apply -f slsa_for_models/gcp/tasks
-   ```
+      ```shell
+      cat slsa_for_models/gcp/tasks/git-clone.yml
+      ```
 
-9. Apply the `Pipeline`:
+   2. View the build-model `Task`:
+
+      ```shell
+      cat slsa_for_models/gcp/tasks/build-model.yml
+      ```
+
+   3. View the upload-model `Task`:
+
+      ```shell
+      cat slsa_for_models/gcp/tasks/upload-model.yml
+      ```
+   
+   4. View the `Pipeline`:
+
+      ```shell
+      cat slsa_for_models/gcp/pipeline.yml
+      ```
+
+   5. View the `PipelineRun`:
+
+      ```shell
+      cat slsa_for_models/gcp/pipelinerun.yml
+      ```
+   
+9.  Apply the `Pipeline`:
 
    ```shell
    kubectl apply -f slsa_for_models/gcp/pipeline.yml
@@ -192,15 +218,16 @@ This project uses [Tekton][tekton] to generate SLSA provenance for ML models on 
    cat pytorch_model.pth.build-slsa | tr -d '\n' | pbcopy
    pbpaste | jq '.payload | @base64d | fromjson'
    ```
+
 17. Download the model:
 
    ```shell
-   export MODEL_VERSION=$(tkn pr describe slsa-for-models-pr --output jsonpath='{.status.results[1].value.digest}' | cut -d ':' -f 2)
+   export MODEL_VERSION=$(tkn pr describe $PIPELINERUN_NAME --output jsonpath='{.status.results[1].value.digest}' | cut -d ':' -f 2)
    gcloud artifacts generic download \
    --package=pytorch-model \
    --repository=$REPOSITORY_NAME \
    --destination=. \
-   --version="${MODEL_VERSION:7}"
+   --version=$MODEL_VERSION
    ```
 
 18. Verify the attestation:
