@@ -58,7 +58,7 @@ jobs:
         python slsa_for_models/main.py "$MODEL_TYPE"
     - uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
       with:
-        path: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}-${{ runner.os }}
+        path: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
         name: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}-${{ runner.os }}
         if-no-files-found: error
     - id: hash
