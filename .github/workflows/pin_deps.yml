@@ -37,7 +37,6 @@ jobs:
       run: |
         set -exuo pipefail
         .github/workflows/scripts/venv_activate.sh
-        # TODO(mihaimaruseac): Should we separate these into separate steps?
         pip-compile --upgrade --generate-hashes --strip-extras --output-file=model_signing/install/requirements_${{ runner.os }}.txt model_signing/install/requirements.in
         pip-compile --upgrade --generate-hashes --strip-extras --output-file=model_signing/install/requirements_test_${{ runner.os }}.txt model_signing/install/requirements_test.in
         pip-compile --upgrade --generate-hashes --strip-extras --output-file=slsa_for_models/install/requirements_${{ runner.os }}.txt slsa_for_models/install/requirements.in
@@ -65,8 +64,12 @@ jobs:
         .github/workflows/scripts/venv_activate.sh
         pip install -r slsa_for_models/install/requirements_${{ runner.os }}.txt
         pip list  # For debugging
-    - name: Upload freeze files
-      uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+    #- name: Upload freeze files
+    #  uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+    #  with:
+    #    name: freeze-files-${{ matrix.os }}
+    #    path: ./*/install/requirements*txt
+    - name: Create dependent PR with dependency changes
+      uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # v5.0.2
       with:
-        name: freeze-files-${{ matrix.os }}
-        path: ./*/install/requirements*txt
+        title: "Update frozen python dependencies"
