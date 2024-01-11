@@ -92,7 +92,7 @@ jobs:
       with:
         title: "Update frozen python dependencies"
         commit-message: "Bump frozen dependencies"
-        committer: "GitHub <noreply@github.com>"
-        author: "GitHub <noreply@github.com>"
+        committer: "Mihai Maruseac (automated) <mihaimaruseac@google.com>"
+        author: "Mihai Maruseac (automated) <mihaimaruseac@google.com>"
         signoff: true
         delete-branch: true
