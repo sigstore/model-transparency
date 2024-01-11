@@ -1,6 +1,8 @@
 name: Pin dependencies
 on:
-  workflow_dispatch
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * TUE' # run every Tuesday at midnight
 
 permissions: {}
 
@@ -37,7 +39,6 @@ jobs:
       run: |
         set -exuo pipefail
         .github/workflows/scripts/venv_activate.sh
-        # TODO(mihaimaruseac): Should we separate these into separate steps?
         pip-compile --upgrade --generate-hashes --strip-extras --output-file=model_signing/install/requirements_${{ runner.os }}.txt model_signing/install/requirements.in
         pip-compile --upgrade --generate-hashes --strip-extras --output-file=model_signing/install/requirements_test_${{ runner.os }}.txt model_signing/install/requirements_test.in
         pip-compile --upgrade --generate-hashes --strip-extras --output-file=slsa_for_models/install/requirements_${{ runner.os }}.txt slsa_for_models/install/requirements.in
@@ -69,4 +70,29 @@ jobs:
       uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
       with:
         name: freeze-files-${{ matrix.os }}
-        path: ./*/install/requirements*txt
+        path: ./*/install/requirements*${{ runner.os }}*txt
+
+  # Separate PR creation job to make sure it creates only one single PR with
+  # all changed files, eliminate race-conditions and restrict permissions only
+  # to this specific job.
+  create-pr:
+    needs: [pin]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+    - uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935 # v4.1.1
+      with:
+        path: .
+        merge-multiple: true
+    - name: Create dependent PR with dependency changes
+      uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # v5.0.2
+      with:
+        title: "Update frozen python dependencies"
+        commit-message: "Bump frozen dependencies"
+        committer: "Mihai Maruseac (automated) <mihaimaruseac@google.com>"
+        author: "Mihai Maruseac (automated) <mihaimaruseac@google.com>"
+        signoff: true
+        delete-branch: true
