@@ -26,9 +26,15 @@ defaults:
 jobs:
   train:
     name: Train model
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # Don't cancel other jobs if one fails
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     outputs:
-      hash: ${{ steps.hash.outputs.hash }}
+      hash-ubuntu-latest: ${{ steps.hash.outputs.hash-ubuntu-latest }}
+      hash-macos-latest: ${{ steps.hash.outputs.hash-macos-latest }}
+      hash-windows-latest: ${{ steps.hash.outputs.hash-windows-latest }}
     steps:
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
     - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
@@ -53,25 +59,29 @@ jobs:
     - uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
       with:
         path: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
-        name: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
+        name: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}_${{ runner.os }}
         if-no-files-found: error
     - id: hash
       env:
         MODEL: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
       run: |
         set -euo pipefail
-        sha256sum "$MODEL" > checksum
-        echo "hash=$(cat checksum | base64 -w0)" >> "${GITHUB_OUTPUT}"
+        (sha256sum "$MODEL" || shasum -a 256 "$MODEL") > checksum
+        echo "hash-${{ matrix.os }}=$(cat checksum | base64 -w0)" >> "${GITHUB_OUTPUT}"
 
   provenance:
     # TODO(mihaimaruseac): Don't run on pull requests for now
     if: ${{ github.event_name != 'pull_request' }}
     needs: [train]
+    strategy:
+      fail-fast: false # Don't cancel other jobs if one fails
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     permissions:
       actions: read
       id-token: write
       contents: write
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.9.0
     with:
-      base64-subjects: "${{ needs.train.outputs.hash }}"
+      base64-subjects: "${{ needs.train.outputs[format('hash-{0}', matrix.os)] }}"
       upload-assets: true # NOTE: This does nothing unless 'upload-tag-name' parameter is also set to an existing tag
