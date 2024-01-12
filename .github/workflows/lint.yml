@@ -17,3 +17,27 @@ jobs:
           python-version: "3.11"
       - name: flake8 Lint
         uses: py-actions/flake8@84ec6726560b6d5bd68f2a5bed83d62b52bb50ba # v2.3.0
+      - name: Detect empty lines at end of file and trailing whitespace
+        run: |
+          set -euxo pipefail  # No -x here!
+          failed=0
+          # First, check for empty files at end
+          for file in $(git ls-files --eol | grep 'i/[cr]*lf' | awk '{print $4}'); do
+            lines=$(tac "$file" | awk 'NF{exit};END{print NR?NR-1:0}')
+            if [[ $lines -ne 0 ]]; then
+              line=$(wc -l "$file" | cut -d' ' -f1)
+              echo "::error file=$file,line=$line::File $file has $lines empty lines at end. Please remove."
+              failed=$((failed + 1))
+            fi
+          done
+          # Next, check for files with whitespace at end of line. Remove CRLF files.
+          for file in $(git ls-files --eol | grep 'i/lf' | awk '{print $4}'); do
+            for line in $(grep -n '[[:space:]]$' "$file" | cut -d: -f1); do
+              echo "::error file=$file,line=$line::File $file has trailing whitespace at line $line. Please remove."
+              failed=$((failed + 1))
+            done
+          done
+          if [[ $failed -ne 0 ]]; then
+            echo "::error Found $failed whitespace errors, failing"
+            exit 1
+          fi
