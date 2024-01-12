@@ -1,6 +1,9 @@
 name: Lint
 
-on: [push, pull_request]
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
 
 permissions: read-all
 
