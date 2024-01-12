@@ -162,7 +162,7 @@ class Serializer:
             # The recorded path must *not* contains the folder name,
             # since users may rename it.
             record_path = remove_prefix(
-                str(child), str(path.as_posix()) + os.sep)
+                str(child.as_posix()), str(path.as_posix() + '/'))
             record_type = "file" if child.is_file() else "dir"
             record_size = \
                 os.path.getsize(str(child)) if record_type == "file" else 0
@@ -185,7 +185,7 @@ class Serializer:
             name, typ, size = children[curr_file]
 
             # It's a directory.
-            # NOTE: It is fast to commupte the hash because there's no data
+            # NOTE: It is fast to compute the hash because there's no data
             # besides the name and the type.
             # TODO(#12): do we need this at all? This only matters
             # if we care about empty directories, since non-empty ones have
@@ -237,11 +237,11 @@ class Serializer:
         if platform.system() == "Linux" and get_start_method() != "fork":
             set_start_method('fork')
         with ProcessPoolExecutor() as ppe:
-            futures = [ppe.submit(Serializer.task, (path, chunk, tasks[i]))
-                       for i in range(len(tasks))]
+            futures = [ppe.submit(Serializer.task, (path, chunk, task))
+                       for task in tasks]
             results = [f.result() for f in futures]
-            for i in range(len(results)):
-                all_hashes[i*digest_len:(i+1)*digest_len] = results[i]
+            for i, result in enumerate(results):
+                all_hashes[i*digest_len:(i+1)*digest_len] = result
         # Sanity check.
         if len(all_hashes) != org_len:
             raise ValueError(f"internal: {len(all_hashes)} != {org_len}")
