@@ -241,7 +241,7 @@ spec:
         fi
         printf "%s" "${RESULT_SHA}" > "$(results.commit.path)"
         printf "%s" "${PARAM_URL}" > "$(results.url.path)"
-        
+
         # type hinting for provenance generation
         cat <<EOF | tee $(results.source_ARTIFACT_INPUTS.path)
         {

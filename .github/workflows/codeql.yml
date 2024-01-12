@@ -65,4 +65,3 @@ jobs:
       uses: github/codeql-action/analyze@f9a7c6738f28efb36e31d49c53a201a9c5d6a476 # v2.14.2
       with:
         category: "/language:${{matrix.language}}"
-
