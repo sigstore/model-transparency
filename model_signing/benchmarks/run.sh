@@ -157,7 +157,7 @@ model_init() {
 run "${model_name}" "${model_path}" model_init
 
 
-echo 
+echo
 echo "===== RESULTS ======"
 # NOTE: Requires bash >= 4.4.
 echo "results:" "${!results[@]}"
