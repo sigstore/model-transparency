@@ -84,7 +84,7 @@ ml_model/
 ├── file2
 ```
 
-The ouput MUST have the same representation as the following JSON-represented object:
+The ouput MUST contain the folowing (JSON-represented) object:
 
 ```json
 [
