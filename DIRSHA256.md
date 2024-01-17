@@ -44,11 +44,11 @@ ML models like PyTorch's and Huggingface's store model parameters (weight, archi
 
 DIRSHA256 takes as input a file-system path and a [shard size](#terminology-and-symbols) and outputs a 32-byte (256-bit) digest.
 
-DIRSHA256 is comprised of four sub-routines: [Ordered Paths Listing (OPL)](#ordered-paths-listing-opl), [Hashing Task Generation (HTG)](#hashing-task-generation-htg), [Hashing Task Execution (HTE)](#hashing-task-execution-hte) and [Final Digest Computation (FDC)](#final-digest-computation-fdc).
+DIRSHA256 is comprised of four sub-routines: [Ordered Paths Generation (OPG)](#ordered-paths-generation-opg), [Hashing Task Generation (HTG)](#hashing-task-generation-htg), [Hashing Task Execution (HTE)](#hashing-task-execution-hte) and [Final Digest Computation (FDC)](#final-digest-computation-fdc).
 
-### Ordered Paths Listing (OPL)
+### Ordered Paths Generation (OPG)
 
-The OPL routine takes as input a model path and outputs a list of files and their metadata, ordered alphabetically by their path, where each character is represented as UTF-8:
+The OPG routine takes as input a model path and outputs a list of files and their metadata, ordered alphabetically by their path, where each character is represented as UTF-8:
 
 ```java
 path_metadata struct {
@@ -57,7 +57,7 @@ path_metadata struct {
     size // The size of the path, in bytes. 0 for directories.
 }
 
-func OFL(path) -> []path_metadata
+func OFG(path) -> []path_metadata
 ```
 
 The function OFL MUST enforce the following invariants:
@@ -123,7 +123,7 @@ The ouput MUST contain the folowing (JSON-represented) object:
 
 ### Hashing Task Generation (HTG)
 
-The HTG sub-routine takes as input the output of the OPL sub-routine and a shard size, and outputs a list of independent "hashing tasks".
+The HTG sub-routine takes as input the output of the OPG sub-routine and a shard size, and outputs a list of independent "hashing tasks".
 A "hashing task" is a request to hash a portion (shard) of a file. Each hashing task can be run independently of one another, in parallel.
 
 ```java
@@ -189,7 +189,7 @@ func FDC(digests []digest) -> digest
 
 ```java
 func DIRSHA256(model_path, shard_size) -> digest
-    ordered_paths_metadata := OFL(model_path)
+    ordered_paths_metadata := OPG(model_path)
     hashing_tasks := HTG(ordered_paths_metadata, shard_size)
     digests := []
     for i := range hashing_tasks
