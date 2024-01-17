@@ -2,11 +2,11 @@
 
 ## Abstract
 
-This document describes DIRSHA256, an algorithm to serialize the content of a filesystem path using the cryptographic hash function SHA256. The cryptographic strength of DIRSHA256 depends on the properties of the SHA256 hash function.
+This document describes DIRSHA256, an parameterized algorithm to serialize the content of a filesystem path using the cryptographic hash function SHA256. The cryptographic strength of DIRSHA256 depends on the properties of the SHA256 hash function.
 
 ## Introduction
 
-ML models like PyTorch's and Huggingface's store model parameters (weight, architecture, etc) in several files stored in a directory. Models can be several hundreds gigabytes large. Thus we need a fast and flexible serizalization mechanism to cryptographically hash a model stored in a directory.
+ML frameworks like PyTorch's and Hugging Face's store model parameters (weight, architecture, etc) in several files stored in a directory. These files can be several hundreds of gigabytes in size. Thus we need a fast and flexible serizalization mechanism to cryptographically hash a model stored in a directory.
 
 ## Terminology and symbols
 
@@ -64,7 +64,7 @@ The function OPG MUST enforce the following invariants:
 
 1. Each path is a non-empty absolute path starting at the root of the model path, represented in POSIX format with characters encoded in UTF-8.
 1. The list is ordered alphabetically by path in ascending order. Characters are compared based on their UTF-8 representation.
-1. Each path type is either "dir" or "file". Other types (e.g., symlinks) MUST produce an error and OFL MUST fail.
+1. Each path type is either "dir" or "file". Other types (e.g., symlinks) MUST produce an error and OPG MUST fail.
 1. Empty directories MUST be present in the list.
 1. Directories always have a size of 0.
 
@@ -153,7 +153,7 @@ Example 2: A file of size 20 bytes and using a shard of size 6 bytes. Four tasks
 
 ### Hashing Task Execution (HTE)
 
-The HTE sub-routine takes as input a model path type and a list a hashing tasks. It performs the actual hashing and returns a digest:
+The HTE sub-routine takes as input a model path type and a list of hashing tasks. It performs the actual hashing and returns a digest:
 
 ```java
 func HTE(model_path_type, hashing_task) -> digest
@@ -199,13 +199,17 @@ func DIRSHA256(model_path, shard_size) -> digest
     return FDC(digests)
 ```
 
+### Test Vectors
+
+See function `test_known_file()` in [serialize_test.py](https://github.com/google/model-transparency/blob/main/model_signing/serialize_test.py#L416) and `test_known_folder()` of [seralize_tests.py](https://github.com/google/model-transparency/blob/main/model_signing/serialize_test.py#L558)
+
 ## DIRSHA256-p1
 
 DIRSHA256 is the instantiation of DIRSHA256 with a pre-defined, fixed shard size of 1GB. This set of parameters is referred to as `p1`.
 
 ### Test Vectors
 
-See function `test_known_file()` in [serialize_test.py](https://github.com/google/model-transparency/blob/main/model_signing/serialize_test.py#L416) and `test_known_folder()` of [seralize_tests.py](https://github.com/google/model-transparency/blob/main/model_signing/serialize_test.py#L558)
+TODO
 
 ## Sample code
 
