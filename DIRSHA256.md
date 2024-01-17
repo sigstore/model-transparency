@@ -20,9 +20,9 @@ ML models like PyTorch's and Huggingface's store model parameters (weight, archi
 
 `Shard size`: A positive integer defining the size of a shard partition.
 
-`Digest`: The bytes output from the DIRSHA256 function.
+`Digest`: The bytes output by a cryptographic hash function.
 
-`CONCAT`: A shorthand for "bytes concatenatation", ie the process of appending bytes one after the other.
+`CONCAT`: A shorthand for "bytes concatenation", ie the process of appending bytes one after the other.
 
 `UTF-8`: The character encoding defined in [RFC-3629](https://datatracker.ietf.org/doc/html/rfc3629).
 
@@ -32,7 +32,7 @@ ML models like PyTorch's and Huggingface's store model parameters (weight, archi
 
 `ITOA`: A function that takes an unsigned integer and returns its string representation.
 
-`MIN`: A function that return the minimum value of its arguments.
+`MIN`: A function that returns the minimum value of its arguments.
 
 `READ_FILE`: A function that takes a path, a starting offset and an end offset, and returns the content of the file from the starting to the end offset.
 
