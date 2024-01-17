@@ -44,7 +44,7 @@ ML models like PyTorch's and Huggingface's store model parameters (weight, archi
 
 DIRSHA256 takes as input a file-system path and a [shard size](#terminology-and-symbols) and outputs a 32-byte (256-bit) digest.
 
-DIRSHA256 is comprised of four sub-routines: [Ordered Paths Listing (OPL)](#ordered-paths-listing-opl), [Path and Metadata Generation (PMG)](#path-and-metadata-generation-pmg), [Path Content and Metadata Hashing (PCMH)](#path-content-and-metadata-hashing-pcmh) and [Final Digest Computation (FDC)](#final-digest-computation-fdc).
+DIRSHA256 is comprised of four sub-routines: [Ordered Paths Listing (OPL)](#ordered-paths-listing-opl), [Hashing Task Generation (HTG)](#hashing-task-generation-htg), [Hashing Task Execution (HTE)](#hashing-task-execution-hte) and [Final Digest Computation (FDC)](#final-digest-computation-fdc).
 
 ### Ordered Paths Listing (OPL)
 
@@ -121,9 +121,9 @@ The ouput MUST contain the folowing (JSON-represented) object:
 ]
 ```
 
-### Path and Metadata Generation (PMG)
+### Hashing Task Generation (HTG)
 
-The PMG sub-routine takes as input the output of the OPL sub-routine and a shard size, and outputs a list of independent "hashing tasks".
+The HTG sub-routine takes as input the output of the OPL sub-routine and a shard size, and outputs a list of independent "hashing tasks".
 A "hashing task" is a request to hash a portion (shard) of a file. Each hashing task can be run independently of one another, in parallel.
 
 ```java
@@ -133,7 +133,7 @@ hashing_task struct {
     offset_end      // The position of the last byte to hash.
 }
 
-func PMG([]path_metadata, shard_size) -> []hashing_task
+func HTG([]path_metadata, shard_size) -> hashing_task
 ```
 
 The shard size is used to partition each file content into multiple hashing tasks. Each task represents the hashing of a portion / shard of a file.
@@ -151,15 +151,15 @@ Example 2: A file of size 20 bytes and using a shard of size 6 bytes. Four tasks
 - `task_2` is for hashing the file from offset `12` to offset `17` (6 bytes)
 - `task_3` is for hashing the file from offset `18` to offset `19` (2 bytes)
 
-### Path Content and Metadata Hashing (PCMH)
+### Hashing Task Execution (HTE)
 
-The PCMH sub-routine takes as input a model path type and a list a hashing tasks. It performs the actual hashing and returns a digest:
+The HTE sub-routine takes as input a model path type and a list a hashing tasks. It performs the actual hashing and returns a digest:
 
 ```java
-func PCMH(model_path_type, hashing_task) -> digest
+func HTE(model_path_type, hashing_task) -> digest
 ```
 
-The PCMH routine performs the following logic:
+The HTE routine performs the following logic:
 
 1. If the `model_path_type` is a directory:
     1. Compute the temporary value `TYPE_STR := UTF-8( hashing_task.path_metadata.type )`
@@ -190,11 +190,11 @@ func FDC(digests []digest) -> digest
 ```java
 func DIRSHA256(model_path, shard_size) -> digest
     ordered_paths_metadata := OFL(model_path)
-    hashing_tasks := PMG(ordered_paths_metadata, shard_size)
+    hashing_tasks := HTG(ordered_paths_metadata, shard_size)
     digests := []
     for i := range hashing_tasks
         task_i := hashing_tasks[i]
-        digest_i := PCMH(model_path.type(), task_i)
+        digest_i := HTE(model_path.type(), task_i)
         digests += [digest_i]
     return FDC(digests)
 ```
