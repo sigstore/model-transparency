@@ -63,7 +63,7 @@ func OFL(path) -> []path_metadata
 The function OFL MUST enforce the following invariants:
 
 1. Each path is a non-empty absolute path starting at the root of the model path, represented in POSIX format with characters encoded in UTF-8.
-1. The list is ordered alphabetically by path in ascending order. Character are compared based on their UTF-8 representation.
+1. The list is ordered alphabetically by path in ascending order. Characters are compared based on their UTF-8 representation.
 1. Each path type is either "dir" or "file". Other types (e.g., symlinks) MUST produce an error and OFL MUST fail.
 1. Empty directories MUST be present in the list.
 1. Directories always have a size of 0.
@@ -133,7 +133,7 @@ hashing_task struct {
     offset_end      // The position of the last byte to hash.
 }
 
-func OFL([]path_metadata, shard_size) -> []hashing_task
+func PMG([]path_metadata, shard_size) -> []hashing_task
 ```
 
 The shard size is used to partition each file content into multiple hashing tasks. Each task represents the hashing of a portion / shard of a file.
@@ -161,7 +161,7 @@ func PCMH(model_path_type, hashing_task) -> digest
 
 The PCMH routine performs the following logic:
 
-1. If the model `model_path_type` is a directory:
+1. If the `model_path_type` is a directory:
     1. Compute the temporary value `TYPE_STR := UTF-8( hashing_task.path_metadata.type )`
     1. Compute the temporary value `PATH_STR := BASE64( UTF-8( hashing_task.path_metadata.path ) )`
     1. Compute the temporary value `POS_STR := UTF-8( ITOA(start_pos) + "-" + ITOA(end_pos) )`
@@ -189,8 +189,8 @@ func FDC(digests []digest) -> digest
 
 ```java
 func DIRSHA256(model_path, shard_size) -> digest
-    paths_metadata := OFL(model_path)
-    hashing_tasks := PMG(hashing_task, shard_size)
+    ordered_paths_metadata := OFL(model_path)
+    hashing_tasks := PMG(ordered_paths_metadata, shard_size)
     digests := []
     for i := range hashing_tasks
         task_i := hashing_tasks[i]
