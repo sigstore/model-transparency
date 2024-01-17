@@ -57,10 +57,10 @@ path_metadata struct {
     size // The size of the path, in bytes. 0 for directories.
 }
 
-func OFG(path) -> []path_metadata
+func OPG(path) -> []path_metadata
 ```
 
-The function OFL MUST enforce the following invariants:
+The function OPG MUST enforce the following invariants:
 
 1. Each path is a non-empty absolute path starting at the root of the model path, represented in POSIX format with characters encoded in UTF-8.
 1. The list is ordered alphabetically by path in ascending order. Characters are compared based on their UTF-8 representation.
@@ -68,7 +68,7 @@ The function OFL MUST enforce the following invariants:
 1. Empty directories MUST be present in the list.
 1. Directories always have a size of 0.
 
-For example, when running OFL with the input path below:
+For example, when running OPG with the input path below:
 
 ```bash
 $ tree
