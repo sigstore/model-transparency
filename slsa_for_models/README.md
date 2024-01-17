@@ -42,12 +42,10 @@ or that require multiple hours for training.
 
 ### Accelerators
 Future work will involve covering training ML models that require access to
-accelerators (i.e., GPUs, TPUs) or that require multiple hours for training. As
-an example, we could use [Tekton Chains][tekton-chains] to support [training ML
-models using Kubeflow][tekton-kubeflow].
+accelerators (i.e., GPUs, TPUs).
 
 ### Platforms
-While this example has targeted GitHub Actions and Tekton in GCP, we aim to bring
+While our examples have targeted GitHub Actions and Tekton in GCP, we aim to bring
 support for other platforms (e.g., GCB and GitLab) and model training environments.
 
 ### Directory Format
@@ -68,5 +66,5 @@ SLSA (in general, not just for ML).
 [tekton-chains]: https://github.com/tektoncd/chains
 [tekton-kubeflow]: https://www.kubeflow.org/docs/components/pipelines/v1/sdk/pipelines-with-tekton/
 [workflow]: https://github.com/google/model-transparency/blob/main/.github/workflows/slsa_for_ml.yml
-[gha]: github_actions
+[gha]: github_actions.md
 [gcp]: gcp
