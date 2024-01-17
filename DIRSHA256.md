@@ -6,7 +6,7 @@ This document describes DIRSHA256, an algorithm to serialize the content of a fi
 
 ## Introduction
 
-ML models like PyTorch's and Hugginngface's store model parameters (weight, architecture, etc) in several files stored in a directory. Models can be several hundreds gigabytes large. Thus we need a fast and flexible serizalization mechanism to cryptographically hash a model stored in a directory.
+ML models like PyTorch's and Huggingface's store model parameters (weight, architecture, etc) in several files stored in a directory. Models can be several hundreds gigabytes large. Thus we need a fast and flexible serizalization mechanism to cryptographically hash a model stored in a directory.
 
 ## Terminology and symbols
 
@@ -132,6 +132,7 @@ hashing_task struct {
     offset_start    // The position of the first byte to hash.
     offset_end      // The position of the last byte to hash.
 }
+
 func OFL([]path_metadata, shard_size) -> []hashing_task
 ```
 
@@ -152,9 +153,9 @@ Example 2: A file of size 20 bytes and using a shard of size 6 bytes. Four tasks
 
 ### Path Content and Metadata Hashing (PCMH)
 
-The PCMH sub-routine takes as input a modepath type and a list a hashing tasks and perform the hashing. It returns a digest:
+The PCMH sub-routine takes as input a model path type and a list a hashing tasks. It performs the actual hashing and returns a digest:
 
-```
+```java
 func PCMH(model_path_type, hashing_task) -> digest
 ```
 
@@ -166,7 +167,7 @@ The PCMH routine performs the following logic:
     1. Compute the temporary value `POS_STR := UTF-8( ITOA(start_pos) + "-" + ITOA(end_pos) )`
     1. Compute the header as `HEADER := TYPE_STR + "." + PATH_STR + "." + POS_STR`
     1. If `hashing_task.path_metadata.type == "dir"` (an empty directory), output `SHA256( HEADER + "." + "none" )`. Else continue.
-    1. (An non-empty directory), output `SHA256( HEADER + "." + READ_FILE(hashing_task.path_metadata.path, start=hashing_task.offset_start, end=hashing_task.offset_end) )`.
+    1. (A non-empty directory), output `SHA256( HEADER + "." + READ_FILE(hashing_task.path_metadata.path, start=hashing_task.offset_start, end=hashing_task.offset_end) )`.
 
 1. If the model is a single file:
     1. Compute the temporary value `TYPE_STR := UTF-8( hashing_task.path_metadata.type )`
