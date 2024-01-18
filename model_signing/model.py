@@ -82,7 +82,7 @@ class SigstoreSigner():
             # Happy path: we've detected an ambient credential,
             # so we can return early.
             if token:
-                return token
+                return IdentityToken(token)
 
         # TODO(): Support staging for testing.
         if self.oidc_issuer is not None:
