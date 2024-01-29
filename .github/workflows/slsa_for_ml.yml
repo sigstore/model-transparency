@@ -59,7 +59,7 @@ jobs:
         python -m venv venv
         .github/workflows/scripts/venv_activate.sh
         python slsa_for_models/main.py "$MODEL_TYPE"
-    - uses: actions/upload-artifact@694cdabd8bdb0f10b2cea11669e1bf5453eed0a6 # v4.2.0
+    - uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
       with:
         path: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
         name: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}_${{ runner.os }}
