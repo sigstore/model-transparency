@@ -22,7 +22,7 @@ spec:
       default:
         url: 'https://github.com/google/model-transparency'
         revision: 'main'
-        requirements-path: 'slsa_for_models/install/requirements.txt'
+        requirements-path: 'slsa_for_models/install/requirements_Linux.txt'
         main-path: 'slsa_for_models/main.py'
     - name: model-name
       enum:
