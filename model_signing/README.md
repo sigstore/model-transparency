@@ -26,7 +26,7 @@ monitor](https://github.com/sigstore/rekor-monitor) that runs on GitHub Actions.
 You will need to install a few prerequisites to be able to run all of the
 examples below:
 
-```shell
+```bash
 sudo apt install git git-lfs python3-venv python3-pip unzip
 git lfs install
 ```
@@ -34,7 +34,7 @@ git lfs install
 After this, you can clone the repository, create a Python virtual environment
 and install the dependencies needed by the project:
 
-```shell
+```bash
 git clone git@github.com:google/model-transparency.git
 cd model-transparency/model_signing
 python3 -m venv test_env
@@ -47,17 +47,17 @@ After this point, you can use the project to sign and verify models and
 checkpoints. A help message with all arguments can be obtained by passing `-h`
 argument, either to the main driver or to the two subcommands:
 
-```shell
+```bash
 python3 main.py -h
 python3 main.py sign -h
 python3 main.py verify -h
 ```
 
 Signing a model requires passing an argument for the path to the model. This can
-be a path to a file or a directory (for model formats such as SavedModel which
-are stored as a directory of related files):
+be a path to a file or a directory (for large models, or model formats such as
+`SavedModel` which are stored as a directory of related files):
 
-```shell
+```bash
 path=path/to/model
 python3 main.py sign --path "${path}"
 ```
@@ -72,7 +72,7 @@ single file, and `<dir>/model.sig` for a model in a folder-based format.
 For verification, we need to pass both the path to the model and identity
 related arguments:
 
-```shell
+```bash
 python3 main.py verify --path "${path}" \
     --identity-provider https://accounts.google.com \
     --identity myemail@gmail.com
@@ -103,7 +103,7 @@ model hubs.
 For example, to sign and verify a Bertseq2seq model, trained with TensorFlow,
 stored in TFHub, run the following commands:
 
-```shell
+```bash
 model_path=bertseq2seq
 wget "https://tfhub.dev/google/bertseq2seq/bert24_en_de/1?tf-hub-format=compressed" -O "${model_path}".tgz
 mkdir -p "${model_path}"
@@ -117,14 +117,14 @@ python3 main.py verify --path "${model_path}" \
 For models stored in Hugging Face we need the large file support from git, which
 can be obtained via
 
-```shell
+```bash
 sudo apt install git-lfs
 git lfs install
 ```
 
 After this, we can sign and verify a Bert base model:
 
-```shell
+```bash
 model_name=bert-base-uncased
 model_path="${model_name}"
 git clone --depth=1 "https://huggingface.co/${model_name}" && rm -rf "${model_name}"/.git
@@ -136,7 +136,7 @@ python3 main.py verify --path "${model_path}" \
 
 Similarly, we can sign and verify a Falcon model:
 
-```shell
+```bash
 model_name=tiiuae/falcon-7b
 model_path=$(echo "${model_name}" | cut -d/ -f2)
 git clone --depth=1 "https://huggingface.co/${model_name}" && rm -rf "${model_name}"/.git
@@ -148,7 +148,7 @@ python3 main.py verify --path "${model_path}" \
 
 We can also support models from  the PyTorch Hub:
 
-```shell
+```bash
 model_name=hustvl/YOLOP
 model_path=$(echo "${model_name}" | cut -d/ -f2)
 wget "https://github.com/${model_name}/archive/main.zip" -O "${model_path}".zip
@@ -162,7 +162,7 @@ python3 main.py verify --path "${model_path}" \
 
 We also support ONNX models, for example Roberta:
 
-```shell
+```bash
 model_name=roberta-base-11
 model_path="${model_name}.onnx"
 wget "https://github.com/onnx/models/raw/main/text/machine_comprehension/roberta/model/${model_name}.onnx"
@@ -174,8 +174,10 @@ python3 main.py verify --path "${model_path}" \
 
 ## Benchmarking
 
-Install as per [Prerequisites section](#prerequisites).
-Ensure you have enough disk space: >= 50GB when passing 3rd script argument as "true", else >= 100GB.
+Install as per [Usage section](#usage).
+Ensure you have enough disk space:
+- if passing 3rd script argument as `true`: at least 50GB
+- otherwise: at least 100GB
 
 To run the benchmarks:
 
