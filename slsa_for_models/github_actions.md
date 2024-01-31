@@ -1,18 +1,29 @@
 ## SLSA for Models in GitHub Actions
 
-This project uses [SLSA L3 GitHub generator][slsa-generator] to generate SLSA provenance
-for ML models in GitHub Actions. This happens during a [workflow][workflow] which takes
-as input the format to save the model into.
+This example uses [SLSA L3 GitHub generator][slsa-generator] to generate SLSA
+provenance for ML models in GitHub Actions. This happens during a
+[workflow][workflow] which takes as input the format to save the model into.
 
-When users download a given version of a model they can also check its provenance by
-using [the SLSA verifier][slsa-verifier] repository.
+When users download a given version of a model they can also check its
+provenance by using [the SLSA verifier][slsa-verifier] repository.
 
 To test, fork this repository, then head over to the Actions tab and select the
-"SLSA for ML models example" workflow. Since the workflow has a `workflow_dispatch`
-trigger, it can be invoked on demand: click the `Run workflow` button, then select the
-value for the "Name of the model" argument.
+"SLSA for ML models example" workflow. Since the workflow has a
+`workflow_dispatch` trigger, it can be invoked on demand: click the `Run
+workflow` button, then select the value for the "Name of the model" argument.
 
 ![Triggering a SLSA workflow](images/slsa_trigger.png)
+
+The supported formats are:
+
+| Workflow Argument            | Training Framework | Model format                    |
+|------------------------------|--------------------|---------------------------------|
+| `tensorflow_model.keras`     | TensorFlow         | Keras format (default)          |
+| `tensorflow_hdf5_model.h5`   | TensorFlow         | Legacy HDF5 format              |
+| `tensorflow_hdf5.weights.h5` | TensorFlow         | Legacy HDF5 weights only format |
+| `pytorch_model.pth`          | PyTorch            | PyTorch default format          |
+| `pytorch_full_model.pth`     | PyTorch            | PyTorch complete model format   |
+| `pytorch_jitted_model.pt`    | PyTorch            | PyTorch TorchScript format      |
 
 After the workflow finishes execution, there will be two archives in the
 "Artifacts" section: one is the model that was trained and the other one is the
@@ -25,7 +36,7 @@ To verify the provenance, download both archives, unzip each and then run
 _path to your fork_. For example, for a PyTorch model, which has been [built on
 this repository](https://github.com/google/model-transparency/actions/runs/6646816974):
 
-```console
+```bash
 [...]$ slsa-verifier verify-artifact \
        --provenance-path pytorch_model.pth.intoto.jsonl \
        --source-uri github.com/google/model-transparency \
@@ -37,8 +48,8 @@ Verifying artifact pytorch_model.pth: PASSED
 PASSED: Verified SLSA provenance
 ```
 
-The verification of provenance can be done just before the model gets loaded in the
-serving pipeline.
+The verification of provenance can be done just before the model gets loaded in
+the serving pipeline.
 
 [cifar10]: https://www.cs.toronto.edu/~kriz/cifar.html
 [slsa-generator]: https://github.com/slsa-framework/slsa-github-generator

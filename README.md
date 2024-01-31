@@ -67,20 +67,33 @@ See [model_signing/README.md](model_signing/README.md) for more information.
 
 ### SLSA for ML
 
-This project shows how we can generate [SLSA][slsa] provenance for ML models.
+This project shows how we can generate [SLSA][slsa] provenance for ML models,
+using either Github Actions or Google Cloud Platform.
 
 SLSA was originally developed for traditional software to protect against
 tampering with builds, such as in the [Solarwinds attack][solarwinds], and
 this project is a proof of concept that the same supply chain protections
 can be applied to ML.
 
+We support both TensorFlow and PyTorch models. The examples train a model
+on [CIFAR10][cifar10] dataset, save it in one of the supported formats, and
+generate provenance for the output. The supported formats are:
+
+| Workflow Argument            | Training Framework | Model format                    |
+|------------------------------|--------------------|---------------------------------|
+| `tensorflow_model.keras`     | TensorFlow         | Keras format (default)          |
+| `tensorflow_hdf5_model.h5`   | TensorFlow         | Legacy HDF5 format              |
+| `tensorflow_hdf5.weights.h5` | TensorFlow         | Legacy HDF5 weights only format |
+| `pytorch_model.pth`          | PyTorch            | PyTorch default format          |
+| `pytorch_full_model.pth`     | PyTorch            | PyTorch complete model format   |
+| `pytorch_jitted_model.pt`    | PyTorch            | PyTorch TorchScript format      |
+
 See [slsa_for_models/README.md](slsa_for_models/README.md) for more information.
 
 ## Status
 
-This project is currently in alpha. We may make breaking changes until the first
-official release. All code should be viewed as experimental and should not be
-used in any production environment.
+This project is currently experimental, not ready for all production use-cases.
+We may make breaking changes until the first official release.
 
 ## Contributing
 
