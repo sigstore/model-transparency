@@ -40,7 +40,7 @@ cd model-transparency/model_signing
 python3 -m venv test_env
 source test_env/bin/activate
 os=Linux # Supported: Linux, Windows, macOS.
-python3 -m pip install --require-hashes -r install/requirements_"${os}".txt
+python3 -m pip install --require-hashes -r "install/requirements_${os}".txt
 ```
 
 After this point, you can use the project to sign and verify models and
