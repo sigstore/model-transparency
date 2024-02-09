@@ -39,6 +39,7 @@ jobs:
       hash-macos-latest: ${{ steps.hash.outputs.hash-macos-latest }}
       hash-windows-latest: ${{ steps.hash.outputs.hash-windows-latest }}
     steps:
+    - run: git config --global core.autocrlf input
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
     - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
       with:
@@ -69,8 +70,8 @@ jobs:
         MODEL: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
       run: |
         set -euo pipefail
-        (sha256sum "$MODEL" || shasum -a 256 "$MODEL") > checksum
-        echo "hash-${{ matrix.os }}=$(cat checksum | base64 -w0)" >> "${GITHUB_OUTPUT}"
+        (sha256sum -t "$MODEL" || shasum -a 256 "$MODEL") > checksum
+        echo "hash-${{ matrix.os }}=$(base64 -w0 checksum || base64 checksum)" >> "${GITHUB_OUTPUT}"
 
   provenance:
     # TODO(mihaimaruseac): Don't run on pull requests for now
