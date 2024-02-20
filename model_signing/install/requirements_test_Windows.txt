@@ -20,7 +20,7 @@ pluggy==1.4.0 \
     --hash=sha256:7db9f7b503d67d1c5b95f59773ebb58a8c1c288129a88665838012cfb07b8981 \
     --hash=sha256:8c85c2876142a764e5b7548e7d9a0e0ddb46f5185161049a79b7e974454223be
     # via pytest
-pytest==8.0.0 \
-    --hash=sha256:249b1b0864530ba251b7438274c4d251c58d868edaaec8762893ad4a0d71c36c \
-    --hash=sha256:50fb9cbe836c3f20f0dfa99c565201fb75dc54c8d76373cd1bde06b06657bdb6
+pytest==8.0.1 \
+    --hash=sha256:267f6563751877d772019b13aacbe4e860d73fe8f651f28112e9ac37de7513ae \
+    --hash=sha256:3e4f16fe1c0a9dc9d9389161c127c3edc5d810c38d6793042fb81d9f48a59fca
     # via -r model_signing/install/requirements_test.in
