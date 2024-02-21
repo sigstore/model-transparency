@@ -247,6 +247,11 @@ Google Cloud Platform (GCP). It uses [Google Kubernetes Engine][gke] (GKE),
      pytorch_model.pth
    ```
 
+### Kubeflow on Tekton
+
+Provide a [Kubeflow Pipeline](#../kubeflow/README.md) that can be compiled into the above Tekton Pipeline
+using [Kubeflow on Tekton][tekton-kubeflow].
+
 ## Future Work
 
 ### Automate Provenance Verification
@@ -259,10 +264,6 @@ serving the model.
 Trigger execution of the `PipelineRun` whenever changes are made in the
 codebase.
 
-### Kubeflow on Tekton
-
-Provide a Kubeflow Pipeline that can be compiled into the above Tekton Pipeline
-using [Kubeflow on Tekton][tekton-kubeflow].
 
 ### Accelerators
 
