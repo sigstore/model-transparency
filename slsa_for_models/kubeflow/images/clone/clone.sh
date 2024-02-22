@@ -53,6 +53,6 @@ done
 echo "cloning $url into ${target}"
 git clone ${url} ${target}
 cd ${target}
-RESULT_SHA=$(git rev-parse HEAD) 
+RESULT_SHA=$(git rev-parse HEAD)
 printf "%s" "${RESULT_SHA}" > ${resultPathCommit}
 printf "%s" "${url}" > ${resultPathUrl}
