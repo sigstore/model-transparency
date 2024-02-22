@@ -40,7 +40,7 @@ while getopts ":h:r:w:s:m:d:" option; do
 	 sourcePath=$OPTARG;;
       d) # result path digest
 	 resultPathDigest=$OPTARG;;
-      m) # model name 
+      m) # model name
 	 model=$OPTARG;;
       \?) # Invalid option
          echo "Error: Invalid option"
