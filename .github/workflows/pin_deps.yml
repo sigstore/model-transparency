@@ -83,12 +83,12 @@ jobs:
       pull-requests: write
     steps:
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-    - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe # v4.1.2
+    - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
       with:
         path: .
         merge-multiple: true
     - name: Create dependent PR with dependency changes
-      uses: peter-evans/create-pull-request@b1ddad2c994a25fbc81a28b3ec0e368bb2021c50 # v6.0.0
+      uses: peter-evans/create-pull-request@a4f52f8033a6168103c2538976c07b467e8163bc # v6.0.1
       with:
         title: "Update frozen python dependencies"
         commit-message: "Bump frozen dependencies"
