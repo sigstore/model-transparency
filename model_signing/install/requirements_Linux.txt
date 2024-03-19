@@ -357,9 +357,9 @@ pycparser==2.21 \
     --hash=sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9 \
     --hash=sha256:e644fdec12f7872f86c58ff790da456218b10f863970249516d60a5eaca77206
     # via cffi
-pydantic==2.6.3 \
-    --hash=sha256:72c6034df47f46ccdf81869fddb81aade68056003900a8724a4f160700016a2a \
-    --hash=sha256:e07805c4c7f5c6826e33a1d4c9d47950d7eaf34868e2690f8594d2e30241f11f
+pydantic==2.6.4 \
+    --hash=sha256:b1704e0847db01817624a6b86766967f552dd9dbf3afba4004409f908dcc84e6 \
+    --hash=sha256:cc46fce86607580867bdc3361ad462bab9c222ef042d3da86f2fb333e1d916c5
     # via
     #   id
     #   sigstore
@@ -453,9 +453,9 @@ pyjwt==2.8.0 \
     --hash=sha256:57e28d156e3d5c10088e0c68abb90bfac3df82b40a71bd0daa20c65ccd5c23de \
     --hash=sha256:59127c392cc44c2da5bb3192169a91f429924e17aff6534d70fdc02ab3e04320
     # via sigstore
-pyopenssl==24.0.0 \
-    --hash=sha256:6aa33039a93fffa4563e655b61d11364d01264be8ccb49906101e02a334530bf \
-    --hash=sha256:ba07553fb6fd6a7a2259adb9b84e12302a9a8a75c44046e8bb5d3e5ee887e3c3
+pyopenssl==24.1.0 \
+    --hash=sha256:17ed5be5936449c5418d1cd269a1a9e9081bc54c17aed272b45856a3d3dc86ad \
+    --hash=sha256:cabed4bfaa5df9f1a16c0ef64a0cb65318b5cd077a7eda7d6970131ca2f41a6f
     # via sigstore
 python-dateutil==2.9.0.post0 \
     --hash=sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3 \
@@ -478,13 +478,13 @@ securesystemslib==0.31.0 \
     # via
     #   sigstore
     #   tuf
-sigstore==2.1.2 \
-    --hash=sha256:94139c1efa0784135516d11b79c8b06d4ea61245624e69cda44494e87560b07c \
-    --hash=sha256:fd9069b50b5789c6e229641e948a9b47c07525e8924f5e4d20d7dc1a8db6d6e2
+sigstore==2.1.3 \
+    --hash=sha256:7a0c1252cb7974024aee87c8e0f0f6247604af16e8b5a8e3d0a9e1201e330aa2 \
+    --hash=sha256:f3aaa564c0d48a62fb40c103615bba01af787eaf9fda3b6e1a3e1dc5abc2d311
     # via -r model_signing/install/requirements.in
-sigstore-protobuf-specs==0.2.2 \
-    --hash=sha256:62c7beabc6910fb570dc4c600e33e81f2d2d683f785202ee109ca394bd829e94 \
-    --hash=sha256:c05c1e7478a80af0c7dea9cc2d11f047826e4c029573d564137f788e11377391
+sigstore-protobuf-specs==0.3.0 \
+    --hash=sha256:3322adb73992bca0f3dc6d4c2c38bac29086a11d2631a983adb2798e58e32a54 \
+    --hash=sha256:e06321d28e58cb1505ae682b63756b4fb858da6b11bd7b49a2b6beabe412ebfd
     # via sigstore
 sigstore-rekor-types==0.0.11 \
     --hash=sha256:791a696eccd5d07c933cc11d46dea22983efedaf5f1068734263ce0f25695bba \
