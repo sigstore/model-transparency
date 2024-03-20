@@ -23,9 +23,5 @@ permissions:
 
 jobs:
   dependency-review:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 'Checkout Repository'
-        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
-      - name: 'Dependency Review'
-        uses: actions/dependency-review-action@9129d7d40b8c12c1ed0f60400d00c92d437adcce # v4.1.3
+    name: License and Vulnerability Scan
+    uses: sigstore/community/.github/workflows/reusable-dependency-review.yml@8cc8d600fbf3012b9d9d84a499423fa96afa3765
