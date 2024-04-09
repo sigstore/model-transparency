@@ -478,13 +478,13 @@ securesystemslib==0.31.0 \
     # via
     #   sigstore
     #   tuf
-sigstore==2.1.3 \
-    --hash=sha256:7a0c1252cb7974024aee87c8e0f0f6247604af16e8b5a8e3d0a9e1201e330aa2 \
-    --hash=sha256:f3aaa564c0d48a62fb40c103615bba01af787eaf9fda3b6e1a3e1dc5abc2d311
+sigstore==2.1.5 \
+    --hash=sha256:7771153c5ac5a51d6556481f4680dfb602cb5c32c94fe56f87ff1801b8a8f243 \
+    --hash=sha256:86d3ba41135004818c20d09d120140d59d4bd535a092690ff46478047bb8df5b
     # via -r model_signing/install/requirements.in
-sigstore-protobuf-specs==0.3.0 \
-    --hash=sha256:3322adb73992bca0f3dc6d4c2c38bac29086a11d2631a983adb2798e58e32a54 \
-    --hash=sha256:e06321d28e58cb1505ae682b63756b4fb858da6b11bd7b49a2b6beabe412ebfd
+sigstore-protobuf-specs==0.3.1 \
+    --hash=sha256:c40b61975b957ae906eb29a5bc7040ec015b68b6b46005cc5805e629493e8dec \
+    --hash=sha256:ea6d7325af70019b6639e0fd16ef6f78511645d46dd3f9876fb008641d80a125
     # via sigstore
 sigstore-rekor-types==0.0.11 \
     --hash=sha256:791a696eccd5d07c933cc11d46dea22983efedaf5f1068734263ce0f25695bba \
@@ -498,9 +498,9 @@ tuf==3.1.1 \
     --hash=sha256:73b3c89a0acdfe90434bba3118c90c584ef1c56bc0c4565852e917408b774130 \
     --hash=sha256:d6441d11bc9a928cb82cf571519bb99e70ed3ea6fd5a52ce116a8e121023f7ef
     # via sigstore
-typing-extensions==4.10.0 \
-    --hash=sha256:69b1a937c3a517342112fb4c6df7e72fc39a38e7891a5730ed4985b5214b5475 \
-    --hash=sha256:b0abd7c89e8fb96f98db18d86106ff1d90ab692004eb746cf6eda2682f91b3cb
+typing-extensions==4.11.0 \
+    --hash=sha256:83f085bd5ca59c80295fc2a82ab5dac679cbe02b9f33f7d83af68e241bea51b0 \
+    --hash=sha256:c1f94d72897edaf4ce775bb7558d5b79d8126906a14ea5ed1635921406c0387a
     # via
     #   pydantic
     #   pydantic-core
