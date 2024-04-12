@@ -15,7 +15,6 @@
 from enum import Enum
 from typing import List
 
-import in_toto_attestation.v1.resource_descriptor_pb2 as rdpb
 from sigstore import dsse
 
 class DigestAlgorithm(Enum):

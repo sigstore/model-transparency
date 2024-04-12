@@ -109,7 +109,7 @@ class SigstoreSigner():
                 inputfn, chunk_size(), signaturefn, ignorepaths)
             with self.signing_ctx.signer(oidc_token) as signer:
                 manifest = Manifest(serialized_paths)
-                bundle = signer.sign(input_=manifest.to_intoto_statement())
+                bundle = signer.sign_intoto(input_=manifest.to_intoto_statement())
                 signaturefn.write_bytes(bundle.to_json().encode('utf-8'))
                 ## TODO: Check that sign() does verify the signature.
                 verifier = Verifier.production()
