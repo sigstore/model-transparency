@@ -101,8 +101,8 @@ class SigstoreSigner():
             oidc_token = self.get_identity_token()
             if not oidc_token:
                 raise ValueError("No identity token supplied or detected!")
-            print(f"identity-provider: {oidc_token.issuer}",
-                  file=sys.stderr)
+            #print(f"identity-provider: {oidc_token.issuer}",
+            #      file=sys.stderr)
             print(f"identity: {oidc_token.identity}", file=sys.stderr)
 
             serialized_paths = Serializer.serialize_v2(
