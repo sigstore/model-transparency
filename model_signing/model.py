@@ -20,20 +20,20 @@ from sigstore.oidc import (
     Issuer,
     detect_credential,
 )
-from sigstore_protobuf_specs.dev.sigstore.bundle.v1 import Bundle
+
+from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_v1
+
 from sigstore.verify import (
     policy,
     Verifier,
-)
-from sigstore.verify.models import (
-    VerificationMaterials,
+    Bundle,
 )
 
 from sigstore._internal.fulcio.client import (
     ExpiredCertificate,
 )
 
-import io
+import json
 from pathlib import Path
 from typing import Optional
 from serialize import Serializer
@@ -84,7 +84,6 @@ class SigstoreSigner():
             # so we can return early.
             if token:
                 return IdentityToken(token)
-
         # TODO(): Support staging for testing.
         if self.oidc_issuer is not None:
             issuer = Issuer(self.oidc_issuer)
@@ -110,9 +109,11 @@ class SigstoreSigner():
                 inputfn, chunk_size(), signaturefn, ignorepaths)
             with self.signing_ctx.signer(oidc_token) as signer:
                 manifest = Manifest(serialized_paths)
-                result = signer.sign(input_=manifest.to_intoto_statement())
-                with signaturefn.open(mode="w") as b:
-                    print(result.to_json(), file=b)
+                bundle = signer.sign(input_=manifest.to_intoto_statement())
+                signaturefn.write_bytes(bundle.to_json().encode('utf-8'))
+                ## TODO: Check that sign() does verify the signature.
+                verifier = Verifier.production()
+                _, _ = verifier.verify_dsse(bundle, policy.UnsafeNoOp())        
             return SignatureResult()
         except ExpiredIdentity:
             return SignatureResult(success=False,
@@ -142,27 +143,19 @@ class SigstoreVerifier():
                ignorepaths: [Path], offline: bool) -> VerificationResult:
         try:
             bundle_bytes = signaturefn.read_bytes()
-            bundle = Bundle().from_json(bundle_bytes)
-
-            material: tuple[Path, VerificationMaterials]
-            # TODO: verification
-            # serialized_paths = Serializer.serialize_v2(
-            #     inputfn, chunk_size(), signaturefn, ignorepaths)
-            #     manifest = Manifest(serialized_paths)
-            #     result = signer.sign(input_=manifest.to_intoto_statement())
-            contentio = io.BytesIO(Serializer.serialize_v1(
-                inputfn, chunk_size(), signaturefn, ignorepaths))
-            material = VerificationMaterials.from_bundle(input_=contentio,
-                                                         bundle=bundle,
-                                                         offline=offline)
+            bundle = Bundle.from_json(bundle_bytes)
             policy_ = policy.Identity(
                 identity=self.identity,
                 issuer=self.oidc_provider,
             )
-            result = self.verifier.verify(materials=material, policy=policy_)
-            if result:
-                return VerificationResult()
-            return VerificationResult(success=False, reason=result.reason)
+            payload_type, payload = self.verifier.verify_dsse(bundle, policy_)
+            if payload_type != "application/vnd.in-toto+json":
+                raise ValueError(f"invalid payload type {payload_type}")
+            serialized_paths = Serializer.serialize_v2(
+                inputfn, chunk_size(), signaturefn, ignorepaths)
+            manifest = Manifest(serialized_paths)
+            manifest.verify(json.loads(payload))
+            return VerificationResult()
         except Exception as e:
             return VerificationResult(success=False,
                                       reason=f"exception caught: {str(e)}")

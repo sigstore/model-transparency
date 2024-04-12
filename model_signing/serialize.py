@@ -336,39 +336,37 @@ class Serializer:
         # worker = current_process()
         # print(f'Task {task_info},
         # worker name={worker.name}, pid={worker.pid}', flush=True)
-        _, chunk, (name, ty, start_pos, end_pos) = task_info
+        model_path, chunk, (name, ty, start_pos, end_pos) = task_info
         # Only files are recorded.
         if ty != "file":
             raise ValueError(f"internal: got a non-file path {name}")
 
-        return Hasher._node_file_compute_v1(name,
+        return Hasher._node_file_compute_v1(model_path.joinpath(name),
                                             b'', start_pos, end_pos, chunk)
 
     @staticmethod
-    def _to_path_metadata(task_info: [any], all_hashes: bytes) -> [PathMetadata]:
-        if not task_info:
-            raise ValueError("internal: task_info is empty")
-
+    def _to_path_metadata(tasks_info: [any], all_hashes: bytes) -> [PathMetadata]:
+        if not tasks_info:
+            raise ValueError("internal: tasks_info is empty")
         paths: [PathMetadata] = []
         # Iterate over all tasks.
-        prev_task = task_info[0]
-        prev_i = 0
+        prev_task = tasks_info[0]
         prev_name, _, _, _ = prev_task
-        for curr_i, curr_task in enumerate(task_info[1:]):
+        h = hashlib.sha256(bytes(all_hashes[0: 32]))
+        for curr_i, curr_task in enumerate(tasks_info[1:]):
             curr_name, _, _, _ = curr_task
             if prev_name == curr_name:
+                h.update(bytes(all_hashes[curr_i*32: (curr_i + 1)*32]))
                 continue
             # End of a group of sharded digests for the same file.
             # NOTE: each digest is 32-byte long.
-            h = hashlib.sha256(bytes(all_hashes[prev_i: curr_i+32])).digest()
-            paths += [PathMetadata(prev_name, Hashed(DigestAlgorithm.SHA256_P1, h))]
-            prev_i = curr_i
+            paths += [PathMetadata(prev_name, Hashed(DigestAlgorithm.SHA256_P1, h.digest()))]
+            # Compute the hash for the next group.
+            h.update(bytes(all_hashes[curr_i*32: (curr_i + 1)*32]))
             prev_name = curr_name
-
-        # Compute the digest for the last (unfinished) task.
-        if prev_i < len(task_info) - 1:
-            h = hashlib.sha256(bytes(all_hashes[prev_i:])).digest()
-            paths += [PathMetadata(prev_name, Hashed(DigestAlgorithm.SHA256_P1, h))]
+        
+        # Compute the digest for the last (unfinished) group.
+        paths += [PathMetadata(prev_name, Hashed(DigestAlgorithm.SHA256_P1, h.digest()))]
         # TODO: Test this function properly.
         # paths += [PathMetadata("path/to/file1", Hashed(DigestAlgorithm.SHA256_P1, b'\abcdef1'))]
         # paths += [PathMetadata("path/to/file2", Hashed(DigestAlgorithm.SHA256_P1, b'\abcdef2'))]
