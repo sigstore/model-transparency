@@ -40,7 +40,7 @@ jobs:
       hash-windows-latest: ${{ steps.hash.outputs.hash-windows-latest }}
     steps:
     - run: git config --global core.autocrlf input
-    - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+    - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
     - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
       with:
         python-version: 3.11
@@ -60,7 +60,7 @@ jobs:
         python -m venv venv
         .github/workflows/scripts/venv_activate.sh
         python slsa_for_models/main.py "$MODEL_TYPE"
-    - uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+    - uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba # v4.3.2
       with:
         path: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
         name: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}_${{ runner.os }}
