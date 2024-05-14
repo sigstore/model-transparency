@@ -482,9 +482,9 @@ sigstore==2.1.5 \
     --hash=sha256:7771153c5ac5a51d6556481f4680dfb602cb5c32c94fe56f87ff1801b8a8f243 \
     --hash=sha256:86d3ba41135004818c20d09d120140d59d4bd535a092690ff46478047bb8df5b
     # via -r model_signing/install/requirements.in
-sigstore-protobuf-specs==0.3.1 \
-    --hash=sha256:c40b61975b957ae906eb29a5bc7040ec015b68b6b46005cc5805e629493e8dec \
-    --hash=sha256:ea6d7325af70019b6639e0fd16ef6f78511645d46dd3f9876fb008641d80a125
+sigstore-protobuf-specs==0.3.2 \
+    --hash=sha256:50c99fa6747a3a9c5c562a43602cf76df0b199af28f0e9d4319b6775630425ea \
+    --hash=sha256:cae041b40502600b8a633f43c257695d0222a94efa1e5110a7ec7ada78c39d99
     # via sigstore
 sigstore-rekor-types==0.0.11 \
     --hash=sha256:791a696eccd5d07c933cc11d46dea22983efedaf5f1068734263ce0f25695bba \
