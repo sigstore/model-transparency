@@ -20,7 +20,7 @@ spec:
         requirements-path: {}
         main-path: {}
       default:
-        url: 'https://github.com/google/model-transparency'
+        url: 'https://github.com/sigstore/model-transparency'
         revision: 'main'
         requirements-path: 'slsa_for_models/install/requirements_Linux.txt'
         main-path: 'slsa_for_models/main.py'
@@ -56,7 +56,7 @@ spec:
         resolver: git
         params:
         - name: url
-          value: https://github.com/google/model-transparency.git
+          value: https://github.com/sigstore/model-transparency.git
         - name: revision
           value: $(params.model-source.revision)
         - name: pathInRepo
@@ -80,7 +80,7 @@ spec:
         resolver: git
         params:
         - name: url
-          value: https://github.com/google/model-transparency.git
+          value: https://github.com/sigstore/model-transparency.git
         - name: revision
           value: $(params.model-source.revision)
         - name: pathInRepo
@@ -105,7 +105,7 @@ spec:
         resolver: git
         params:
         - name: url
-          value: https://github.com/google/model-transparency.git
+          value: https://github.com/sigstore/model-transparency.git
         - name: revision
           value: $(params.model-source.revision)
         - name: pathInRepo
