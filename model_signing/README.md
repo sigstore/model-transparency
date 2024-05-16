@@ -39,7 +39,7 @@ git clone git@github.com:sigstore/model-transparency.git
 cd model-transparency/model_signing
 python3 -m venv test_env
 source test_env/bin/activate
-os=Linux # Supported: Linux, Windows, macOS.
+os=Linux # Supported: Linux, Windows, Darwin.
 python3 -m pip install --require-hashes -r "install/requirements_${os}".txt
 ```
 
