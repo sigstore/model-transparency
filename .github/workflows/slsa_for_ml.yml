@@ -29,16 +29,17 @@ defaults:
 jobs:
   train:
     name: Train model
-    runs-on: ${{ matrix.os.runner_name }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false # Don't cancel other jobs if one fails
       matrix:
-        os:
-          - runner_name: ubuntu-latest
-            os_family: Linux
-          - runner_os_name: macos-latest
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: macos-latest
             os_family: Darwin
-          - runner_name: windows-latest
+          - os: ubuntu-latest
+            os_family: Linux
+          - os: windows-latest
             os_family: Windows
     outputs:
       hash-ubuntu-latest: ${{ steps.hash.outputs.hash-ubuntu-latest }}
@@ -51,13 +52,13 @@ jobs:
       with:
         python-version: 3.11
         cache: pip
-        cache-dependency-path: slsa_for_models/install/requirements_${{ matrix.os.os_family }}.txt
+        cache-dependency-path: slsa_for_models/install/requirements_${{ matrix.os_family }}.txt
     - name: Install dependencies
       run: |
         set -exuo pipefail
         python -m venv venv
         .github/workflows/scripts/venv_activate.sh
-        python -m pip install --require-hashes -r slsa_for_models/install/requirements_${{ matrix.os.os_family }}.txt
+        python -m pip install --require-hashes -r slsa_for_models/install/requirements_${{ matrix.os_family }}.txt
     - name: Build model
       env:
         MODEL_TYPE: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
@@ -69,7 +70,7 @@ jobs:
     - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
       with:
         path: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}
-        name: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}_${{ matrix.os.os_family }}
+        name: ${{ github.event.inputs.model_type || 'pytorch_jitted_model.pt' }}_${{ matrix.os_family }}
         if-no-files-found: error
     - id: hash
       env:
@@ -77,7 +78,7 @@ jobs:
       run: |
         set -euo pipefail
         (sha256sum -t "$MODEL" || shasum -a 256 "$MODEL") > checksum
-        echo "hash-${{ matrix.os.runner_name }}=$(base64 -w0 checksum || base64 checksum)" >> "${GITHUB_OUTPUT}"
+        echo "hash-${{ matrix.os }}=$(base64 -w0 checksum || base64 checksum)" >> "${GITHUB_OUTPUT}"
 
   provenance:
     # TODO(mihaimaruseac): Don't run on pull requests for now
