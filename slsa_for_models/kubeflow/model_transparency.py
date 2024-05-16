@@ -105,7 +105,7 @@ def upload_model(location: str, source: str, workDir: str):
     description="Clone the source code, build & upload the model to GCS.",
 )
 def clone_build_push(
-    url: str = "https://github.com/google/model-transparency",
+    url: str = "https://github.com/sigstore/model-transparency",
     target: str = "source",
     model: str = "pytorch_model.pth",
 ):

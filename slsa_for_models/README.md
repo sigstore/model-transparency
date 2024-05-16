@@ -65,6 +65,6 @@ SLSA (in general, not just for ML).
 [solarwinds]: https://www.techtarget.com/whatis/feature/SolarWinds-hack-explained-Everything-you-need-to-know
 [tekton-chains]: https://github.com/tektoncd/chains
 [tekton-kubeflow]: https://www.kubeflow.org/docs/components/pipelines/v1/sdk/pipelines-with-tekton/
-[workflow]: https://github.com/google/model-transparency/blob/main/.github/workflows/slsa_for_ml.yml
+[workflow]: https://github.com/sigstore/model-transparency/blob/main/.github/workflows/slsa_for_ml.yml
 [gha]: github_actions.md
 [gcp]: gcp

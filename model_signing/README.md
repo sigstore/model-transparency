@@ -35,7 +35,7 @@ After this, you can clone the repository, create a Python virtual environment
 and install the dependencies needed by the project:
 
 ```bash
-git clone git@github.com:google/model-transparency.git
+git clone git@github.com:sigstore/model-transparency.git
 cd model-transparency/model_signing
 python3 -m venv test_env
 source test_env/bin/activate
@@ -182,7 +182,7 @@ Ensure you have enough disk space:
 To run the benchmarks:
 
 ```bash
-git clone git@github.com:google/model-transparency.git
+git clone git@github.com:sigstore/model-transparency.git
 cd model-transparency/model_signing
 bash benchmarks/run.sh https://accounts.google.com myemail@gmail.com [true]
 ```

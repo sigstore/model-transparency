@@ -34,12 +34,12 @@ SLSA provenance attached to the model.
 To verify the provenance, download both archives, unzip each and then run
 `slsa-verifier`, making sure to replace the `--source-uri` argument with the
 _path to your fork_. For example, for a PyTorch model, which has been [built on
-this repository](https://github.com/google/model-transparency/actions/runs/6646816974):
+this repository](https://github.com/sigstore/model-transparency/actions/runs/6646816974):
 
 ```bash
 [...]$ slsa-verifier verify-artifact \
        --provenance-path pytorch_model.pth.intoto.jsonl \
-       --source-uri github.com/google/model-transparency \
+       --source-uri github.com/sigstore/model-transparency \
        pytorch_model.pth
 Verified signature against tlog entry index 45419124 at URL: https://rekor.sigstore.dev/api/v1/log/entries/24296fb24b8ad77a98dd03d23a78657e7f1efd3d9bea6988abbf23a72290a4ec7dc35c9edeab7ee1
 Verified build using builder "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@refs/tags/v1.9.0" at commit ac26cbf66849cfec6f29747f4525180595c7eef0
@@ -58,4 +58,4 @@ the serving pipeline.
 [solarwinds]: https://www.techtarget.com/whatis/feature/SolarWinds-hack-explained-Everything-you-need-to-know
 [tekton-chains]: https://github.com/tektoncd/chains
 [tekton-kubeflow]: https://www.kubeflow.org/docs/components/pipelines/v1/sdk/pipelines-with-tekton/
-[workflow]: https://github.com/google/model-transparency/blob/main/.github/workflows/slsa_for_ml.yml
+[workflow]: https://github.com/sigstore/model-transparency/blob/main/.github/workflows/slsa_for_ml.yml
