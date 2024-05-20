@@ -101,7 +101,10 @@ class SigstoreSigner():
             oidc_token = self.get_identity_token()
             if not oidc_token:
                 raise ValueError("No identity token supplied or detected!")
-            print(f"identity-provider: {oidc_token.issuer}",
+            # Calling the private attribute IdentityToken._federated issuer
+            # is a workaround for earlier versions of sigstore-python (<3.0.0)
+            # that do not support the federated_issuer property.
+            print(f"identity-provider: {oidc_token._federated_issuer}",
                   file=sys.stderr)
             print(f"identity: {oidc_token.identity}", file=sys.stderr)
 
