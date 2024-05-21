@@ -4,14 +4,10 @@
 #
 #    pip-compile --generate-hashes --output-file=model_signing/install/requirements_Linux.txt --strip-extras model_signing/install/requirements.in
 #
-annotated-types==0.6.0 \
-    --hash=sha256:0641064de18ba7a25dee8f96403ebc39113d0cb953a01429249d5c7564666a43 \
-    --hash=sha256:563339e807e53ffd9c267e99fc6d9ea23eb8443c08f112651963e24e22f84a5d
+annotated-types==0.7.0 \
+    --hash=sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53 \
+    --hash=sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89
     # via pydantic
-appdirs==1.4.4 \
-    --hash=sha256:7d5d0167b2b1ba821647616af46a749d1c653740dd0d2415100fe26e27afdf41 \
-    --hash=sha256:a841dacd6b99318a741b166adb07e19ee71a274450e68237b4650ca1055ab128
-    # via sigstore
 betterproto==2.0.0b6 \
     --hash=sha256:720ae92697000f6fcf049c69267d957f0871654c8b0d7458906607685daee784 \
     --hash=sha256:a0839ec165d110a69d0d116f4d0e2bec8d186af4db826257931f0831dab73fcf
@@ -335,6 +331,10 @@ multidict==6.0.5 \
     --hash=sha256:fce28b3c8a81b6b36dfac9feb1de115bab619b3c13905b419ec71d03a3fc1423 \
     --hash=sha256:fe5d7785250541f7f5019ab9cba2c71169dc7d74d0f45253f8313f436458a4ef
     # via grpclib
+platformdirs==4.2.2 \
+    --hash=sha256:2d7a1657e36a80ea911db832a8a6ece5ee53d8de21edd5cc5879af6530b1bfee \
+    --hash=sha256:38b7b51f512eed9e84a22788b4bce1de17c0adb134d6becb09836e37d8654cd3
+    # via sigstore
 psutil==5.9.8 \
     --hash=sha256:02615ed8c5ea222323408ceba16c60e99c3f91639b07da6373fb7e6539abc56d \
     --hash=sha256:05806de88103b25903dff19bb6692bd2e714ccf9e668d050d144012055cbca73 \
@@ -353,6 +353,10 @@ psutil==5.9.8 \
     --hash=sha256:d06016f7f8625a1825ba3732081d77c94589dca78b7a3fc072194851e88461a4 \
     --hash=sha256:d16bbddf0693323b8c6123dd804100241da461e41d6e332fb0ba6058f630f8c8
     # via -r model_signing/install/requirements.in
+pyasn1==0.6.0 \
+    --hash=sha256:3a35ab2c4b5ef98e17dfdec8ab074046fbda76e281c5a706ccd82328cfc8f64c \
+    --hash=sha256:cca4bb0f2df5504f02f6f8a775b6e416ff9b0b3b16f7ee80b5a3153d9b804473
+    # via sigstore
 pycparser==2.22 \
     --hash=sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6 \
     --hash=sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc
@@ -461,42 +465,44 @@ python-dateutil==2.9.0.post0 \
     --hash=sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3 \
     --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
     # via betterproto
-requests==2.31.0 \
-    --hash=sha256:58cd2187c01e70e6e26505bca751777aa9f2ee0b7f4300988b709f44e013003f \
-    --hash=sha256:942c5a758f98d790eaed1a29cb6eefc7ffb0d1cf7af05c3d2791656dbd6ad1e1
+requests==2.32.1 \
+    --hash=sha256:21ac9465cdf8c1650fe1ecde8a71669a93d4e6f147550483a2967d08396a56a5 \
+    --hash=sha256:eb97e87e64c79e64e5b8ac75cee9dd1f97f49e289b083ee6be96268930725685
     # via
     #   id
     #   sigstore
     #   tuf
+rfc8785==0.1.2 \
+    --hash=sha256:4668c70e02f4cf96327d60375d2f1f21958830ff777e0e414424a794323521a1 \
+    --hash=sha256:c4e92e9ecc828bef2aa7dba1de8ac983511f7532a0df11c770d39099a25cf201
+    # via sigstore
 rich==13.7.1 \
     --hash=sha256:4edbae314f59eb482f54e9e30bf00d33350aaa94f4bfcd4e9e3110e64d0d7222 \
     --hash=sha256:9be308cb1fe2f1f57d67ce99e95af38a1e2bc71ad9813b0e247cf7ffbcc3a432
     # via sigstore
-securesystemslib==0.31.0 \
-    --hash=sha256:549d70f7be6460252d016f03edc5ec0128fee56af55d2b863a5db14541ddbf18 \
-    --hash=sha256:c1594afbcd5db198ec90c487e1720154afb71743d9f4bccf3dfda84de650c478
-    # via
-    #   sigstore
-    #   tuf
-sigstore==2.1.5 \
-    --hash=sha256:7771153c5ac5a51d6556481f4680dfb602cb5c32c94fe56f87ff1801b8a8f243 \
-    --hash=sha256:86d3ba41135004818c20d09d120140d59d4bd535a092690ff46478047bb8df5b
+securesystemslib==1.0.0 \
+    --hash=sha256:50f5053e274066502da7785dfd12b21e61131ca6e8b57ecedd2da0d1e9cd66c1 \
+    --hash=sha256:a6d118c24eae8227a1cf2d9c173f47956709958f601eeaa38e86f6505a31455e
+    # via tuf
+sigstore==3.0.0 \
+    --hash=sha256:6cc7dc92607c2fd481aada0f3c79e710e4c6086e3beab50b07daa9a50a79d109 \
+    --hash=sha256:a6a9538a648e112a0c3d8092d3f73a351c7598164764f1e73a6b5ba406a3a0bd
     # via -r model_signing/install/requirements.in
 sigstore-protobuf-specs==0.3.2 \
     --hash=sha256:50c99fa6747a3a9c5c562a43602cf76df0b199af28f0e9d4319b6775630425ea \
     --hash=sha256:cae041b40502600b8a633f43c257695d0222a94efa1e5110a7ec7ada78c39d99
     # via sigstore
-sigstore-rekor-types==0.0.11 \
-    --hash=sha256:791a696eccd5d07c933cc11d46dea22983efedaf5f1068734263ce0f25695bba \
-    --hash=sha256:b63b4dc6dd70a3f69b236575146a18c357a3743172a03e8ceb18bbc25ef2563b
+sigstore-rekor-types==0.0.13 \
+    --hash=sha256:377fee942d5fc66437a4f54599472157149affaece9bbc7deb05e5b42f34ceba \
+    --hash=sha256:63e9306a26931ed74411911948c250da7c5adc51c53507227738170424e6ae2d
     # via sigstore
 six==1.16.0 \
     --hash=sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926 \
     --hash=sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254
     # via python-dateutil
-tuf==3.1.1 \
-    --hash=sha256:73b3c89a0acdfe90434bba3118c90c584ef1c56bc0c4565852e917408b774130 \
-    --hash=sha256:d6441d11bc9a928cb82cf571519bb99e70ed3ea6fd5a52ce116a8e121023f7ef
+tuf==5.0.0 \
+    --hash=sha256:91a4ca279c33222ac1451a5b0bcdcbbf12c965e0d22278bead5bf8d3ab95117a \
+    --hash=sha256:9c5d87d3822ae2f83c756d5a208c6942a2829ae1ea63c18c363124497d04da4f
     # via sigstore
 typing-extensions==4.11.0 \
     --hash=sha256:83f085bd5ca59c80295fc2a82ab5dac679cbe02b9f33f7d83af68e241bea51b0 \
