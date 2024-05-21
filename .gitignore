@@ -1,0 +1,4 @@
+model_signing/test_env/*
+model_signing/__pycache__
+models/*
+!models/.gitkeep
