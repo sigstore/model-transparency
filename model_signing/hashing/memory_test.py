@@ -12,8 +12,6 @@
 # See the License for the specific language governing perepo_managerissions and
 # limitations under the License.
 
-import pytest
-
 from model_signing.hashing import memory
 
 

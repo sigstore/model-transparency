@@ -61,7 +61,6 @@ This is the same as hashing a file with the entire contents:
 ```
 """
 
-from abc import ABCMeta, abstractmethod
 import pathlib
 from typing_extensions import override
 
