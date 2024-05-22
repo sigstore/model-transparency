@@ -1,0 +1,230 @@
+# Copyright 2024 The Sigstore Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing perepo_managerissions and
+# limitations under the License.
+
+import pytest
+
+from model_signing.hashing import file
+from model_signing.hashing import memory
+
+
+# some constants used throughout testing
+_HEADER: str = "Some "
+_CONTENT: str = "text."  # note that these have the same length
+_FULL_CONTENT = _HEADER + _CONTENT
+_SHARD_SIZE = len(_HEADER)
+
+
+@pytest.fixture(scope="session")
+def sample_file(tmp_path_factory):
+    file_path = tmp_path_factory.mktemp("dir") / "text.txt"
+    file_path.write_text(_FULL_CONTENT)
+    return file_path
+
+
+@pytest.fixture(scope="session")
+def sample_file_content_only(tmp_path_factory):
+    file_path = tmp_path_factory.mktemp("dir") / "text.txt"
+    file_path.write_text(_CONTENT)
+    return file_path
+
+
+@pytest.fixture(scope="session")
+def expected_digest():
+    # To ensure that the expected file digest is always up to date, use the
+    # memory hashing and create a fixture for the expected value.
+    hasher = memory.SHA256()
+    hasher.update(_FULL_CONTENT.encode("utf-8"))
+    hasher.finalize()
+    return hasher.digest_hex
+
+
+@pytest.fixture(scope="session")
+def expected_header_digest():
+    hasher = memory.SHA256()
+    hasher.update(_HEADER.encode("utf-8"))
+    hasher.finalize()
+    return hasher.digest_hex
+
+
+@pytest.fixture(scope="session")
+def expected_content_digest():
+    hasher = memory.SHA256()
+    hasher.update(_CONTENT.encode("utf-8"))
+    hasher.finalize()
+    return hasher.digest_hex
+
+
+class TestFileHasher:
+
+    def test_fails_with_negative_chunk_size(self):
+        with pytest.raises(ValueError, match="Chunk size must be non-negative"):
+            file.FileHasher("unused", memory.SHA256(), chunk_size=-2)
+
+    def test_compute_and_digest_value_are_the_same(self, sample_file):
+        hasher = file.FileHasher(sample_file, memory.SHA256())
+        computed_digest = hasher.compute()
+        assert computed_digest == hasher.digest_value
+
+    def test_hash_of_known_file(self, sample_file, expected_digest):
+        hasher = file.FileHasher(sample_file, memory.SHA256())
+        hasher.compute()
+        assert hasher.digest_hex == expected_digest
+
+    def test_hash_of_known_file_no_chunk(self, sample_file, expected_digest):
+        hasher = file.FileHasher(sample_file, memory.SHA256(), chunk_size=0)
+        hasher.compute()
+        assert hasher.digest_hex == expected_digest
+
+    def test_hash_of_known_file_small_chunk(self, sample_file, expected_digest):
+        hasher = file.FileHasher(sample_file, memory.SHA256(), chunk_size=2)
+        hasher.compute()
+        assert hasher.digest_hex == expected_digest
+
+    def test_hash_of_known_file_with_header(
+        self, sample_file_content_only, expected_digest
+    ):
+        inner_hasher = memory.SHA256()
+        inner_hasher.update(_HEADER.encode("utf-8"))
+        hasher = file.FileHasher(sample_file_content_only, inner_hasher)
+        hasher.compute()
+        assert hasher.digest_hex == expected_digest
+
+    def test_default_digest_name(self):
+        hasher = file.FileHasher("unused", memory.SHA256(), chunk_size=10)
+        assert hasher.digest_name == "file-sha256"
+
+    def test_override_digest_name(self):
+        hasher = file.FileHasher(
+            "unused",
+            memory.SHA256(),
+            chunk_size=10,
+            digest_name_override="test-hash",
+        )
+        assert hasher.digest_name == "test-hash"
+
+
+class TestShardedFileHasher:
+
+    def test_fails_with_negative_shard_size(self):
+        with pytest.raises(
+            ValueError, match="Shard size must be strictly positive"
+        ):
+            file.ShardedFileHasher(
+                "unused", memory.SHA256(), start=0, end=42, shard_size=-2
+            )
+
+    def test_fails_with_negative_start(self):
+        with pytest.raises(
+            ValueError, match="File start offset must be non-negative"
+        ):
+            file.ShardedFileHasher("unused", memory.SHA256(), start=-2, end=42)
+
+    def test_fails_with_end_lower_than_start(self):
+        with pytest.raises(
+            ValueError,
+            match=(
+                "File end offset must be stricly higher that file start offset"
+            ),
+        ):
+            file.ShardedFileHasher("unused", memory.SHA256(), start=42, end=2)
+
+    def test_fails_with_zero_read_span(self):
+        with pytest.raises(
+            ValueError,
+            match=(
+                "File end offset must be stricly higher that file start offset"
+            ),
+        ):
+            file.ShardedFileHasher("unused", memory.SHA256(), start=2, end=2)
+
+    def test_fails_with_read_span_too_large(self):
+        with pytest.raises(
+            ValueError, match="Must not read more than shard_size=2"
+        ):
+            file.ShardedFileHasher(
+                "unused", memory.SHA256(), start=0, end=42, shard_size=2
+            )
+
+    def test_hash_of_known_file(
+        self, sample_file, expected_header_digest, expected_content_digest
+    ):
+        hasher1 = file.ShardedFileHasher(
+            sample_file, memory.SHA256(), start=0, end=_SHARD_SIZE
+        )
+        hasher2 = file.ShardedFileHasher(
+            sample_file, memory.SHA256(), start=_SHARD_SIZE, end=2 * _SHARD_SIZE
+        )
+
+        hasher1.compute()
+        assert hasher1.digest_hex == expected_header_digest
+
+        hasher2.compute()
+        assert hasher2.digest_hex == expected_content_digest
+
+    def test_hash_of_known_file_no_chunk(
+        self, sample_file, expected_header_digest, expected_content_digest
+    ):
+        hasher1 = file.ShardedFileHasher(
+            sample_file, memory.SHA256(), start=0, end=_SHARD_SIZE, chunk_size=0
+        )
+        hasher2 = file.ShardedFileHasher(
+            sample_file,
+            memory.SHA256(),
+            start=_SHARD_SIZE,
+            end=2 * _SHARD_SIZE,
+            chunk_size=0,
+        )
+
+        hasher1.compute()
+        assert hasher1.digest_hex == expected_header_digest
+
+        hasher2.compute()
+        assert hasher2.digest_hex == expected_content_digest
+
+    def test_hash_of_known_file_small_chunk(
+        self, sample_file, expected_header_digest, expected_content_digest
+    ):
+        hasher1 = file.ShardedFileHasher(
+            sample_file, memory.SHA256(), start=0, end=_SHARD_SIZE, chunk_size=1
+        )
+        hasher2 = file.ShardedFileHasher(
+            sample_file,
+            memory.SHA256(),
+            start=_SHARD_SIZE,
+            end=2 * _SHARD_SIZE,
+            chunk_size=1,
+        )
+
+        hasher1.compute()
+        assert hasher1.digest_hex == expected_header_digest
+
+        hasher2.compute()
+        assert hasher2.digest_hex == expected_content_digest
+
+    def test_default_digest_name(self):
+        hasher = file.ShardedFileHasher(
+            "unused", memory.SHA256(), start=0, end=2, shard_size=10
+        )
+        assert hasher.digest_name == "file-sha256-10"
+
+    def test_override_digest_name(self):
+        hasher = file.ShardedFileHasher(
+            "unused",
+            memory.SHA256(),
+            start=0,
+            end=2,
+            shard_size=10,
+            digest_name_override="test-hash",
+        )
+        assert hasher.digest_name == "test-hash"
