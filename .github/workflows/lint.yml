@@ -20,6 +20,8 @@ jobs:
           python-version: "3.11"
       - name: flake8 Lint
         uses: py-actions/flake8@84ec6726560b6d5bd68f2a5bed83d62b52bb50ba # v2.3.0
+        with:
+          max-line-length: "80"
       - name: Detect empty lines at end of file and trailing whitespace
         run: |
           set -euxo pipefail  # No -x here!
