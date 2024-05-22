@@ -15,7 +15,7 @@
 import os
 from pathlib import Path
 import pytest
-from serialize import Serializer
+from model_signing.serialize import Serializer
 import shutil
 
 
