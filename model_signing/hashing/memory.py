@@ -21,7 +21,15 @@ Example usage:
 ```python
 >>> hasher = SHA256()
 >>> hasher.update(b"abcd")
->>> hasher.finalize()
+>>> hasher.compute()
+>>> hasher.digest_hex
+'88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
+```
+
+Or, passing the data directly in the constructor:
+```python
+>>> hasher = SHA256(b"abcd")
+>>> hasher.compute()
 >>> hasher.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
 ```
@@ -36,16 +44,16 @@ from model_signing.hashing import hashing
 class SHA256(hashing.HashEngine):
     """A wrapper around `hashlib.sha256`."""
 
-    def __init__(self):
-        self._hasher = hashlib.sha256()
+    def __init__(self, initial_data: bytes = b""):
+        self._hasher = hashlib.sha256(initial_data)
 
     @override
     def update(self, data: bytes) -> None:
         self._hasher.update(data)
 
     @override
-    def finalize(self) -> None:
-        pass  # nothing to do, `hashlib` methods don't require finalizers
+    def compute(self) -> None:
+        pass  # nothing to do, digest already computed
 
     @override
     @property

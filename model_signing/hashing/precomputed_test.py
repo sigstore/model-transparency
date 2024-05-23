@@ -17,17 +17,29 @@ from model_signing.hashing import precomputed
 
 class TestPrecomputedDigest:
 
-    def test_finalize_does_not_change_hash(self):
+    def test_compute_does_not_change_hash(self):
         hash_value = b"value"
         hasher = precomputed.PrecomputedDigest("test", hash_value)
         assert hasher.digest_value == hash_value
-        hasher.finalize()
+        hasher.compute()
         assert hasher.digest_value == hash_value
 
     def test_expected_hash_and_hex(self):
         hash_value = b"abcd"
         hash_hex_value = "61626364"
         hasher = precomputed.PrecomputedDigest("test", hash_value)
-        hasher.finalize()
+        hasher.compute()
         assert hasher.digest_value == hash_value
         assert hasher.digest_hex == hash_hex_value
+
+    def test_expected_hash_and_hex_unicode(self):
+        hash_value = "*哈¥эш希".encode("utf-8")
+        hash_hex_value = "2ae59388c2a5d18dd188e5b88c"
+        hasher = precomputed.PrecomputedDigest("test", hash_value)
+        hasher.compute()
+        assert hasher.digest_value == hash_value
+        assert hasher.digest_hex == hash_hex_value
+
+    def test_expected_hash_type(self):
+        hasher = precomputed.PrecomputedDigest("test", b"abcd")
+        assert hasher.digest_name == "test"

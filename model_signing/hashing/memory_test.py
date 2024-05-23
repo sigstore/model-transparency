@@ -18,9 +18,8 @@ from model_signing.hashing import memory
 class TestPrecomputedDigest:
 
     def test_hash_known_value(self):
-        hasher = memory.SHA256()
-        hasher.update("Test string".encode("utf-8"))
-        hasher.finalize()
+        hasher = memory.SHA256(b"Test string")
+        hasher.compute()
         expected = (
             "a3e49d843df13c2e2a7786f6ecd7e0d184f45d718d1ac1a8a63e570466e489dd"
         )
@@ -33,12 +32,23 @@ class TestPrecomputedDigest:
         hasher1 = memory.SHA256()
         hasher1.update(str1.encode("utf-8"))
         hasher1.update(str2.encode("utf-8"))
-        hasher1.finalize()
+        hasher1.compute()
 
         str_all = str1 + str2
         hasher2 = memory.SHA256()
         hasher2.update(str_all.encode("utf-8"))
-        hasher2.finalize()
+        hasher2.compute()
+
+        assert hasher1.digest_hex == hasher2.digest_hex
+        assert hasher1.digest_value == hasher2.digest_value
+
+    def test_hash_update_empty(self):
+        hasher1 = memory.SHA256(b"Test string")
+        hasher1.update(b"")
+        hasher1.compute()
+
+        hasher2 = memory.SHA256(b"Test string")
+        hasher2.compute()
 
         assert hasher1.digest_hex == hasher2.digest_hex
         assert hasher1.digest_value == hasher2.digest_value

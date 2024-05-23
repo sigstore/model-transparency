@@ -43,25 +43,22 @@ def sample_file_content_only(tmp_path_factory):
 def expected_digest():
     # To ensure that the expected file digest is always up to date, use the
     # memory hashing and create a fixture for the expected value.
-    hasher = memory.SHA256()
-    hasher.update(_FULL_CONTENT.encode("utf-8"))
-    hasher.finalize()
+    hasher = memory.SHA256(_FULL_CONTENT.encode("utf-8"))
+    hasher.compute()
     return hasher.digest_hex
 
 
 @pytest.fixture(scope="session")
 def expected_header_digest():
-    hasher = memory.SHA256()
-    hasher.update(_HEADER.encode("utf-8"))
-    hasher.finalize()
+    hasher = memory.SHA256(_HEADER.encode("utf-8"))
+    hasher.compute()
     return hasher.digest_hex
 
 
 @pytest.fixture(scope="session")
 def expected_content_digest():
-    hasher = memory.SHA256()
-    hasher.update(_CONTENT.encode("utf-8"))
-    hasher.finalize()
+    hasher = memory.SHA256(_CONTENT.encode("utf-8"))
+    hasher.compute()
     return hasher.digest_hex
 
 
@@ -70,11 +67,6 @@ class TestFileHasher:
     def test_fails_with_negative_chunk_size(self):
         with pytest.raises(ValueError, match="Chunk size must be non-negative"):
             file.FileHasher("unused", memory.SHA256(), chunk_size=-2)
-
-    def test_compute_and_digest_value_are_the_same(self, sample_file):
-        hasher = file.FileHasher(sample_file, memory.SHA256())
-        computed_digest = hasher.compute()
-        assert computed_digest == hasher.digest_value
 
     def test_hash_of_known_file(self, sample_file, expected_digest):
         hasher = file.FileHasher(sample_file, memory.SHA256())
@@ -91,11 +83,17 @@ class TestFileHasher:
         hasher.compute()
         assert hasher.digest_hex == expected_digest
 
+    def test_hash_file_twice(self, sample_file):
+        hasher1 = file.FileHasher(sample_file, memory.SHA256())
+        hasher1.compute()
+        hasher2 = file.FileHasher(sample_file, memory.SHA256())
+        hasher2.compute()
+        assert hasher1.digest_value == hasher2.digest_value
+
     def test_hash_of_known_file_with_header(
         self, sample_file_content_only, expected_digest
     ):
-        inner_hasher = memory.SHA256()
-        inner_hasher.update(_HEADER.encode("utf-8"))
+        inner_hasher = memory.SHA256(_HEADER.encode("utf-8"))
         hasher = file.FileHasher(sample_file_content_only, inner_hasher)
         hasher.compute()
         assert hasher.digest_hex == expected_digest

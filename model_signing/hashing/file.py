@@ -19,8 +19,7 @@ Example usage for `FileHasher`:
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("abcd")
 >>> hasher = FileHasher("/tmp/file", SHA256())
->>> hasher.compute().hex()
-'88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
+>>> hasher.compute()
 >>> hasher.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
 ```
@@ -30,8 +29,7 @@ Example usage for `ShardedFileHasher`, reading only the second part of a file:
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("0123abcd")
 >>> hasher = ShardedFileHasher("/tmp/file", SHA256(), start=4, end=8)
->>> hasher.compute().hex()
-'88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
+>>> hasher.compute()
 >>> hasher.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
 ```
@@ -40,11 +38,8 @@ Similarly, we can emulate a mising header:
 ```python
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("abcd")
->>> inner_hasher = SHA256()
->>> inner_hasher.update(b"0123")
->>> hasher = FileHasher("/tmp/file", inner_hasher)
->>> hasher.compute().hex()
-'64eab0705394501ced0ff991bf69077fd3846c1d964e3db28d9600891715d848'
+>>> hasher = FileHasher("/tmp/file", SHA256(b"0123"))
+>>> hasher.compute()
 >>> hasher.digest_hex
 '64eab0705394501ced0ff991bf69077fd3846c1d964e3db28d9600891715d848'
 ```
@@ -54,8 +49,7 @@ This is the same as hashing a file with the entire contents:
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("0123abcd")
 >>> hasher = FileHasher("/tmp/file", SHA256())
->>> hasher.compute().hex()
-'64eab0705394501ced0ff991bf69077fd3846c1d964e3db28d9600891715d848'
+>>> hasher.compute()
 >>> hasher.digest_hex
 '64eab0705394501ced0ff991bf69077fd3846c1d964e3db28d9600891715d848'
 ```
@@ -76,12 +70,6 @@ class FileHasher(hashing.HashEngine):
     instance. This ensures that the file digest will not change even if the
     chunk size changes. As such, we can dynamically determine an optimal value
     for the chunk argument.
-
-    Because we only read a file once, it is an error to call the `update` and
-    `finalize` methods of `FileHashEngine`. Instead, hashing is computed in a
-    `compute` method, which, for convenience, returns the digest. The
-    `digest_value` and `digest_hex` properties can still be used to retrieve the
-    digest, after `compute` is called.
 
     The `digest_name()` method MUST record all parameters that influence the
     hash output. For example, if a file is split into shards which are hashed
@@ -123,8 +111,19 @@ class FileHasher(hashing.HashEngine):
         self._digest = b""
         self._digest_name_override = digest_name_override
 
-    def compute(self) -> bytes:
-        """Computes the digest of the file."""
+    @override
+    @property
+    def digest_name(self) -> str:
+        if self._digest_name_override is not None:
+            return self._digest_name_override
+        return f"file-{self._content_hasher.digest_name}"
+
+    @override
+    def update(self, data: bytes) -> None:
+        raise TypeError("The hash engine does not support calling update().")
+
+    @override
+    def compute(self) -> None:
         if self._chunk_size == 0:
             with open(self._file, "rb") as f:
                 self._content_hasher.update(f.read())
@@ -136,28 +135,8 @@ class FileHasher(hashing.HashEngine):
                         break
                     self._content_hasher.update(data)
 
-        self._content_hasher.finalize()
+        self._content_hasher.compute()
         self._digest = self._content_hasher.digest_value
-        return self._digest
-
-    @override
-    @property
-    def digest_name(self) -> str:
-        if self._digest_name_override is not None:
-            return self._digest_name_override
-        return f"file-{self._content_hasher.digest_name}"
-
-    @override
-    def update(self, data: bytes) -> None:
-        raise TypeError(
-            "FileHashEngine does not support `update`. Use `compute` instead."
-        )
-
-    @override
-    def finalize(self) -> None:
-        raise TypeError(
-            "FileHashEngine does not support `finalize`. Use `compute` instead."
-        )
 
     @override
     @property
@@ -238,7 +217,7 @@ class ShardedFileHasher(FileHasher):
         self._shard_size = shard_size
 
     @override
-    def compute(self) -> bytes:
+    def compute(self) -> None:
         with open(self._file, "rb") as f:
             f.seek(self._start)
             to_read = self._end - self._start
@@ -253,9 +232,8 @@ class ShardedFileHasher(FileHasher):
                     to_read -= len(data)
                     self._content_hasher.update(data)
 
-        self._content_hasher.finalize()
+        self._content_hasher.compute()
         self._digest = self._content_hasher.digest_value
-        return self._digest
 
     @override
     @property

@@ -29,29 +29,31 @@ class HashEngine(metaclass=ABCMeta):
 
     @abstractmethod
     def update(self, data: bytes) -> None:
-        """Updates the digest based on new bytes.
+        """Appends additional bytes to the data to be hashed.
 
-        Repeated calls are equivalent to a single call with the concatenation of
-        all the arguments. That is, `he.update(a); he.update(b)` is the same as
-        `he.update(a + b)`.
+        Implementations might decide to not support this operation.
 
-        If `finalize` has been called, the behavior of subsequent calls to
-        `update` is implementation specific.
+        Similarly, implementations might decide to not support this operation
+        after `compute` has been called. Or, they might decide that additional
+        calls to `update` after `compute` has been called have no effect.
+
+        Implementations may update internal data on each call to `update`
+        instead of performing the entire digest computation on `compute`.
         """
         pass
 
     @abstractmethod
-    def finalize(self) -> None:
-        """Records that the entire object has been passed to the engine.
+    def compute(self) -> None:
+        """Computes the digest of the entire data passed to the engine.
 
-        This method MUST be called only once, after which only the computed
+        This method should be called only once, after which only the computed
         digest and the name of the algorithm can be accessed. This is to ensure
         that hashing methods that rely on FFI or use aditional resources (e.g.,
         compute the digest on GPU) can properly free allocated resources.
 
-        Calling `finalize` more than once may not result in an error. Instead,
-        in order to allow for implementations that don't need to perform
-        additional testing, the behavior is implementation specific.
+        Calling `compute` more than once may not result in an error. Instead, in
+        order to allow for implementations that don't need to perform additional
+        testing, the behavior is implementation specific.
         """
         pass
 
@@ -76,7 +78,7 @@ class HashEngine(metaclass=ABCMeta):
     def digest_value(self) -> bytes:
         """The digest of the data passed to the hash engine.
 
-        The returned value is only valid if `finalize` has been previously
+        The returned value is only valid if `compute` has been previously
         called. For all other cases, the returned value is implementation
         specific.
         """
@@ -89,7 +91,7 @@ class HashEngine(metaclass=ABCMeta):
 
         In general, this method should be used only in tests and for debugging.
 
-        The returned value is only valid if `finalize` has been previously
+        The returned value is only valid if `compute` has been previously
         called. For all other cases, the returned value is implementation
         specific.
         """
