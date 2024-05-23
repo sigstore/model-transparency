@@ -111,6 +111,13 @@ class TestFileHasher:
         )
         assert hasher.digest_name == "test-hash"
 
+    def test_update_not_supported(self):
+        hasher = file.FileHasher("unused", memory.SHA256())
+        with pytest.raises(
+            TypeError, match="The hash engine does not support calling update()"
+        ):
+            hasher.update("1234")
+
 
 class TestShardedFileHasher:
 

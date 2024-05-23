@@ -12,6 +12,8 @@
 # See the License for the specific language governing perepo_managerissions and
 # limitations under the License.
 
+import pytest
+
 from model_signing.hashing import precomputed
 
 
@@ -43,3 +45,10 @@ class TestPrecomputedDigest:
     def test_expected_hash_type(self):
         hasher = precomputed.PrecomputedDigest("test", b"abcd")
         assert hasher.digest_name == "test"
+
+    def test_update_not_supported(self):
+        hasher = precomputed.PrecomputedDigest("test", "abcd")
+        with pytest.raises(
+            TypeError, match="The hash engine does not support calling update()"
+        ):
+            hasher.update("1234")
