@@ -1,11 +1,43 @@
 #!/bin/bash
 set -euo pipefail
 
+repo_root=$(git rev-parse --show-toplevel)
+
+bash_version=$(bash --version | head -n1 | cut -d" " -f4)
+bash_major_version=$(echo "$bash_version" | cut -d"." -f1)
+
+if [[ $bash_major_version -le 4 ]]; then
+    echo "[WARNING] script requires bash v4+ for associative arrays."
+fi
+
 if [ "$#" -lt 2 ]; then
     echo "Usage: $0 identity-provider identity output_path <cleanup>"
     echo "Example: $0 https://accounts.google.com myemail@gmail.com"
     exit 1
 fi
+
+ARCH=$(uname -m)
+OS=$(uname -s)
+REPORT_FILE=$repo_root/model_signing/benchmarks/report-${OS}-${ARCH}.json
+REPORT_TMP_FILE=$repo_root/model_signing/benchmarks/tmp-report-${OS}-${ARCH}.json
+
+init_results_file() {
+    if [ -e "$REPORT_FILE" ]; then
+        rm -f $REPORT_FILE
+    fi
+
+    if [ -e "$REPORT_TMP_FILE" ]; then
+        rm -f $REPORT_TMP_FILE
+    fi
+
+    random_string=$(LC_ALL=C openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 10)
+    run_sha=$(echo -n "$random_string" | sha256sum | awk '{print $1}')
+    current_date=$(date)
+    run_date=$(date +"%A, %B %d, %Y - %r")
+
+    jq -n '{"run_sha": $ARGS.named["run_sha"], "run_date": $ARGS.named["run_date"]}' \
+    --arg run_sha "$run_sha" --arg run_date "$run_date" > $REPORT_FILE 
+}
 
 time_cmd() {
     local cmd="$1"
@@ -26,8 +58,18 @@ run() {
 
     echo "Running sign / verify for ${model_name} ..."
     results["${model_name}[size]"]=$(du -hs "${model_path}" | cut -f1)
+    if [ $? == 0 ]; then
+        echo "model sizing ${model_name}: results["${model_name}[size]"]"
+    fi
     results["${model_name}[sign_time]"]=$(time_cmd python3 "main.py sign --path ${model_path}")
+    if [ $? == 0 ]; then
+        echo "model ${model_name} was signed successfully!"
+    fi
     results["${model_name}[verify_time]"]=$(time_cmd python3 "main.py verify --path ${model_path} --identity-provider ${identity_provider} --identity ${identity}")
+    if [ $? == 0 ]; then
+        echo "model ${model_name} was signed successfully!"
+    fi
+    echo "model ${model_name} was signed successfully!"
     if [[ "${cleanup}" == "true" ]]; then
         rm -rf "${model_path}" "${model_path}.sig" 2>/dev/null || true
     fi
@@ -68,7 +110,6 @@ echo
 echo "INFO: Be patient, this will take a few minutes!"
 echo
 
-# Variable holding results.
 declare -A results
 
 # Init the environment.
@@ -77,7 +118,7 @@ if [[ ! -d "test_env/" ]]; then
 fi
 # shellcheck disable=SC1091 # We have access to source=test_env/bin/activate.
 source test_env/bin/activate
-python3 -m pip install --require-hashes -r install/requirements_Linux.txt
+python3 -m pip install --require-hashes -r $repo_root/model_signing/install/requirements_Linux.txt
 
 # =========================================
 #               Warm up!
