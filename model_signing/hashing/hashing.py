@@ -22,38 +22,33 @@ specify the algorithm and the digest value.
 """
 
 from abc import ABCMeta, abstractmethod
+from dataclasses import dataclass
+from typing import Protocol
+from typing_extensions import override
+
+
+@dataclass(frozen = True)
+class Digest:
+    """A digest computed by a `HashEngine`."""
+    algorithm: str
+    digest_value: bytes
+
+    @property
+    def digest_hex(self) -> str:
+        """Hexadecimal, human readable, equivalent of `digest`."""
+        return self.digest_value.hex()
 
 
 class HashEngine(metaclass=ABCMeta):
     """Generic hash engine."""
 
     @abstractmethod
-    def update(self, data: bytes) -> None:
-        """Appends additional bytes to the data to be hashed.
+    def compute(self) -> Digest:
+        """Computes the digest of data passed to the engine.
 
-        Implementations might decide to not support this operation.
-
-        Similarly, implementations might decide to not support this operation
-        after `compute` has been called. Or, they might decide that additional
-        calls to `update` after `compute` has been called have no effect.
-
-        Implementations may update internal data on each call to `update`
-        instead of performing the entire digest computation on `compute`.
-        """
-        pass
-
-    @abstractmethod
-    def compute(self) -> None:
-        """Computes the digest of the entire data passed to the engine.
-
-        This method should be called only once, after which only the computed
-        digest and the name of the algorithm can be accessed. This is to ensure
-        that hashing methods that rely on FFI or use aditional resources (e.g.,
-        compute the digest on GPU) can properly free allocated resources.
-
-        Calling `compute` more than once may not result in an error. Instead, in
-        order to allow for implementations that don't need to perform additional
-        testing, the behavior is implementation specific.
+        Subclasses should add additional arguments to `compute()` method to pass
+        in the data that needs to be hashed. Alternatively, if the data can be
+        passed in iteratively, users should use `StreamingHashEngine` instead.
         """
         pass
 
@@ -73,26 +68,35 @@ class HashEngine(metaclass=ABCMeta):
         """
         pass
 
-    @property
-    @abstractmethod
-    def digest_value(self) -> bytes:
-        """The digest of the data passed to the hash engine.
 
-        The returned value is only valid if `compute` has been previously
-        called. For all other cases, the returned value is implementation
-        specific.
+class Streaming(Protocol):
+    """A protocol to support streaming data to `HashEngine` objects."""
+    current_digest: Digest
+
+    @abstractmethod
+    def update(self, data: bytes) -> None:
+        """Appends additional bytes to the data to be hashed.
+
+        Implementations might decide to not support this operation.
+
+        Similarly, implementations might decide to not support this operation
+        after `compute` has been called. Or, they might decide that additional
+        calls to `update` after `compute` has been called have no effect.
+
+        Implementations may update internal data on each call to `update`
+        instead of performing the entire digest computation on `compute`.
         """
         pass
 
-    @property
     @abstractmethod
-    def digest_hex(self) -> str:
-        """Hexadecimal, human readable, equivalent of `digest_value`.
-
-        In general, this method should be used only in tests and for debugging.
-
-        The returned value is only valid if `compute` has been previously
-        called. For all other cases, the returned value is implementation
-        specific.
-        """
+    def reset(self) -> None:
+        """Resets the data to be hashed to be empty."""
         pass
+
+
+class StreamingHashEngine(Streaming, HashEngine):
+    """A `HashEngine` that can stream data to be hashed."""
+
+    @override
+    def compute(self) -> Digest:
+        return self.current_digest

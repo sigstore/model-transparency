@@ -20,9 +20,11 @@ In order to support digests computed by external tooling, we provide trivial
 Example usage:
 ```python
 >>> hasher = PrecomputedDigest("short-hash", b"abcd")
->>> hasher.compute()
->>> hasher.digest_hex
+>>> digest = hasher.compute()
+>>> digest.digest_hex
 '61626364'
+>>> digest.algorithm
+'short-hash'
 ```
 """
 
@@ -40,24 +42,10 @@ class PrecomputedDigest(hashing.HashEngine):
     _digest_value: bytes
 
     @override
-    def update(self, data: bytes) -> None:
-        raise TypeError("The hash engine does not support calling update().")
-
-    @override
-    def compute(self) -> None:
-        pass  # nothing to do, hash already computed
+    def compute(self) -> hashing.Digest:
+        return hashing.Digest(self._digest_type, self._digest_value)
 
     @override
     @property
     def digest_name(self) -> str:
         return self._digest_type
-
-    @override
-    @property
-    def digest_value(self) -> bytes:
-        return self._digest_value
-
-    @override
-    @property
-    def digest_hex(self) -> str:
-        return self._digest_value.hex()

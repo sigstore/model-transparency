@@ -19,8 +19,8 @@ Example usage for `FileHasher`:
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("abcd")
 >>> hasher = FileHasher("/tmp/file", SHA256())
->>> hasher.compute()
->>> hasher.digest_hex
+>>> digest = hasher.compute()
+>>> digest.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
 ```
 
@@ -29,8 +29,8 @@ Example usage for `ShardedFileHasher`, reading only the second part of a file:
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("0123abcd")
 >>> hasher = ShardedFileHasher("/tmp/file", SHA256(), start=4, end=8)
->>> hasher.compute()
->>> hasher.digest_hex
+>>> digest = hasher.compute()
+>>> digest.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
 ```
 
@@ -39,8 +39,8 @@ Similarly, we can emulate a mising header:
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("abcd")
 >>> hasher = FileHasher("/tmp/file", SHA256(b"0123"))
->>> hasher.compute()
->>> hasher.digest_hex
+>>> digest = hasher.compute()
+>>> digest.digest_hex
 '64eab0705394501ced0ff991bf69077fd3846c1d964e3db28d9600891715d848'
 ```
 
@@ -49,8 +49,8 @@ This is the same as hashing a file with the entire contents:
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("0123abcd")
 >>> hasher = FileHasher("/tmp/file", SHA256())
->>> hasher.compute()
->>> hasher.digest_hex
+>>> digest = hasher.compute()
+>>> digest.digest_hex
 '64eab0705394501ced0ff991bf69077fd3846c1d964e3db28d9600891715d848'
 ```
 """
@@ -66,10 +66,10 @@ class FileHasher(hashing.HashEngine):
 
     To compute the hash of a file, we read the file exactly once, including for
     very large files that don't fit in memory. Files are read in chunks and each
-    chunk is passed to the `update` method of an inner `hashing.HashEngine`
-    instance. This ensures that the file digest will not change even if the
-    chunk size changes. As such, we can dynamically determine an optimal value
-    for the chunk argument.
+    chunk is passed to the `update` method of an inner
+    `hashing.StreamingHashEngine`, instance. This ensures that the file digest
+    will not change even if the chunk size changes. As such, we can dynamically
+    determine an optimal value for the chunk argument.
 
     The `digest_name()` method MUST record all parameters that influence the
     hash output. For example, if a file is split into shards which are hashed
@@ -82,7 +82,7 @@ class FileHasher(hashing.HashEngine):
     def __init__(
         self,
         file: pathlib.Path,
-        content_hasher: hashing.HashEngine,
+        content_hasher: hashing.StreamingHashEngine,
         *,
         chunk_size: int = 8192,
         digest_name_override: str | None = None,
@@ -91,9 +91,8 @@ class FileHasher(hashing.HashEngine):
 
         Args:
             file: The file to hash.
-            content_hasher: A `hashing.HashEngine` instance used to compute the
-              digest of the file. This instance must not be used outside of this
-              instance. However, it may be pre-initialized with a header.
+            content_hasher: A `hashing.StreamingHashEngine` instance used to
+              compute the digest of the file.
             chunk_size: The amount of file to read at once. Default is 8KB. A
               special value of 0 signals to attempt to read everything in a
               single call.
@@ -119,10 +118,6 @@ class FileHasher(hashing.HashEngine):
         return f"file-{self._content_hasher.digest_name}"
 
     @override
-    def update(self, data: bytes) -> None:
-        raise TypeError("The hash engine does not support calling update().")
-
-    @override
     def compute(self) -> None:
         if self._chunk_size == 0:
             with open(self._file, "rb") as f:
@@ -137,16 +132,6 @@ class FileHasher(hashing.HashEngine):
 
         self._content_hasher.compute()
         self._digest = self._content_hasher.digest_value
-
-    @override
-    @property
-    def digest_value(self) -> bytes:
-        return self._digest
-
-    @override
-    @property
-    def digest_hex(self) -> str:
-        return self._digest.hex()
 
 
 class ShardedFileHasher(FileHasher):

@@ -21,16 +21,16 @@ Example usage:
 ```python
 >>> hasher = SHA256()
 >>> hasher.update(b"abcd")
->>> hasher.compute()
->>> hasher.digest_hex
+>>> digest = hasher.compute()
+>>> digest.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
 ```
 
 Or, passing the data directly in the constructor:
 ```python
 >>> hasher = SHA256(b"abcd")
->>> hasher.compute()
->>> hasher.digest_hex
+>>> digest = hasher.compute()
+>>> digest.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
 ```
 """
@@ -41,31 +41,24 @@ from typing_extensions import override
 from model_signing.hashing import hashing
 
 
-class SHA256(hashing.HashEngine):
+class SHA256(hashing.StreamingHashEngine):
     """A wrapper around `hashlib.sha256`."""
 
     def __init__(self, initial_data: bytes = b""):
         self._hasher = hashlib.sha256(initial_data)
+        self.current_digest = hashing.Digest(self.digest_name, self._hasher.digest())
 
     @override
     def update(self, data: bytes) -> None:
         self._hasher.update(data)
+        self.current_digest = hashing.Digest(self.digest_name, self._hasher.digest())
 
     @override
-    def compute(self) -> None:
-        pass  # nothing to do, digest already computed
+    def reset(self) -> None:
+        self._hasher = hashlib.sha256()
+        self.current_digest = hashing.Digest(self.digest_name, self._hasher.digest())
 
     @override
     @property
     def digest_name(self) -> str:
         return "sha256"
-
-    @override
-    @property
-    def digest_value(self) -> bytes:
-        return self._hasher.digest()
-
-    @override
-    @property
-    def digest_hex(self) -> str:
-        return self._hasher.hexdigest()
