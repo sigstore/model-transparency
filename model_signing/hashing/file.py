@@ -18,8 +18,7 @@ Example usage for `FileHasher`:
 ```python
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("abcd")
->>> hasher = FileHasher(SHA256())
->>> hasher.set_file("/tmp/file")
+>>> hasher = FileHasher("/tmp/file", SHA256())
 >>> digest = hasher.compute()
 >>> digest.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
@@ -29,8 +28,7 @@ Example usage for `ShardedFileHasher`, reading only the second part of a file:
 ```python
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("0123abcd")
->>> hasher = ShardedFileHasher(SHA256())
->>> hasher.set_file_shard("/tmp/file", start=4, end=8)
+>>> hasher = ShardedFileHasher("/tmo/file", SHA256(), start=4, end=8)
 >>> digest = hasher.compute()
 >>> digest.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
@@ -39,57 +37,12 @@ Example usage for `ShardedFileHasher`, reading only the second part of a file:
 
 from abc import abstractmethod
 import pathlib
-from typing import Protocol
 from typing_extensions import override
 
 from model_signing.hashing import hashing
 
 
-class WithFile(Protocol):
-    """A protocol to support hashing files."""
-    _file: pathlib.Path | None = None
-
-    def set_file(self, file: pathlib.Path) -> None:
-        """Defines the file to be hashed in `compute`."""
-        self._file = file
-
-
-class WithShardedFile(Protocol):
-    """A protocol to support hashing files."""
-    _file: pathlib.Path | None = None
-    _start: int = -1
-    _end: int = -1
-
-    def set_file_shard(self, file: pathlib.Path, start: int, end: int) -> None:
-        """Defines the file shard to be hashed in `compute`.
-
-        Args:
-            file: The file to hash.
-            start: The file offset to start reading from. Must be valid.
-            end: The file offset to start reading from. Must be stricly greater
-              than start. If past the file size, or -1, it will be trimmed.
-        """
-        if start < 0:
-            raise ValueError(
-                f"File start offset must be non-negative, got {start}."
-            )
-        if end <= start:
-            raise ValueError(
-                "File end offset must be stricly higher that file start offset,"
-                f" got {start=}, {end=}."
-            )
-        #read_length = end - start
-        #if read_length > shard_size:
-        #    raise ValueError(
-        #        f"Must not read more than {shard_size=}, got {read_length}."
-        #    )
-
-        self._start = start
-        self._end = end
-        self._file = file
-
-
-class FileHasher(WithFile, hashing.HashEngine):
+class FileHasher(hashing.HashEngine):
     """Generic file hash engine.
 
     To compute the hash of a file, we read the file exactly once, including for
@@ -109,6 +62,7 @@ class FileHasher(WithFile, hashing.HashEngine):
 
     def __init__(
         self,
+        file: pathlib. Path,
         content_hasher: hashing.StreamingHashEngine,
         *,
         chunk_size: int = 8192,
@@ -117,6 +71,7 @@ class FileHasher(WithFile, hashing.HashEngine):
         """Initializes an instance to hash a file with a specific `HashEngine`.
 
         Args:
+            file: The file to hash. Use `set_file` to reset it.
             content_hasher: A `hashing.StreamingHashEngine` instance used to
               compute the digest of the file.
             chunk_size: The amount of file to read at once. Default is 8KB. A
@@ -130,9 +85,14 @@ class FileHasher(WithFile, hashing.HashEngine):
                 f"Chunk size must be non-negative, got {chunk_size}."
             )
 
+        self._file = file
         self._content_hasher = content_hasher
         self._chunk_size = chunk_size
         self._digest_name_override = digest_name_override
+
+    def set_file(self, file: pathlib.Path) -> None:
+        """Redefines the file to be hashed in `compute`."""
+        self._file = file
 
     @override
     @property
@@ -143,9 +103,6 @@ class FileHasher(WithFile, hashing.HashEngine):
 
     @override
     def compute(self) -> hashing.Digest:
-        if self._file is None:
-            raise ValueError("set_file() must be called first")
-
         self._content_hasher.reset()
 
         if self._chunk_size == 0:
@@ -163,7 +120,7 @@ class FileHasher(WithFile, hashing.HashEngine):
         return hashing.Digest(self.digest_name, digest.digest_value)
 
 
-class ShardedFileHasher(WithShardedFile, FileHasher):
+class ShardedFileHasher(FileHasher):
     """File hash engine that can be invoked in parallel.
 
     To efficiently support hashing large files, this class provides an ability
@@ -174,8 +131,11 @@ class ShardedFileHasher(WithShardedFile, FileHasher):
 
     def __init__(
         self,
+        file: pathlib. Path,
         content_hasher: hashing.StreamingHashEngine,
         *,
+        start: int,
+        end: int,
         chunk_size: int = 8192,
         shard_size: int = 1000000,
         digest_name_override: str | None = None,
@@ -183,9 +143,15 @@ class ShardedFileHasher(WithShardedFile, FileHasher):
         """Initializes an instance to hash a file with a specific `HashEngine`.
 
         Args:
+            file: The file to hash. Use `set_file` to reset it.
             content_hasher: A `hashing.HashEngine` instance used to compute the
               digest of the file. This instance must not be used outside of this
               instance. However, it may be pre-initialized with a header.
+            start: The file offset to start reading from. Must be valid. Reset
+              with `set_shard`.
+            end: The file offset to start reading from. Must be stricly greater
+              than start. If past the file size, or -1, it will be trimmed.
+              Reset with `set_shard`.
             chunk_size: The amount of file to read at once. Default is 8KB. A
               special value of 0 signals to attempt to read everything in a
               single call.
@@ -194,6 +160,7 @@ class ShardedFileHasher(WithShardedFile, FileHasher):
               `digest_name` property to support shorter, standardized names.
         """
         super().__init__(
+            file=file,
             content_hasher=content_hasher,
             chunk_size=chunk_size,
             digest_name_override=digest_name_override,
@@ -204,6 +171,28 @@ class ShardedFileHasher(WithShardedFile, FileHasher):
                 f"Shard size must be strictly positive, got {shard_size}."
             )
         self._shard_size = shard_size
+
+        self.set_shard(start=start, end=end)
+
+    def set_shard(self, *, start: int, end: int) -> None:
+        """Redefines the file shard to be hashed in `compute`."""
+        if start < 0:
+            raise ValueError(
+                f"File start offset must be non-negative, got {start}."
+            )
+        if end <= start:
+            raise ValueError(
+                "File end offset must be stricly higher that file start offset,"
+                f" got {start=}, {end=}."
+            )
+        read_length = end - start
+        if read_length > self._shard_size:
+            raise ValueError(
+                f"Must not read more than shard_size={self._shard_size}, got {read_length}."
+            )
+
+        self._start = start
+        self._end = end
 
     @override
     def compute(self) -> hashing.Digest:
