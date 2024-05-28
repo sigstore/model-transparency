@@ -55,7 +55,6 @@ class TestPrecomputedDigest:
 
     def test_update_after_reset(self):
         hasher = memory.SHA256(b"Test string")
-        hasher.update(b"")
         digest1 = hasher.compute()
         hasher.reset()
         hasher.update(b"Test string")

@@ -44,12 +44,7 @@ class HashEngine(metaclass=ABCMeta):
 
     @abstractmethod
     def compute(self) -> Digest:
-        """Computes the digest of data passed to the engine.
-
-        Subclasses should add additional arguments to `compute()` method to pass
-        in the data that needs to be hashed. Alternatively, if the data can be
-        passed in iteratively, users should use `StreamingHashEngine` instead.
-        """
+        """Computes the digest of data passed to the engine."""
         pass
 
     @property
@@ -62,41 +57,24 @@ class HashEngine(metaclass=ABCMeta):
         shards which are hashed separately and the final digest value is
         computed by aggregating these hashes, then the shard size must be given
         in the output string.
-
-        This method may be called at any time during the lifetime of a
-        `HashEngine` instance.
         """
         pass
 
 
 class Streaming(Protocol):
     """A protocol to support streaming data to `HashEngine` objects."""
-    current_digest: Digest
 
     @abstractmethod
     def update(self, data: bytes) -> None:
-        """Appends additional bytes to the data to be hashed.
-
-        Implementations might decide to not support this operation.
-
-        Similarly, implementations might decide to not support this operation
-        after `compute` has been called. Or, they might decide that additional
-        calls to `update` after `compute` has been called have no effect.
-
-        Implementations may update internal data on each call to `update`
-        instead of performing the entire digest computation on `compute`.
-        """
+        """Appends additional bytes to the data to be hashed."""
         pass
 
     @abstractmethod
-    def reset(self) -> None:
-        """Resets the data to be hashed to be empty."""
+    def reset(self, data: bytes = b"") -> None:
+        """Resets the data to be hashed to the passed argument."""
         pass
 
 
 class StreamingHashEngine(Streaming, HashEngine):
     """A `HashEngine` that can stream data to be hashed."""
-
-    @override
-    def compute(self) -> Digest:
-        return self.current_digest
+    pass

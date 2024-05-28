@@ -46,17 +46,18 @@ class SHA256(hashing.StreamingHashEngine):
 
     def __init__(self, initial_data: bytes = b""):
         self._hasher = hashlib.sha256(initial_data)
-        self.current_digest = hashing.Digest(self.digest_name, self._hasher.digest())
 
     @override
     def update(self, data: bytes) -> None:
         self._hasher.update(data)
-        self.current_digest = hashing.Digest(self.digest_name, self._hasher.digest())
 
     @override
-    def reset(self) -> None:
-        self._hasher = hashlib.sha256()
-        self.current_digest = hashing.Digest(self.digest_name, self._hasher.digest())
+    def reset(self, data: bytes = b"") -> None:
+        self._hasher = hashlib.sha256(data)
+
+    @override
+    def compute(self) -> hashing.Digest:
+        return hashing.Digest(self.digest_name, self._hasher.digest())
 
     @override
     @property
