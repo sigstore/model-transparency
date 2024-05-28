@@ -30,7 +30,7 @@ Example usage for `ShardedFileHasher`, reading only the second part of a file:
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("0123abcd")
 >>> hasher = ShardedFileHasher(SHA256())
->>> hasher.set_file("/tmp/file", start=4, end=8)
+>>> hasher.set_file_shard("/tmp/file", start=4, end=8)
 >>> digest = hasher.compute()
 >>> digest.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
@@ -60,7 +60,7 @@ class WithShardedFile(Protocol):
     _start: int = -1
     _end: int = -1
 
-    def set_file(self, file: pathlib.Path, start: int, end: int) -> None:
+    def set_file_shard(self, file: pathlib.Path, start: int, end: int) -> None:
         """Defines the file shard to be hashed in `compute`.
 
         Args:
@@ -78,11 +78,11 @@ class WithShardedFile(Protocol):
                 "File end offset must be stricly higher that file start offset,"
                 f" got {start=}, {end=}."
             )
-        read_length = end - start
-        if read_length > shard_size:
-            raise ValueError(
-                f"Must not read more than {shard_size=}, got {read_length}."
-            )
+        #read_length = end - start
+        #if read_length > shard_size:
+        #    raise ValueError(
+        #        f"Must not read more than {shard_size=}, got {read_length}."
+        #    )
 
         self._start = start
         self._end = end

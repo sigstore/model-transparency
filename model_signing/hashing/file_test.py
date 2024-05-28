@@ -144,16 +144,17 @@ class TestShardedFileHasher:
         with pytest.raises(
             ValueError, match="File start offset must be non-negative"
         ):
-            hasher.set_file("unused", start=-2, end=42)
+            hasher.set_file_shard("unused", start=-2, end=42)
 
-    #def test_fails_with_end_lower_than_start(self):
-    #    with pytest.raises(
-    #        ValueError,
-    #        match=(
-    #            "File end offset must be stricly higher that file start offset"
-    #        ),
-    #    ):
-    #        file.ShardedFileHasher("unused", memory.SHA256(), start=42, end=2)
+    def test_fails_with_end_lower_than_start(self):
+        hasher = file.ShardedFileHasher(memory.SHA256())
+        with pytest.raises(
+            ValueError,
+            match=(
+                "File end offset must be stricly higher that file start offset"
+            ),
+        ):
+            hasher.set_file_shard("unused", start=42, end=2)
 
     #def test_fails_with_zero_read_span(self):
     #    with pytest.raises(
