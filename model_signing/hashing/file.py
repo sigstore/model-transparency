@@ -35,7 +35,6 @@ Example usage for `ShardedFileHasher`, reading only the second part of a file:
 ```
 """
 
-from abc import abstractmethod
 import pathlib
 from typing_extensions import override
 
