@@ -24,7 +24,6 @@ specify the algorithm and the digest value.
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from typing import Protocol
-from typing_extensions import override
 
 
 @dataclass(frozen=True)
