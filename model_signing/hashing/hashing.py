@@ -27,9 +27,10 @@ from typing import Protocol
 from typing_extensions import override
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class Digest:
     """A digest computed by a `HashEngine`."""
+
     algorithm: str
     digest_value: bytes
 
@@ -77,4 +78,5 @@ class Streaming(Protocol):
 
 class StreamingHashEngine(Streaming, HashEngine):
     """A `HashEngine` that can stream data to be hashed."""
+
     pass

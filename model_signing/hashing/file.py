@@ -61,7 +61,7 @@ class FileHasher(hashing.HashEngine):
 
     def __init__(
         self,
-        file: pathlib. Path,
+        file: pathlib.Path,
         content_hasher: hashing.StreamingHashEngine,
         *,
         chunk_size: int = 8192,
@@ -115,7 +115,7 @@ class FileHasher(hashing.HashEngine):
                         break
                     self._content_hasher.update(data)
 
-        digest =  self._content_hasher.compute()
+        digest = self._content_hasher.compute()
         return hashing.Digest(self.digest_name, digest.digest_value)
 
 
@@ -130,7 +130,7 @@ class ShardedFileHasher(FileHasher):
 
     def __init__(
         self,
-        file: pathlib. Path,
+        file: pathlib.Path,
         content_hasher: hashing.StreamingHashEngine,
         *,
         start: int,
@@ -187,7 +187,8 @@ class ShardedFileHasher(FileHasher):
         read_length = end - start
         if read_length > self._shard_size:
             raise ValueError(
-                f"Must not read more than shard_size={self._shard_size}, got {read_length}."
+                f"Must not read more than shard_size={self._shard_size}, got"
+                f" {read_length}."
             )
 
         self._start = start
@@ -214,7 +215,7 @@ class ShardedFileHasher(FileHasher):
                     to_read -= len(data)
                     self._content_hasher.update(data)
 
-        digest =  self._content_hasher.compute()
+        digest = self._content_hasher.compute()
         return hashing.Digest(self.digest_name, digest.digest_value)
 
     @override
