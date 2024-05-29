@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 import pytest
 from serialize import Serializer
+import tempfile
+from contextlib import contextmanager
 import shutil
 
 
@@ -15,38 +17,37 @@ def create_empty_folder(name: str) -> Path:
     return Path(p)
 
 
-def create_random_folders(name: str) -> (Path, int, [Path], [Path]):
-    p = os.path.join(os.getcwd(), testdata_dir, name)
+def random_directory(directory=None):
+    """Context manager for creating and automatically cleaning up a temporary directory."""
+    dir_path = tempfile.mkdtemp(dir=directory)
+    try:
+        yield dir_path
+    finally:
+        os.rmdir(dir_path)
 
-    content = os.urandom(1)
-    dirs = [p]
-    # Generate 8 directories.
-    for i in range(8):
-        bit = (content[0] >> i) & 1
-        if bit > 0:
-            # Add depth to the previously-created directory.
-            dirs[-1] = os.path.join(dirs[-1], "dir_%d" % i)
-        else:
-            # Add a directory in the same directory as the previous entry.
-            parent = os.path.dirname(dirs[-1])
-            if Path(parent) == Path(p).parent:
-                parent = str(p)
-            dirs += [os.path.join(parent, "dir_%d" % i)]
-    for d in dirs:
-        os.makedirs(d)
+def random_file(directory):
+    """Context manager for creating and automatically cleaning up a temporary file in a given directory."""
+    fd, file_path = tempfile.mkstemp(dir=directory)
+    try:
+        yield file_path
+    finally:
+        os.close(fd)
+        os.remove(file_path)
 
-    # Create at most 3 files in each directory.
-    files = []
-    for d in dirs:
-        b = os.urandom(1)
-        n = b[0] & 3
-        for i in range(n):
-            files += [os.path.join(d, "file_%d" % n)]
-            content = os.urandom(28)
-            with open(files[-1], "wb") as f:
-                f.write(content)
+def generate_random_file_contents(file_path, size=1024):
+    """Generate random contents for a file."""
+    with open(file_path, 'wb') as f:
+        f.write(os.urandom(size))
 
-    return Path(p), 28, [Path(d) for d in sorted(dirs)], [Path(f) for f in sorted(files)]  # noqa: E501 ignore long line warning
+
+def create_random_folders(name: str) -> None:
+   with random_directory() as dir:
+    print(f"Directory created: {dir}")
+    with random_directory(dir) as dir1:
+        print(f"Nested directory created: {dir1}")
+        with random_file(dir1) as f:
+            print(f"File created: {f}")
+            generate_random_file_contents(f)
 
 
 def create_symlinks(src: str, dst: str) -> Path:
