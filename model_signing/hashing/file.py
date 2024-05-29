@@ -196,9 +196,6 @@ class ShardedFileHasher(FileHasher):
 
     @override
     def compute(self) -> hashing.Digest:
-        if self._file is None:
-            raise ValueError("set_file() must be called first")
-
         self._content_hasher.reset()
 
         with open(self._file, "rb") as f:
