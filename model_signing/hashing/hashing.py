@@ -43,8 +43,11 @@ class HashEngine(metaclass=ABCMeta):
     """Generic hash engine."""
 
     @abstractmethod
-    def compute(self) -> Digest:
-        """Computes the digest of data passed to the engine."""
+    def compute(self, *, header: bytes = b"") -> Digest:
+        """Computes the digest of data passed to the engine.
+
+        The method supports an optional header to be hashed before the data.
+        """
         pass
 
     @property

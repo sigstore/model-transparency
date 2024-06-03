@@ -42,7 +42,8 @@ class PrecomputedDigest(hashing.HashEngine):
     _digest_value: bytes
 
     @override
-    def compute(self) -> hashing.Digest:
+    def compute(self, *, header: bytes = b"") -> hashing.Digest:
+        del header  # unused with precomputed digests
         return hashing.Digest(self._digest_type, self._digest_value)
 
     @override

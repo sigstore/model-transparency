@@ -46,3 +46,11 @@ class TestPrecomputedDigest:
         assert hasher.digest_name == "test"
         digest = hasher.compute()
         assert digest.algorithm == "test"
+
+    def test_compute_with_header(self):
+        hash_value = b"value"
+        hasher = precomputed.PrecomputedDigest("test", hash_value)
+        digest = hasher.compute()
+        assert digest.digest_value == hash_value
+        digest = hasher.compute(header="some data")
+        assert digest.digest_value == hash_value

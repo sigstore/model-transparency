@@ -56,7 +56,8 @@ class SHA256(hashing.StreamingHashEngine):
         self._hasher = hashlib.sha256(data)
 
     @override
-    def compute(self) -> hashing.Digest:
+    def compute(self, *, header: bytes = b"") -> hashing.Digest:
+        del header  # unused with streaming digests, set in `reset` instead
         return hashing.Digest(self.digest_name, self._hasher.digest())
 
     @override
