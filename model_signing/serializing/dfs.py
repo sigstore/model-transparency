@@ -14,6 +14,7 @@
 
 """Model serializers that build a single hash out of a DFS traversal."""
 
+import base64
 import pathlib
 from typing import Callable
 from typing_extensions import override
@@ -44,7 +45,8 @@ def _build_header(*, entry_name: str, entry_type: str) -> bytes:
         entry_type: The type of the entry (file or directory).
     """
     encoded_type = entry_type.encode("utf-8")
-    encoded_name = entry_name.encode("utf-8")
+    # Prevent confusion if name has a "." inside by encoding to base64.
+    encoded_name = base64.b64encode(entry_name.encode("utf-8"))
     # Note: make sure to end with a ".".
     return b".".join([encoded_type, encoded_name, b""])
 

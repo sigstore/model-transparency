@@ -132,7 +132,7 @@ class TestDFSSerializer:
         manifest = serializer.serialize(model)
 
         expected = (
-            "aa856f565699473579c8d7009bfad8c421e1643b810f0a28d47b9ce1f0b98ccc"
+            "a0865eb7e299e3bca3951e24930c56dcf1533ecff63bda06a9be67906773c628"
         )
         assert manifest.digest.digest_hex == expected
 
@@ -144,7 +144,7 @@ class TestDFSSerializer:
         serializer = dfs.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_folder)
         expected = (
-            "516de24dd65c9749bbde333545cb997c645e21c510107fa5c06428e0df84099b"
+            "310af4fc4c52bf63cd1687c67076ed3e56bc5480a1b151539e6c550506ae0301"
         )
         assert manifest.digest.digest_hex == expected
 
@@ -177,7 +177,7 @@ class TestDFSSerializer:
         model = empty_model_file.parent
         manifest = serializer.serialize(model)
         expected = (
-            "ca671f6b24ce1b08677759ed050a30eb86a28c18abfa2308c7da9e581a8f7917"
+            "8a587b2129fdecfbea38d5152b626299f5994d9b99d36b321aea356f69b38c61"
         )
         assert manifest.digest.digest_hex == expected
 
@@ -277,6 +277,6 @@ class TestDFSSerializer:
         serializer = dfs.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(deep_model_folder)
         expected = (
-            "1ae1b8a653dba20787ae8482611761ee7f1223b15fbfbaa1fce5c55751048d62"
+            "36eed9389ebbbe15ac15d33c81dabb60ccb7c945ff641d78f59db9aa9dc47ac9"
         )
         assert manifest.digest.digest_hex == expected
