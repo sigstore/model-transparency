@@ -25,7 +25,14 @@ from model_signing.serializing import serializing
 
 
 def _check_file_or_directory(path: pathlib.Path) -> bool:
-    """Checks that the given path is either a file or a directory."""
+    """Checks that the given path is either a file or a directory.
+
+    There is no support for sockets, pipes, or any other operating system
+    concept abstracted as a file.
+
+    Furthermore, this would return False if the path is a broken symlink, if it
+    doesn't exists or if there are permission errors.
+    """
     return path.is_file() or path.is_dir()
 
 
@@ -38,6 +45,7 @@ def _build_header(*, entry_name: str, entry_type: str) -> bytes:
     """
     encoded_type = entry_type.encode("utf-8")
     encoded_name = entry_name.encode("utf-8")
+    # Note: make sure to end with a ".".
     return b".".join([encoded_type, encoded_name, b""])
 
 
@@ -68,10 +76,12 @@ class DFSSerializer(serializing.Serializer):
 
     @override
     def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
-        # TODO(mihaimaruseac): Add checks for symlinks
+        # TODO(mihaimaruseac): Add checks to exclude symlinks if desired
         if not _check_file_or_directory(model_path):
             raise ValueError(
-                f"Must have a file or directory, but '{model_path}' is neither."
+                f"Cannot use '{model_path}' as file or directory. It could be a"
+                " special file, it could be missing, or there might be a"
+                " permission issue."
             )
 
         if model_path.is_file():
@@ -88,7 +98,9 @@ class DFSSerializer(serializing.Serializer):
         for child in children:
             if not _check_file_or_directory(child):
                 raise ValueError(
-                    f"Must have a file or directory, but '{child}' is neither."
+                    f"Cannot use '{child}' as file or directory. It could be a"
+                    " special file, it could be missing, or there might be a"
+                    " permission issue."
                 )
 
             if child.is_file():
