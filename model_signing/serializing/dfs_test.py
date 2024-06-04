@@ -255,6 +255,24 @@ class TestDFSSerializer:
         manifest2 = serializer.serialize(sample_model_folder)
         assert manifest1.digest != manifest2.digest
 
+    def test_folder_model_replace_file_empty_folder(self, sample_model_folder):
+        file_hasher = file.FileHasher("unused", memory.SHA256())
+        serializer = dfs.DFSSerializer(file_hasher, memory.SHA256)
+        manifest1 = serializer.serialize(sample_model_folder)
+
+        # Alter first directory within the model
+        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
+        altered_dir = dirs[0]
+
+        # Replace first file in the altered_dir
+        files = [f for f in altered_dir.iterdir() if f.is_file()]
+        file_to_replace = files[0]
+        file_to_replace.unlink()
+        file_to_replace.mkdir()
+
+        manifest2 = serializer.serialize(sample_model_folder)
+        assert manifest1.digest != manifest2.digest
+
     def test_folder_model_change_file(self, sample_model_folder):
         file_hasher = file.FileHasher("unused", memory.SHA256())
         serializer = dfs.DFSSerializer(file_hasher, memory.SHA256)
