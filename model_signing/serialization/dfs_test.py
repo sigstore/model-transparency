@@ -307,10 +307,10 @@ class TestDFSSerializer:
         altered_dir = dirs[0]
 
         # Create a pipe in the altered_dir
-        pipe_name = altered_dir / "pipe"
+        pipe = altered_dir / "pipe"
 
         try:
-            os.mkfifo(pipe_name)
+            os.mkfifo(pipe)
         except AttributeError:
             # On Windows, `os.mkfifo` does not exist (it should not).
             return
@@ -322,6 +322,12 @@ class TestDFSSerializer:
             ValueError, match="Cannot use .* as file or directory"
         ):
             serializer.serialize(sample_model_folder)
+
+        # Also to the same for the pipe itself
+        with pytest.raises(
+            ValueError, match="Cannot use .* as file or directory"
+        ):
+            serializer.serialize(pipe)
 
 
 class TestShardedDFSSerializer:
@@ -592,10 +598,10 @@ class TestShardedDFSSerializer:
         altered_dir = dirs[0]
 
         # Create a pipe in the altered_dir
-        pipe_name = altered_dir / "pipe"
+        pipe = altered_dir / "pipe"
 
         try:
-            os.mkfifo(pipe_name)
+            os.mkfifo(pipe)
         except AttributeError:
             # On Windows, `os.mkfifo` does not exist (it should not).
             return
@@ -608,3 +614,9 @@ class TestShardedDFSSerializer:
             ValueError, match="Cannot use .* as file or directory"
         ):
             serializer.serialize(sample_model_folder)
+
+        # Also to the same for the pipe itself
+        with pytest.raises(
+            ValueError, match="Cannot use .* as file or directory"
+        ):
+            serializer.serialize(pipe)
