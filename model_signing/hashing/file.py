@@ -28,7 +28,7 @@ Example usage for `ShardedFileHasher`, reading only the second part of a file:
 ```python
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("0123abcd")
->>> hasher = ShardedFileHasher("/tmo/file", SHA256(), start=4, end=8)
+>>> hasher = ShardedFileHasher("/tmp/file", SHA256(), start=4, end=8)
 >>> digest = hasher.compute()
 >>> digest.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
@@ -144,8 +144,7 @@ class ShardedFileHasher(FileHasher):
         Args:
             file: The file to hash. Use `set_file` to reset it.
             content_hasher: A `hashing.HashEngine` instance used to compute the
-              digest of the file. This instance must not be used outside of this
-              instance. However, it may be pre-initialized with a header.
+              digest of the file.
             start: The file offset to start reading from. Must be valid. Reset
               with `set_shard`.
             end: The file offset to start reading from. Must be stricly greater
