@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import pathlib
 import pytest
 
@@ -300,6 +301,28 @@ class TestDFSSerializer:
         )
         assert manifest.digest.digest_hex == expected
 
+    def test_special_file(self, sample_model_folder):
+        # Alter first directory within the model
+        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
+        altered_dir = dirs[0]
+
+        # Create a pipe in the altered_dir
+        pipe_name = altered_dir / "pipe"
+
+        try:
+            os.mkfifo(pipe_name)
+        except AttributeError:
+            # On Windows, `os.mkfifo` does not exist (it should not).
+            return
+
+        file_hasher = file.FileHasher("unused", memory.SHA256())
+        serializer = dfs.DFSSerializer(file_hasher, memory.SHA256)
+
+        with pytest.raises(
+            ValueError, match="Cannot use .* as file or directory"
+        ):
+            serializer.serialize(sample_model_folder)
+
 
 class TestShardedDFSSerializer:
 
@@ -562,3 +585,26 @@ class TestShardedDFSSerializer:
         manifest2 = serializer2.serialize(sample_model_folder)
 
         assert manifest1.digest.digest_value != manifest2.digest.digest_value
+
+    def test_special_file(self, sample_model_folder):
+        # Alter first directory within the model
+        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
+        altered_dir = dirs[0]
+
+        # Create a pipe in the altered_dir
+        pipe_name = altered_dir / "pipe"
+
+        try:
+            os.mkfifo(pipe_name)
+        except AttributeError:
+            # On Windows, `os.mkfifo` does not exist (it should not).
+            return
+
+        serializer = dfs.ShardedDFSSerializer(
+            self._hasher_factory, memory.SHA256()
+        )
+
+        with pytest.raises(
+            ValueError, match="Cannot use .* as file or directory"
+        ):
+            serializer.serialize(sample_model_folder)
