@@ -97,7 +97,7 @@ class DFSSerializer(serialization.Serializer):
 
     @override
     def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
-        # TODO(mihaimaruseac): Add checks to exclude symlinks if desired
+        # TODO: #196 - Add checks to exclude symlinks if desired
         _check_file_or_directory(model_path)
 
         if model_path.is_file():
@@ -107,7 +107,7 @@ class DFSSerializer(serialization.Serializer):
         return manifest.DigestManifest(self._dfs(model_path))
 
     def _dfs(self, directory: pathlib.Path) -> hashing.Digest:
-        # TODO(mihaimaruseac): Add support for excluded files
+        # TODO: #196 - Add support for excluded files
         children = sorted([x for x in directory.iterdir()])
 
         hasher = self._merge_hasher_factory()
@@ -189,7 +189,7 @@ class ShardedDFSSerializer(serialization.Serializer):
 
     @override
     def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
-        # TODO(mihaimaruseac): Add checks to exclude symlinks if desired
+        # TODO: #196 - Add checks to exclude symlinks if desired
         _check_file_or_directory(model_path)
 
         if model_path.is_file():
@@ -251,7 +251,7 @@ class ShardedDFSSerializer(serialization.Serializer):
         Note that the path component of the return is a `pathlib.PurePath`, so
         operations on it cannot touch the filesystem.
         """
-        # TODO(mihaimaruseac): Add support for excluded files
+        # TODO: #196 - Add support for excluded files
         triples = []
         for path in paths:
             _check_file_or_directory(path)
@@ -286,14 +286,14 @@ class ShardedDFSSerializer(serialization.Serializer):
         """Produces the hash of the file shard included in `task`."""
         task_path, task_type, task_start, task_end = task
 
-        # TODO(mihaimaruseac): Directories don't need to use the file hasher.
+        # TODO: #197 - Directories don't need to use the file hasher.
         # Rather than starting a process just for them, we should filter these
         # ahead of time, and only use threading for file shards. For now, just
         # return an empty result.
         if task_type == "dir":
             return b""
 
-        # TODO(mihaimaruseac): Similarly, empty files should be hashed outside
+        # TODO: #197 - Similarly, empty files should be hashed outside
         # of a parallel task, to not waste resources.
         if task_start == task_end:
             return b""
