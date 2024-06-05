@@ -20,19 +20,19 @@ manifest that lists files and their digests. That will come in a future change,
 soon.
 """
 
-from abc import ABCMeta
-from dataclasses import dataclass
+import abc
+import dataclasses
 
 from model_signing.hashing import hashing
 
 
-class Manifest(metaclass=ABCMeta):
+class Manifest(metaclass=abc.ABCMeta):
     """Generic manifest file to represent a model."""
 
     pass
 
 
-@dataclass
+@dataclasses.dataclass
 class DigestManifest(Manifest):
     """A manifest that is just a hash."""
 

@@ -28,13 +28,13 @@ Example usage:
 ```
 """
 
-from dataclasses import dataclass
+import dataclasses
 from typing_extensions import override
 
 from model_signing.hashing import hashing
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class PrecomputedDigest(hashing.HashEngine):
     """A wrapper around digests computed by external tooling."""
 
@@ -49,3 +49,9 @@ class PrecomputedDigest(hashing.HashEngine):
     @property
     def digest_name(self) -> str:
         return self._digest_type
+
+    @override
+    @property
+    def digest_size(self) -> int:
+        """The size, in bytes, of the digests produced by the engine."""
+        return len(self._digest_value)

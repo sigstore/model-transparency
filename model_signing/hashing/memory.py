@@ -63,3 +63,9 @@ class SHA256(hashing.StreamingHashEngine):
     @property
     def digest_name(self) -> str:
         return "sha256"
+
+    @override
+    @property
+    def digest_size(self) -> int:
+        """The size, in bytes, of the digests produced by the engine."""
+        return 32

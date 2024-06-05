@@ -83,6 +83,12 @@ class TestFileHasher:
         digest = hasher.compute()
         assert digest.digest_hex == expected_digest
 
+    def test_hash_of_known_file_large_chunk(self, sample_file, expected_digest):
+        size = 2 * len(_FULL_CONTENT)
+        hasher = file.FileHasher(sample_file, memory.SHA256(), chunk_size=size)
+        digest = hasher.compute()
+        assert digest.digest_hex == expected_digest
+
     def test_hash_file_twice(self, sample_file):
         hasher1 = file.FileHasher(sample_file, memory.SHA256())
         digest1 = hasher1.compute()
@@ -113,7 +119,7 @@ class TestFileHasher:
         assert digest1.digest_value == digest2.digest_value
 
     def test_default_digest_name(self):
-        hasher = file.FileHasher("unused", memory.SHA256(), chunk_size=10)
+        hasher = file.FileHasher("unused", memory.SHA256())
         assert hasher.digest_name == "file-sha256"
 
     def test_override_digest_name(self):
@@ -129,6 +135,11 @@ class TestFileHasher:
         hasher = file.FileHasher(sample_file, memory.SHA256())
         digest = hasher.compute()
         assert digest.algorithm == hasher.digest_name
+
+    def test_digest_size(self):
+        memory_hasher = memory.SHA256()
+        hasher = file.FileHasher(sample_file, memory_hasher)
+        assert hasher.digest_size == memory_hasher.digest_size
 
 
 class TestShardedFileHasher:
@@ -304,6 +315,54 @@ class TestShardedFileHasher:
         digest2 = hasher2.compute()
         assert digest2.digest_hex == expected_content_digest
 
+    def test_hash_of_known_file_large_chunk(
+        self, sample_file, expected_header_digest, expected_content_digest
+    ):
+        hasher1 = file.ShardedFileHasher(
+            sample_file,
+            memory.SHA256(),
+            start=0,
+            end=_SHARD_SIZE,
+            chunk_size=2 * len(_FULL_CONTENT),
+        )
+        hasher2 = file.ShardedFileHasher(
+            sample_file,
+            memory.SHA256(),
+            start=_SHARD_SIZE,
+            end=2 * _SHARD_SIZE,
+            chunk_size=2 * len(_FULL_CONTENT),
+        )
+
+        digest1 = hasher1.compute()
+        assert digest1.digest_hex == expected_header_digest
+
+        digest2 = hasher2.compute()
+        assert digest2.digest_hex == expected_content_digest
+
+    def test_hash_of_known_file_large_shard(
+        self, sample_file, expected_header_digest, expected_content_digest
+    ):
+        hasher1 = file.ShardedFileHasher(
+            sample_file,
+            memory.SHA256(),
+            start=0,
+            end=_SHARD_SIZE,
+            shard_size=2 * len(_FULL_CONTENT),
+        )
+        hasher2 = file.ShardedFileHasher(
+            sample_file,
+            memory.SHA256(),
+            start=_SHARD_SIZE,
+            end=2 * _SHARD_SIZE,
+            shard_size=2 * len(_FULL_CONTENT),
+        )
+
+        digest1 = hasher1.compute()
+        assert digest1.digest_hex == expected_header_digest
+
+        digest2 = hasher2.compute()
+        assert digest2.digest_hex == expected_content_digest
+
     def test_default_digest_name(self):
         hasher = file.ShardedFileHasher(
             "unused", memory.SHA256(), start=0, end=2, shard_size=10
@@ -332,3 +391,8 @@ class TestShardedFileHasher:
         )
         digest = hasher.compute()
         assert digest.algorithm == hasher.digest_name
+
+    def test_digest_size(self):
+        memory_hasher = memory.SHA256()
+        hasher = file.FileHasher(sample_file, memory_hasher)
+        assert hasher.digest_size == memory_hasher.digest_size

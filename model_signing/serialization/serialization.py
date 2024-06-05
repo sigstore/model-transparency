@@ -18,16 +18,16 @@ Currently we have only one serializer that performs a DFS traversal of the model
 directory, but more serializers are coming soon.
 """
 
-from abc import ABCMeta, abstractmethod
+import abc
 import pathlib
 
 from model_signing.manifest import manifest
 
 
-class Serializer(metaclass=ABCMeta):
+class Serializer(metaclass=abc.ABCMeta):
     """Generic ML model format serializer."""
 
-    @abstractmethod
+    @abc.abstractmethod
     def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
         """Serializes the model given by the `model_path` argument."""
         pass
