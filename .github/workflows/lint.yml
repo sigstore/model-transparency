@@ -27,14 +27,12 @@ jobs:
           set -euxo pipefail  # No -x here!
           failed=0
           # First, check for empty files at end
-          for file in $(git ls-files --eol | grep 'i/[cr]*lf' | awk '{print $4}'); do
-            lines=$(tac "$file" | awk 'NF{exit};END{print NR?NR-1:0}')
-            if [[ $lines -ne 0 ]]; then
-              line=$(wc -l "$file" | cut -d' ' -f1)
-              echo "::error file=$file,line=$line::File $file has $lines empty lines at end. Please remove."
-              failed=$((failed + 1))
-            fi
+          for file in $(for f in $(git ls-files --eol | grep 'i/[cr]*lf' | awk '{print $4}'); do egrep -l "^$" $file; done); do
+            line=$(wc -l "$file" | cut -d ' ' -f1)
+            echo "::error file=$file,line=$line::File $file has empty lines at end. Please remove."
+            failed=$((failed + 1))
           done
+
           # Next, check for files with whitespace at end of line. Remove CRLF files.
           for file in $(git ls-files --eol | grep 'i/lf' | awk '{print $4}'); do
             for line in $(grep -n '[[:space:]]$' "$file" | cut -d: -f1); do
@@ -42,6 +40,17 @@ jobs:
               failed=$((failed + 1))
             done
           done
+
+          # Finally, check for missing endline at end of file, for any text file.
+          for file in $(git ls-files | grep 'i/lf' | awk '{print $4}'); do
+            if [[ -n "$(tail -c 1 "$file")" ]]; then
+              line=$(wc -l "$file" | cut -d ' ' -f1)
+              echo "::error file=$file,line=$line::File $file needs an endline at the end. Please add."
+              failed=$((failed + 1))
+            fi
+          done
+
+          # Report status
           if [[ $failed -ne 0 ]]; then
             echo "::error Found $failed whitespace errors, failing"
             exit 1
