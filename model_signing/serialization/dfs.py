@@ -130,7 +130,6 @@ class DFSSerializer(serialization.Serializer):
 
 
 # Define type aliases for the ShardedDFSSerializer class below.
-_SizedPath: TypeAlias = tuple[pathlib.PurePath, str, int]
 _ShardSignTask: TypeAlias = tuple[pathlib.PurePath, str, int, int]
 
 
@@ -195,12 +194,12 @@ class ShardedDFSSerializer(serialization.Serializer):
         if model_path.is_file():
             entries = [model_path]
         else:
-            # TODO: When Python3.12 is the minimum supported version, this can
-            # be replaced with `pathlib.Path.walk` for a clearer interface.
+            # TODO: #200 - When Python3.12 is the minimum supported
+            # version, this can be replaced with `pathlib.Path.walk` for a
+            # clearer interface, and some speed improvement.
             entries = sorted(model_path.glob("**/*"))
 
-        sized_paths = self._get_sizes(entries, model_path)
-        tasks = self._build_tasks(sized_paths)
+        tasks = self._build_tasks(entries, model_path)
 
         digest_len = self._merge_hasher.digest_size
         digests_buffer = bytearray(len(tasks) * digest_len)
@@ -234,50 +233,42 @@ class ShardedDFSSerializer(serialization.Serializer):
         self._merge_hasher.reset(digests_buffer)
         return manifest.DigestManifest(self._merge_hasher.compute())
 
-    def _get_sizes(
+    def _build_tasks(
         self, paths: Iterable[pathlib.Path], root_path: pathlib.Path
-    ) -> list[_SizedPath]:
-        """Computes size and type for all paths which will be hashed.
+    ) -> list[_ShardSignTask]:
+        """Builds the tasks that would hash shards of files in parallel.
 
-        Each entry in `paths` is replaced by a triple representing its relative
-        path, its type (as a string) and its size. These are the elements needed
-        to build the hash.
+        Every file in `paths` is replaced by a set of tasks. Each task computes
+        the digest over a shard of the file. Directories result in a single
+        task, just to compute a digest over a header.
 
-        For directories, the size is set to 0.
+        To differentiate between (empty) files and directories with the same
+        name, every task needs to also include a header. The header needs to
+        include relative path to the model root, as we want to obtain the same
+        digest if the model is moved.
 
         We don't construct an enum for the type of the entry, because these will
         never escape this class.
 
-        Note that the path component of the return is a `pathlib.PurePath`, so
+        Note that the path component of the tasks is a `pathlib.PurePath`, so
         operations on it cannot touch the filesystem.
         """
         # TODO: #196 - Add support for excluded files
-        triples = []
+
+        tasks = []
         for path in paths:
             _check_file_or_directory(path)
-            if path.is_file():
-                path_type = "file"
-                path_size = path.stat().st_size
-            else:
-                path_type = "dir"
-                path_size = 0
             relative_path = path.relative_to(root_path)
-            triples.append((relative_path, path_type, path_size))
-        return triples
 
-    def _build_tasks(
-        self, records: Iterable[_SizedPath]
-    ) -> list[_ShardSignTask]:
-        """Builds the tasks that would hash shards of files in parallel."""
-        tasks = []
-        for record_path, record_type, record_size in records:
-            if record_type == "file":
+            if path.is_file():
+                path_size = path.stat().st_size
                 start = 0
-                for end in _endpoints(self._shard_size, record_size):
-                    tasks.append((record_path, record_type, start, end))
+                for end in _endpoints(self._shard_size, path_size):
+                    tasks.append((relative_path, "file", start, end))
                     start = end
             else:
-                tasks.append((record_path, record_type, 0, 0))
+                tasks.append((relative_path, "dir", 0, 0))
+
         return tasks
 
     def _hash_task(
