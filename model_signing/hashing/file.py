@@ -118,6 +118,12 @@ class FileHasher(hashing.HashEngine):
         digest = self._content_hasher.compute()
         return hashing.Digest(self.digest_name, digest.digest_value)
 
+    @override
+    @property
+    def digest_size(self) -> int:
+        """The size, in bytes, of the digests produced by the engine."""
+        return self._content_hasher.digest_size
+
 
 class ShardedFileHasher(FileHasher):
     """File hash engine that can be invoked in parallel.
@@ -168,7 +174,7 @@ class ShardedFileHasher(FileHasher):
             raise ValueError(
                 f"Shard size must be strictly positive, got {shard_size}."
             )
-        self._shard_size = shard_size
+        self.shard_size = shard_size
 
         self.set_shard(start=start, end=end)
 
@@ -184,9 +190,9 @@ class ShardedFileHasher(FileHasher):
                 f" got {start=}, {end=}."
             )
         read_length = end - start
-        if read_length > self._shard_size:
+        if read_length > self.shard_size:
             raise ValueError(
-                f"Must not read more than shard_size={self._shard_size}, got"
+                f"Must not read more than shard_size={self.shard_size}, got"
                 f" {read_length}."
             )
 
@@ -219,4 +225,4 @@ class ShardedFileHasher(FileHasher):
     def digest_name(self) -> str:
         if self._digest_name_override is not None:
             return self._digest_name_override
-        return f"file-{self._content_hasher.digest_name}-{self._shard_size}"
+        return f"file-{self._content_hasher.digest_name}-{self.shard_size}"

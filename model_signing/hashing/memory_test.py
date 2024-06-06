@@ -62,3 +62,10 @@ class TestPrecomputedDigest:
 
         assert digest1.digest_hex == digest2.digest_hex
         assert digest1.digest_value == digest2.digest_value
+
+    def test_digest_size(self):
+        hasher = memory.SHA256(b"Test string")
+        assert hasher.digest_size == 32
+
+        digest = hasher.compute()
+        assert digest.digest_size == 32
