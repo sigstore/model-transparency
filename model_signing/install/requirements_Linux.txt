@@ -472,9 +472,9 @@ requests==2.32.3 \
     #   id
     #   sigstore
     #   tuf
-rfc8785==0.1.2 \
-    --hash=sha256:4668c70e02f4cf96327d60375d2f1f21958830ff777e0e414424a794323521a1 \
-    --hash=sha256:c4e92e9ecc828bef2aa7dba1de8ac983511f7532a0df11c770d39099a25cf201
+rfc8785==0.1.3 \
+    --hash=sha256:167efe3b5cdd09dded9d0cfc8fec1f48f5cd9f8f13b580ada4efcac138925048 \
+    --hash=sha256:6116062831c62e7ac5d027973a1fe07b601ccd854bca4a2b401938a00a20b0c0
     # via sigstore
 rich==13.7.1 \
     --hash=sha256:4edbae314f59eb482f54e9e30bf00d33350aaa94f4bfcd4e9e3110e64d0d7222 \
@@ -504,9 +504,9 @@ tuf==5.0.0 \
     --hash=sha256:91a4ca279c33222ac1451a5b0bcdcbbf12c965e0d22278bead5bf8d3ab95117a \
     --hash=sha256:9c5d87d3822ae2f83c756d5a208c6942a2829ae1ea63c18c363124497d04da4f
     # via sigstore
-typing-extensions==4.12.1 \
-    --hash=sha256:6024b58b69089e5a89c347397254e35f1bf02a907728ec7fee9bf0fe837d203a \
-    --hash=sha256:915f5e35ff76f56588223f15fdd5938f9a1cf9195c0de25130c627e4d597f6d1
+typing-extensions==4.12.2 \
+    --hash=sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d \
+    --hash=sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8
     # via
     #   pydantic
     #   pydantic-core
