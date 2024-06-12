@@ -31,7 +31,7 @@ from signature.key import ECKeyVerifier
 from signature.key import load_ec_private_key
 from signature.signing import Signer
 from signature.verifying import Verifier
-from signature.verifying import VerificationResult
+from signature.verifying import VerificationError
 
 
 def __load_single_cert(path: str) -> x509.Certificate:
@@ -130,7 +130,7 @@ class PKIVerifier(Verifier):
             crypto_trust_roots = __load_multiple_certs([certifi.where()])
         return cls(crypto_trust_roots)
 
-    def verify(self, bundle: bundle_pb.Bundle) -> VerificationResult:
+    def verify(self, bundle: bundle_pb.Bundle) -> None:
         signing_chain = bundle.verification_material.x509_certificate_chain
         signing_cert_crypto = x509.load_der_x509_certificate(
             signing_chain.certificates[0].raw_bytes)
@@ -151,23 +151,20 @@ class PKIVerifier(Verifier):
         try:
             store_ctx.verify_certificate()
         except ssl_crypto.X509StoreContextError as err:
-            return VerificationResult(
-                passed=False,
-                information=f'signing certificate verification failed: {err}')
+            raise VerificationError(
+                f'signing certificate verification failed: {err}')
         usage = signing_cert_crypto.extensions.get_extension_for_class(
             x509.KeyUsage)
         if not usage.value.digital_signature:
-            return VerificationResult(
-                passed=False,
-                information=('the certificate is not valid for digital'
-                             ' signature usage'))
+            raise VerificationError(
+                ('the certificate is not valid for digital'
+                 ' signature usage'))
         ext_usage = signing_cert_crypto.extensions.get_extension_for_class(
             x509.ExtendedKeyUsage)
         if crypto_oid.ExtendedKeyUsageOID.CODE_SIGNING not in ext_usage.value:
-            return VerificationResult(
-                passed=False,
-                information=('the certificate is not valid for code'
-                             ' signing usage'))
+            raise VerificationError(
+                ('the certificate is not valid for code'
+                 ' signing usage'))
 
         # Verify the contents with a key verifier
         pub_key: ec.EllipticCurvePublicKey = \

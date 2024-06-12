@@ -28,7 +28,7 @@ from sigstore_protobuf_specs.io import intoto as intoto_pb
 from signature import encoding
 from signature.signing import Signer
 from signature.verifying import Verifier
-from signature.verifying import VerificationResult
+from signature.verifying import VerificationError
 
 
 def load_ec_private_key(
@@ -93,7 +93,7 @@ class ECKeyVerifier(Verifier):
         public_key = serialization.load_pem_public_key(serialized_key)
         return cls(public_key)
 
-    def verify(self, bundle: bundle_pb.Bundle) -> VerificationResult:
+    def verify(self, bundle: bundle_pb.Bundle) -> None:
         statement = json_format.Parse(
             bundle.dsse_envelope.payload, statement_pb.Statement())
         pae = encoding.pae(statement)
@@ -102,7 +102,5 @@ class ECKeyVerifier(Verifier):
                 bundle.dsse_envelope.signatures[0].sig,
                 pae, ec.ECDSA(SHA256()))
         except Exception as e:
-            return VerificationResult(
-                passed=False,
-                information='signature verification failed ' + str(e))
-        return VerificationResult(passed=True)
+            raise VerificationError(
+                'signature verification failed ' + str(e))

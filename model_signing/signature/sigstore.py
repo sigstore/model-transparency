@@ -27,7 +27,7 @@ from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 
 from signature.signing import Signer
 from signature.verifying import Verifier
-from signature.verifying import VerificationResult
+from signature.verifying import VerificationError
 
 
 class SigstoreSigner(Signer):
@@ -94,10 +94,9 @@ class SigstoreVerifier(Verifier):
             issuer=oidc_provider,
         )
 
-    def verify(self, bundle: bundle_pb.Bundle) -> VerificationResult:
+    def verify(self, bundle: bundle_pb.Bundle) -> None:
         try:
             sig_bundle = sig_models.Bundle(bundle)
             _ = self._verifier.verify_dsse(sig_bundle, self._policy)
         except Exception as e:
-            return VerificationResult(passed=False, information=str(e))
-        return VerificationResult(passed=True, information='')
+            raise VerificationError(str(e))

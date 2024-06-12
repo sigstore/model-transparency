@@ -14,26 +14,25 @@
 """This package provides the functionality to verify signed models."""
 import abc
 
-from dataclasses import dataclass
 from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 
 
-@dataclass(frozen=True)
-class VerificationResult:
-    passed: bool
-    information: str = ''
+class VerificationError(Exception):
+    """Typed verification error to provide error handling information"""
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
 
 
 class Verifier(abc.ABC):
     """Verifier is the abstract base class for all verifying methods."""
 
     @abc.abstractmethod
-    def verify(self, bundle: bundle_pb.Bundle) -> VerificationResult:
+    def verify(self, bundle: bundle_pb.Bundle) -> None:
         """Verify the signature of the provided bundle.
 
         Args:
             bundle (bundle_pb.Bundle): the bundle that needs to be verified.
 
-        Returns:
-            VerificationResult: status information about the verification.
+        Raises:
+            VerificationError: verification failure exception.
         """

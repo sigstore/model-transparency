@@ -20,6 +20,7 @@ from in_toto_attestation.v1 import resource_descriptor as res_desc
 
 from signature.key import ECKeySigner
 from signature.key import ECKeyVerifier
+from signature.verifying import VerificationError
 
 _PRIV_KEY_1 = b"""-----BEGIN EC PRIVATE KEY-----
 MHQCAQEEIDcpvDIigb10Ys3SbkoAd+yquWkiu/GW4Qx495pnsZh4oAcGBSuBBAAK
@@ -71,9 +72,8 @@ def test_key_signature_success(tmp_path: pathlib.Path):
     verifier = ECKeyVerifier.from_path(pub_key_path)
 
     bdl = signer.sign(stmnt)
-    res = verifier.verify(bdl)
+    verifier.verify(bdl)
 
-    assert res.passed == True
 
 
 def test_key_signature_failure(tmp_path: pathlib.Path):
@@ -86,9 +86,9 @@ def test_key_signature_failure(tmp_path: pathlib.Path):
 
     bdl = signer.sign(stmnt)
     bdl.dsse_envelope.signatures[0].sig += b'modified'
-    res = verifier.verify(bdl)
 
-    assert res.passed == False
+    with pytest.raises(VerificationError):
+        verifier.verify(bdl)
 
 
 def test_key_signature_wrong_key(tmp_path: pathlib.Path):
@@ -100,6 +100,6 @@ def test_key_signature_wrong_key(tmp_path: pathlib.Path):
     verifier = ECKeyVerifier(_PUB_KEY_2)
 
     bdl = signer.sign(stmnt)
-    res = verifier.verify(bdl)
 
-    assert res.passed == False
+    with pytest.raises(VerificationError):
+        verifier.verify(bdl)

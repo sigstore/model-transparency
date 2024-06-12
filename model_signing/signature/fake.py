@@ -24,7 +24,6 @@ from sigstore_protobuf_specs.io import intoto as intoto_pb
 from signature.signing import Signer
 from signature.encoding import PAYLOAD_TYPE
 from signature.verifying import Verifier
-from signature.verifying import VerificationResult
 
 
 class FakeSigner(Signer):
@@ -54,5 +53,5 @@ class FakeSigner(Signer):
 
 class FakeVerifier(Verifier):
     """Provides a fake verifier that always passes."""
-    def verify(self, bundle: bundle_pb.Bundle) -> VerificationResult:
-        return VerificationResult(passed=True)
+    def verify(self, bundle: bundle_pb.Bundle) -> None:
+        pass
