@@ -25,9 +25,6 @@ from sigstore.verify import (
     policy,
     Verifier,
 )
-# from sigstore.verify.models import (
-#     VerificationMaterials,
-# )
 
 from sigstore._internal.fulcio.client import (
     ExpiredCertificate,
@@ -145,12 +142,8 @@ class SigstoreVerifier():
             bundle_bytes = signaturefn.read_bytes()
             bundle = Bundle().from_json(bundle_bytes)
 
-            # material: tuple[Path, VerificationMaterials]
             contentio = io.BytesIO(Serializer.serialize_v1(
                 inputfn, chunk_size(), signaturefn, ignorepaths))
-            material = VerificationMaterials.from_bundle(input_=contentio,
-                                                         bundle=bundle,
-                                                         offline=offline)
             policy_ = policy.Identity(
                 identity=self.identity,
                 issuer=self.oidc_provider,
