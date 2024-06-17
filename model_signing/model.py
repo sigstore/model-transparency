@@ -142,8 +142,8 @@ class SigstoreVerifier():
             bundle_bytes = signaturefn.read_bytes()
             bundle = Bundle().from_json(bundle_bytes)
 
-            contentio = io.BytesIO(Serializer.serialize_v1(
-                inputfn, chunk_size(), signaturefn, ignorepaths))
+            # contentio = io.BytesIO(Serializer.serialize_v1(
+            #     inputfn, chunk_size(), signaturefn, ignorepaths))
             policy_ = policy.Identity(
                 identity=self.identity,
                 issuer=self.oidc_provider,
