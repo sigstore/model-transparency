@@ -25,9 +25,9 @@ from sigstore.verify import (
     policy,
     Verifier,
 )
-from sigstore.verify.models import (
-    VerificationMaterials,
-)
+# from sigstore.verify.models import (
+#     VerificationMaterials,
+# )
 
 from sigstore._internal.fulcio.client import (
     ExpiredCertificate,
@@ -111,9 +111,9 @@ class SigstoreSigner():
             contentio = io.BytesIO(Serializer.serialize_v1(
                 inputfn, chunk_size(), signaturefn, ignorepaths))
             with self.signing_ctx.signer(oidc_token) as signer:
-                result = signer.sign(input_=contentio)
+                result = signer.sign_artifact(input_=contentio)
                 with signaturefn.open(mode="w") as b:
-                    print(result.to_bundle().to_json(), file=b)
+                    print(result.to_json(), file=b)
             return SignatureResult()
         except ExpiredIdentity:
             return SignatureResult(success=False,
@@ -145,7 +145,7 @@ class SigstoreVerifier():
             bundle_bytes = signaturefn.read_bytes()
             bundle = Bundle().from_json(bundle_bytes)
 
-            material: tuple[Path, VerificationMaterials]
+            # material: tuple[Path, VerificationMaterials]
             contentio = io.BytesIO(Serializer.serialize_v1(
                 inputfn, chunk_size(), signaturefn, ignorepaths))
             material = VerificationMaterials.from_bundle(input_=contentio,
@@ -155,7 +155,7 @@ class SigstoreVerifier():
                 identity=self.identity,
                 issuer=self.oidc_provider,
             )
-            result = self.verifier.verify(materials=material, policy=policy_)
+            result = self.verifier.verify(bundle=bundle, policy=policy_)
             if result:
                 return VerificationResult()
             return VerificationResult(success=False, reason=result.reason)
