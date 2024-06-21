@@ -64,6 +64,13 @@ def _build_header(
     Args:
         entry_name: The name of the entry to build the header for.
         entry_type: The type of the entry (file or directory).
+        start: Optional offset for the start of the path shard.
+        end: Optional offset for the end of the path shard.
+
+    Returns:
+        A sequence of bytes that encodes all arguments as a sequence of UTF-8
+        bytes. Each argument is separated by dots and the last byte is also a
+        dot (so the file digest can be appended unambiguously).
     """
     encoded_type = entry_type.encode("utf-8")
     # Prevent confusion if name has a "." inside by encoding to base64.
