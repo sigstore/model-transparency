@@ -67,5 +67,38 @@ class SHA256(hashing.StreamingHashEngine):
     @override
     @property
     def digest_size(self) -> int:
-        """The size, in bytes, of the digests produced by the engine."""
-        return 32
+        return self._hasher.digest_size
+
+
+class BLAKE2(hashing.StreamingHashEngine):
+    """A wrapper around `hashlib.blake2b`."""
+
+    def __init__(self, initial_data: bytes = b""):
+        """Initializes an instance of a BLAKE2 hash engine.
+
+        Args:
+            initial_data: Optional initial data to hash.
+        """
+        self._hasher = hashlib.blake2b(initial_data)
+
+    @override
+    def update(self, data: bytes) -> None:
+        self._hasher.update(data)
+
+    @override
+    def reset(self, data: bytes = b"") -> None:
+        self._hasher = hashlib.blake2b(data)
+
+    @override
+    def compute(self) -> hashing.Digest:
+        return hashing.Digest(self.digest_name, self._hasher.digest())
+
+    @override
+    @property
+    def digest_name(self) -> str:
+        return "blake2b"
+
+    @override
+    @property
+    def digest_size(self) -> int:
+        return self._hasher.digest_size
