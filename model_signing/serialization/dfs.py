@@ -210,7 +210,7 @@ class ShardedDFSSerializer(serialization.Serializer):
             # improvement.
             entries = sorted(model_path.glob("**/*"))
 
-        tasks = self._build_tasks(entries, model_path)
+        tasks = self._convert_paths_to_tasks(entries, model_path)
 
         digest_len = self._merge_hasher.digest_size
         digests_buffer = bytearray(len(tasks) * digest_len)
@@ -219,7 +219,7 @@ class ShardedDFSSerializer(serialization.Serializer):
             max_workers=self._max_workers
         ) as tpe:
             futures_dict = {
-                tpe.submit(self._hash_task, model_path, task): i
+                tpe.submit(self._perform_hash_task, model_path, task): i
                 for i, task in enumerate(tasks)
             }
             for future in concurrent.futures.as_completed(futures_dict):
@@ -244,7 +244,7 @@ class ShardedDFSSerializer(serialization.Serializer):
         self._merge_hasher.reset(digests_buffer)
         return manifest.DigestManifest(self._merge_hasher.compute())
 
-    def _build_tasks(
+    def _convert_paths_to_tasks(
         self, paths: Iterable[pathlib.Path], root_path: pathlib.Path
     ) -> list[_ShardSignTask]:
         """Returns the tasks that would hash shards of files in parallel.
@@ -283,7 +283,7 @@ class ShardedDFSSerializer(serialization.Serializer):
 
         return tasks
 
-    def _hash_task(
+    def _perform_hash_task(
         self, model_path: pathlib.Path, task: _ShardSignTask
     ) -> bytes:
         """Produces the hash of the file shard included in `task`."""
