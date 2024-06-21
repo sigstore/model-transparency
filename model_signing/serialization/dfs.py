@@ -29,14 +29,20 @@ from model_signing.serialization import serialization
 _ShardSignTask: TypeAlias = tuple[pathlib.PurePath, str, int, int]
 
 
-def _check_file_or_directory(path: pathlib.Path) -> bool:
+def check_file_or_directory(path: pathlib.Path) -> None:
     """Checks that the given path is either a file or a directory.
 
     There is no support for sockets, pipes, or any other operating system
     concept abstracted as a file.
 
-    Furthermore, this would return False if the path is a broken symlink, if it
-    doesn't exists or if there are permission errors.
+    Furthermore, this would raise if the path is a broken symlink, if it doesn't
+    exists or if there are permission errors.
+
+    Args:
+        path: The path to check.
+
+    Raises:
+        ValueError: The path is neither a file or a directory.
     """
     if not (path.is_file() or path.is_dir()):
         raise ValueError(
@@ -102,7 +108,7 @@ class DFSSerializer(serialization.Serializer):
     def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
         # TODO: github.com/sigstore/model-transparency/issues/196 - Add checks
         # to exclude symlinks if desired.
-        _check_file_or_directory(model_path)
+        check_file_or_directory(model_path)
 
         if model_path.is_file():
             self._file_hasher.set_file(model_path)
@@ -117,7 +123,7 @@ class DFSSerializer(serialization.Serializer):
 
         hasher = self._merge_hasher_factory()
         for child in children:
-            _check_file_or_directory(child)
+            check_file_or_directory(child)
 
             if child.is_file():
                 header = _build_header(entry_name=child.name, entry_type="file")
@@ -269,7 +275,7 @@ class ShardedDFSSerializer(serialization.Serializer):
 
         tasks = []
         for path in paths:
-            _check_file_or_directory(path)
+            check_file_or_directory(path)
             relative_path = path.relative_to(root_path)
 
             if path.is_file():

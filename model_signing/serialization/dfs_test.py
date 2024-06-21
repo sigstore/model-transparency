@@ -574,3 +574,20 @@ class TestShardedDFSSerializer:
             ValueError, match="Cannot use .* as file or directory"
         ):
             serializer.serialize(pipe)
+
+
+class TestUtilities:
+
+    def test_check_file_or_directory_raises_on_pipes(self, sample_model_file):
+        pipe = sample_model_file.with_name("pipe")
+
+        try:
+            os.mkfifo(pipe)
+        except AttributeError:
+            # On Windows, `os.mkfifo` does not exist (it should not).
+            return  # trivially pass the test
+
+        with pytest.raises(
+            ValueError, match="Cannot use .* as file or directory"
+        ):
+            dfs.check_file_or_directory(pipe)
