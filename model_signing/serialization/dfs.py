@@ -84,7 +84,7 @@ class DFSSerializer(serialization.Serializer):
         file_hasher: file.FileHasher,
         merge_hasher_factory: Callable[[], hashing.StreamingHashEngine],
     ):
-        """Initializes an instance to hash a file with a specific `HashEngine`.
+        """Initializes an instance to serialize a model with this serializer.
 
         Args:
             hasher: The hash engine used to hash the individual files.
@@ -97,7 +97,8 @@ class DFSSerializer(serialization.Serializer):
 
     @override
     def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
-        # TODO: #196 - Add checks to exclude symlinks if desired
+        # TODO: github.com/sigstore/model-transparency/issues/196 - Add checks
+        # to exclude symlinks if desired.
         _check_file_or_directory(model_path)
 
         if model_path.is_file():
@@ -107,7 +108,8 @@ class DFSSerializer(serialization.Serializer):
         return manifest.DigestManifest(self._dfs(model_path))
 
     def _dfs(self, directory: pathlib.Path) -> hashing.Digest:
-        # TODO: #196 - Add support for excluded files
+        # TODO: github.com/sigstore/model-transparency/issues/196 - Add support
+        # for excluded files.
         children = sorted([x for x in directory.iterdir()])
 
         hasher = self._merge_hasher_factory()
@@ -147,6 +149,9 @@ def _endpoints(step: int, end: int) -> Iterable[int]:
     [2, 4, 6, 8, 9]
     >>> list(_endpoints(2, 2))
     [2]
+
+    Yields:
+        Values in the range, from `step` and up to `end`.
     """
     for value in range(step, end, step):
         yield value
@@ -164,7 +169,7 @@ class ShardedDFSSerializer(serialization.Serializer):
         merge_hasher: hashing.StreamingHashEngine,
         max_workers: int | None = None,
     ):
-        """Initializes an instance to hash a file with a specific `HashEngine`.
+        """Initializes an instance to serialize a model with this serializer.
 
         Args:
             hasher_factory: A callable to build the hash engine used to hash
@@ -188,15 +193,22 @@ class ShardedDFSSerializer(serialization.Serializer):
 
     @override
     def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
-        # TODO: #196 - Add checks to exclude symlinks if desired
-        _check_file_or_directory(model_path)
+        # Note: This function currently uses `pathlib.Path.glob` so the DFS
+        # expansion relies on the `glob` implementation performing a DFS. We
+        # will be truthful again when switching to `pathlib.Path.walk`, after
+        # Python 3.12 is the minimum version we support.
+
+        # TODO: github.com/sigstore/model-transparency/issues/196 - Add checks
+        # to exclude symlinks if desired.
+        check_file_or_directory(model_path)
 
         if model_path.is_file():
             entries = [model_path]
         else:
-            # TODO: #200 - When Python3.12 is the minimum supported
-            # version, this can be replaced with `pathlib.Path.walk` for a
-            # clearer interface, and some speed improvement.
+            # TODO: github.com/sigstore/model-transparency/issues/200 - When
+            # Python3.12 is the minimum supported version, this can be replaced
+            # with `pathlib.Path.walk` for a clearer interface, and some speed
+            # improvement.
             entries = sorted(model_path.glob("**/*"))
 
         tasks = self._build_tasks(entries, model_path)
@@ -236,7 +248,7 @@ class ShardedDFSSerializer(serialization.Serializer):
     def _build_tasks(
         self, paths: Iterable[pathlib.Path], root_path: pathlib.Path
     ) -> list[_ShardSignTask]:
-        """Builds the tasks that would hash shards of files in parallel.
+        """Returns the tasks that would hash shards of files in parallel.
 
         Every file in `paths` is replaced by a set of tasks. Each task computes
         the digest over a shard of the file. Directories result in a single
@@ -253,7 +265,8 @@ class ShardedDFSSerializer(serialization.Serializer):
         Note that the path component of the tasks is a `pathlib.PurePath`, so
         operations on it cannot touch the filesystem.
         """
-        # TODO: #196 - Add support for excluded files
+        # TODO: github.com/sigstore/model-transparency/issues/196 - Add support
+        # for excluded files.
 
         tasks = []
         for path in paths:
@@ -277,15 +290,16 @@ class ShardedDFSSerializer(serialization.Serializer):
         """Produces the hash of the file shard included in `task`."""
         task_path, task_type, task_start, task_end = task
 
-        # TODO: #197 - Directories don't need to use the file hasher.
-        # Rather than starting a process just for them, we should filter these
-        # ahead of time, and only use threading for file shards. For now, just
-        # return an empty result.
+        # TODO: github.com/sigstore/model-transparency/issues/197 - Directories
+        # don't need to use the file hasher.  Rather than starting a process
+        # just for them, we should filter these ahead of time, and only use
+        # threading for file shards. For now, just return an empty result.
         if task_type == "dir":
             return b""
 
-        # TODO: #197 - Similarly, empty files should be hashed outside
-        # of a parallel task, to not waste resources.
+        # TODO: github.com/sigstore/model-transparency/issues/197 - Similarly,
+        # empty files should be hashed outside of a parallel task, to not waste
+        # resources.
         if task_start == task_end:
             return b""
 
