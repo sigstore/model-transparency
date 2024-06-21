@@ -26,6 +26,9 @@ from model_signing.manifest import manifest
 from model_signing.serialization import serialization
 
 
+_ShardSignTask: TypeAlias = tuple[pathlib.PurePath, str, int, int]
+
+
 def _check_file_or_directory(path: pathlib.Path) -> bool:
     """Checks that the given path is either a file or a directory.
 
@@ -129,10 +132,6 @@ class DFSSerializer(serialization.Serializer):
                 hasher.update(digest.digest_value)
 
         return hasher.compute()
-
-
-# Define type aliases for the ShardedDFSSerializer class below.
-_ShardSignTask: TypeAlias = tuple[pathlib.PurePath, str, int, int]
 
 
 def _endpoints(step: int, end: int) -> Iterable[int]:
