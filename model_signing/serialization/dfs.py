@@ -140,7 +140,7 @@ class DFSSerializer(serialization.Serializer):
         return hasher.compute()
 
 
-def _endpoints(step: int, end: int) -> Iterable[int]:
+def endpoints(step: int, end: int) -> Iterable[int]:
     """Yields numbers from `step` to `end` inclusive, spaced by `step`.
 
     Last value is always equal to `end`, even when `end` is not a multiple of
@@ -148,11 +148,11 @@ def _endpoints(step: int, end: int) -> Iterable[int]:
 
     Examples:
     ```python
-    >>> list(_endpoints(2, 8))
+    >>> list(endpoints(2, 8))
     [2, 4, 6, 8]
-    >>> list(_endpoints(2, 9))
+    >>> list(endpoints(2, 9))
     [2, 4, 6, 8, 9]
-    >>> list(_endpoints(2, 2))
+    >>> list(endpoints(2, 2))
     [2]
 
     Yields:
@@ -281,7 +281,7 @@ class ShardedDFSSerializer(serialization.Serializer):
             if path.is_file():
                 path_size = path.stat().st_size
                 start = 0
-                for end in _endpoints(self._shard_size, path_size):
+                for end in endpoints(self._shard_size, path_size):
                     tasks.append((relative_path, "file", start, end))
                     start = end
             else:
