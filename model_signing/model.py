@@ -20,7 +20,8 @@ from sigstore.oidc import (
     Issuer,
     detect_credential,
 )
-from sigstore_protobuf_specs.dev.sigstore.bundle.v1 import Bundle
+from sigstore.models import Bundle
+
 from sigstore.verify import (
     policy,
     Verifier,
@@ -140,7 +141,7 @@ class SigstoreVerifier():
                ignorepaths: [Path], offline: bool) -> VerificationResult:
         try:
             bundle_bytes = signaturefn.read_bytes()
-            bundle = Bundle().from_json(bundle_bytes)
+            bundle = Bundle.from_json(bundle_bytes)
 
             contentio = io.BytesIO(Serializer.serialize_v1(
                 inputfn, chunk_size(), signaturefn, ignorepaths))
@@ -148,8 +149,8 @@ class SigstoreVerifier():
                 identity=self.identity,
                 issuer=self.oidc_provider,
             )
-            result = self.verifier.verify(bundle=bundle, policy=policy_)
-            if result:
+            result = self.verifier.verify_artifact(input_=contentio, bundle=bundle, policy=policy_)
+            if result is None:
                 return VerificationResult()
             return VerificationResult(success=False, reason=result.reason)
         except Exception as e:
