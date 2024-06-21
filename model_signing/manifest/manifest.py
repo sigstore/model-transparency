@@ -32,7 +32,7 @@ class Manifest(metaclass=abc.ABCMeta):
     pass
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class DigestManifest(Manifest):
     """A manifest that is just a hash."""
 
