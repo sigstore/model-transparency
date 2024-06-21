@@ -149,7 +149,9 @@ class SigstoreVerifier():
                 identity=self.identity,
                 issuer=self.oidc_provider,
             )
-            result = self.verifier.verify_artifact(input_=contentio, bundle=bundle, policy=policy_)
+            result = self.verifier.verify_artifact(input_=contentio,
+                                                   bundle=bundle,
+                                                   policy=policy_)
             if result is None:
                 return VerificationResult()
             return VerificationResult(success=False, reason=result.reason)
