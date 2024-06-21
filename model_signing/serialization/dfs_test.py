@@ -19,69 +19,11 @@ import pytest
 from model_signing.hashing import file
 from model_signing.hashing import memory
 from model_signing.serialization import dfs
+from model_signing.serialization import fixtures_constants
 
 
-# some constants used throughout testing
-_KNOWN_MODEL_TEXT: bytes = b"This is a simple model"
-_ANOTHER_MODEL_TEXT: bytes = b"This is another simple model"
-
-
-# Note: Don't make fixtures with global scope as we are altering the models!
-@pytest.fixture
-def sample_model_file(tmp_path_factory):
-    file = tmp_path_factory.mktemp("model") / "file"
-    file.write_bytes(_KNOWN_MODEL_TEXT)
-    return file
-
-
-@pytest.fixture
-def empty_model_file(tmp_path_factory):
-    file = tmp_path_factory.mktemp("model") / "file"
-    file.write_bytes(b"")
-    return file
-
-
-@pytest.fixture
-def sample_model_folder(tmp_path_factory):
-    model_root = tmp_path_factory.mktemp("model") / "root"
-    model_root.mkdir()
-
-    for i in range(2):
-        root_dir = model_root / f"d{i}"
-        root_dir.mkdir()
-        for j in range(3):
-            dir_file = root_dir / f"f{i}{j}"
-            dir_file.write_text(f"This is file f{i}{j} in d{i}.")
-
-    for i in range(4):
-        root_file = model_root / f"f{i}"
-        root_file.write_text(f"This is file f{i} in root.")
-
-    return model_root
-
-
-@pytest.fixture
-def empty_model_folder(tmp_path_factory):
-    model_root = tmp_path_factory.mktemp("model") / "root"
-    model_root.mkdir()
-    return model_root
-
-
-@pytest.fixture
-def deep_model_folder(tmp_path_factory):
-    model_root = tmp_path_factory.mktemp("model") / "root"
-    model_root.mkdir()
-
-    current = model_root
-    for i in range(5):
-        current = current / f"d{i}"
-        current.mkdir()
-
-    for i in range(4):
-        file = current / f"f{i}"
-        file.write_text(f"This is file f{i}.")
-
-    return model_root
+# Load fixtures from serialization/fixtures.py
+pytest_plugins = ("model_signing.serialization.fixtures",)
 
 
 class TestDFSSerializer:
@@ -99,7 +41,7 @@ class TestDFSSerializer:
         file_hasher = file.FileHasher("unused", memory.SHA256())
         serializer = dfs.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_file)
-        digest = memory.SHA256(_KNOWN_MODEL_TEXT).compute()
+        digest = memory.SHA256(fixtures_constants.KNOWN_MODEL_TEXT).compute()
         assert manifest.digest.digest_hex == digest.digest_hex
 
     def test_file_model_hash_is_same_if_model_is_moved(self, sample_model_file):
@@ -120,7 +62,7 @@ class TestDFSSerializer:
         serializer = dfs.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_file)
 
-        sample_model_file.write_bytes(_ANOTHER_MODEL_TEXT)
+        sample_model_file.write_bytes(fixtures_constants.ANOTHER_MODEL_TEXT)
         new_manifest = serializer.serialize(sample_model_file)
 
         assert manifest.digest.algorithm == new_manifest.digest.algorithm
@@ -138,7 +80,7 @@ class TestDFSSerializer:
         )
         assert manifest.digest.digest_hex == expected
 
-        digest = memory.SHA256(_KNOWN_MODEL_TEXT).compute()
+        digest = memory.SHA256(fixtures_constants.KNOWN_MODEL_TEXT).compute()
         assert manifest.digest.digest_hex != digest.digest_hex
 
     def test_known_folder(self, sample_model_folder):
@@ -287,7 +229,7 @@ class TestDFSSerializer:
         # Alter first file in the altered_dir
         files = [f for f in altered_dir.iterdir() if f.is_file()]
         file_to_change = files[0]
-        file_to_change.write_bytes(_KNOWN_MODEL_TEXT)
+        file_to_change.write_bytes(fixtures_constants.KNOWN_MODEL_TEXT)
 
         manifest2 = serializer.serialize(sample_model_folder)
         assert manifest1.digest != manifest2.digest
@@ -313,7 +255,7 @@ class TestDFSSerializer:
             os.mkfifo(pipe)
         except AttributeError:
             # On Windows, `os.mkfifo` does not exist (it should not).
-            return
+            return  # trivially pass the test
 
         file_hasher = file.FileHasher("unused", memory.SHA256())
         serializer = dfs.DFSSerializer(file_hasher, memory.SHA256)
@@ -323,7 +265,7 @@ class TestDFSSerializer:
         ):
             serializer.serialize(sample_model_folder)
 
-        # Also to the same for the pipe itself
+        # Also do the same for the pipe itself
         with pytest.raises(
             ValueError, match="Cannot use .* as file or directory"
         ):
@@ -350,7 +292,9 @@ class TestShardedDFSSerializer:
         serializer = dfs.ShardedDFSSerializer(
             self._hasher_factory, memory.SHA256()
         )
+
         manifest = serializer.serialize(sample_model_file)
+
         expected = (
             "2ca48c47d5311a9b2f9305519cd5f927dcef09404fc32ef7886abe8f11450eff"
         )
@@ -360,8 +304,10 @@ class TestShardedDFSSerializer:
         serializer = dfs.ShardedDFSSerializer(
             self._hasher_factory, memory.SHA256()
         )
+
         manifest = serializer.serialize(sample_model_file)
-        digest = memory.SHA256(_KNOWN_MODEL_TEXT).compute()
+
+        digest = memory.SHA256(fixtures_constants.KNOWN_MODEL_TEXT).compute()
         assert manifest.digest.digest_hex != digest.digest_hex
 
     def test_file_model_hash_is_same_if_model_is_moved(self, sample_model_file):
@@ -384,7 +330,7 @@ class TestShardedDFSSerializer:
         )
         manifest = serializer.serialize(sample_model_file)
 
-        sample_model_file.write_bytes(_ANOTHER_MODEL_TEXT)
+        sample_model_file.write_bytes(fixtures_constants.ANOTHER_MODEL_TEXT)
         new_manifest = serializer.serialize(sample_model_file)
 
         assert manifest.digest.algorithm == new_manifest.digest.algorithm
@@ -402,15 +348,16 @@ class TestShardedDFSSerializer:
             "c030412c4c9e7f46396b591b1b6c4a4e40c15d9b9ca0b3512af8b20f3219c07f"
         )
         assert manifest.digest.digest_hex == expected
-
-        digest = memory.SHA256(_KNOWN_MODEL_TEXT).compute()
+        digest = memory.SHA256(fixtures_constants.KNOWN_MODEL_TEXT).compute()
         assert manifest.digest.digest_hex != digest.digest_hex
 
     def test_known_folder(self, sample_model_folder):
         serializer = dfs.ShardedDFSSerializer(
             self._hasher_factory, memory.SHA256()
         )
+
         manifest = serializer.serialize(sample_model_folder)
+
         expected = (
             "d22e0441cfa5ac2bc09715ddd88c802a7f97e29c93dc50f5498bab2954958ebb"
         )
@@ -434,7 +381,9 @@ class TestShardedDFSSerializer:
         serializer = dfs.ShardedDFSSerializer(
             self._hasher_factory, memory.SHA256()
         )
+
         manifest = serializer.serialize(empty_model_file)
+
         expected = (
             "5f2d126b0d3540c17481fdf724e31cf03b4436a2ebabaa1d2e94fe09831be64d"
         )
@@ -444,9 +393,10 @@ class TestShardedDFSSerializer:
         serializer = dfs.ShardedDFSSerializer(
             self._hasher_factory, memory.SHA256()
         )
-        manifest = serializer.serialize(empty_model_file)
         model = empty_model_file.parent
+
         manifest = serializer.serialize(model)
+
         expected = (
             "74e81d0062f0a0674014c2f0e4b79985d5015f98a64089e7106a44d32e9ff11f"
         )
@@ -456,7 +406,9 @@ class TestShardedDFSSerializer:
         serializer = dfs.ShardedDFSSerializer(
             self._hasher_factory, memory.SHA256()
         )
+
         manifest = serializer.serialize(empty_model_folder)
+
         expected = (
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         )
@@ -551,7 +503,7 @@ class TestShardedDFSSerializer:
         # Alter first file in the altered_dir
         files = [f for f in altered_dir.iterdir() if f.is_file()]
         file_to_change = files[0]
-        file_to_change.write_bytes(_KNOWN_MODEL_TEXT)
+        file_to_change.write_bytes(fixtures_constants.KNOWN_MODEL_TEXT)
 
         manifest2 = serializer.serialize(sample_model_folder)
         assert manifest1.digest != manifest2.digest
@@ -560,7 +512,9 @@ class TestShardedDFSSerializer:
         serializer = dfs.ShardedDFSSerializer(
             self._hasher_factory, memory.SHA256()
         )
+
         manifest = serializer.serialize(deep_model_folder)
+
         expected = (
             "52fa3c459aec58bc5f9702c73cb3c6b8fd19e9342aa3e4db851e1bde69ab1727"
         )
@@ -604,7 +558,7 @@ class TestShardedDFSSerializer:
             os.mkfifo(pipe)
         except AttributeError:
             # On Windows, `os.mkfifo` does not exist (it should not).
-            return
+            return  # trivially pass the test
 
         serializer = dfs.ShardedDFSSerializer(
             self._hasher_factory, memory.SHA256()
@@ -615,7 +569,7 @@ class TestShardedDFSSerializer:
         ):
             serializer.serialize(sample_model_folder)
 
-        # Also to the same for the pipe itself
+        # Also do the same for the pipe itself
         with pytest.raises(
             ValueError, match="Cannot use .* as file or directory"
         ):
