@@ -21,12 +21,12 @@ Since there are multiple hashing methods that we support, users should always
 specify the algorithm and the digest value.
 """
 
-from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass
+import abc
+import dataclasses
 from typing import Protocol
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class Digest:
     """A digest computed by a `HashEngine`."""
 
@@ -38,17 +38,22 @@ class Digest:
         """Hexadecimal, human readable, equivalent of `digest`."""
         return self.digest_value.hex()
 
+    @property
+    def digest_size(self) -> int:
+        """The size, in bytes, of the digest."""
+        return len(self.digest_value)
 
-class HashEngine(metaclass=ABCMeta):
+
+class HashEngine(metaclass=abc.ABCMeta):
     """Generic hash engine."""
 
-    @abstractmethod
+    @abc.abstractmethod
     def compute(self) -> Digest:
         """Computes the digest of data passed to the engine."""
         pass
 
     @property
-    @abstractmethod
+    @abc.abstractmethod
     def digest_name(self) -> str:
         """The canonical name of the algorithm used to compute the hash.
 
@@ -60,16 +65,22 @@ class HashEngine(metaclass=ABCMeta):
         """
         pass
 
+    @property
+    @abc.abstractmethod
+    def digest_size(self) -> int:
+        """The size, in bytes, of the digests produced by the engine."""
+        pass
+
 
 class Streaming(Protocol):
     """A protocol to support streaming data to `HashEngine` objects."""
 
-    @abstractmethod
+    @abc.abstractmethod
     def update(self, data: bytes) -> None:
         """Appends additional bytes to the data to be hashed."""
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def reset(self, data: bytes = b"") -> None:
         """Resets the data to be hashed to the passed argument."""
         pass

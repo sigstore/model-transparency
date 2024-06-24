@@ -46,3 +46,8 @@ class TestPrecomputedDigest:
         assert hasher.digest_name == "test"
         digest = hasher.compute()
         assert digest.algorithm == "test"
+
+    def test_digest_size(self):
+        digest = b"abcd"
+        hasher = precomputed.PrecomputedDigest("test", digest)
+        assert hasher.digest_size == len(digest)
