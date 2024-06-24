@@ -14,6 +14,8 @@
 
 import pytest
 
+from pathlib import Path
+
 from model_signing.hashing import file
 from model_signing.hashing import memory
 
@@ -23,6 +25,7 @@ _HEADER: str = "Some "
 _CONTENT: str = "text."  # note that these have the same length
 _FULL_CONTENT = _HEADER + _CONTENT
 _SHARD_SIZE = len(_HEADER)
+_UNUSED_PATH = Path("unused")
 
 
 @pytest.fixture(scope="session")
@@ -66,7 +69,7 @@ class TestFileHasher:
 
     def test_fails_with_negative_chunk_size(self):
         with pytest.raises(ValueError, match="Chunk size must be non-negative"):
-            file.FileHasher("unused", memory.SHA256(), chunk_size=-2)
+            file.FileHasher(_UNUSED_PATH, memory.SHA256(), chunk_size=-2)
 
     def test_hash_of_known_file(self, sample_file, expected_digest):
         hasher = file.FileHasher(sample_file, memory.SHA256())
@@ -119,12 +122,12 @@ class TestFileHasher:
         assert digest1.digest_value == digest2.digest_value
 
     def test_default_digest_name(self):
-        hasher = file.FileHasher("unused", memory.SHA256())
+        hasher = file.FileHasher(_UNUSED_PATH, memory.SHA256())
         assert hasher.digest_name == "file-sha256"
 
     def test_override_digest_name(self):
         hasher = file.FileHasher(
-            "unused",
+            _UNUSED_PATH,
             memory.SHA256(),
             chunk_size=10,
             digest_name_override="test-hash",
@@ -149,18 +152,20 @@ class TestShardedFileHasher:
             ValueError, match="Shard size must be strictly positive"
         ):
             file.ShardedFileHasher(
-                "unused", memory.SHA256(), shard_size=-2, start=0, end=42
+                _UNUSED_PATH, memory.SHA256(), shard_size=-2, start=0, end=42
             )
 
     def test_fails_with_negative_start(self):
         with pytest.raises(
             ValueError, match="File start offset must be non-negative"
         ):
-            file.ShardedFileHasher("unused", memory.SHA256(), start=-2, end=42)
+            file.ShardedFileHasher(
+                _UNUSED_PATH, memory.SHA256(), start=-2, end=42
+            )
 
     def test_set_fails_with_negative_start(self):
         hasher = file.ShardedFileHasher(
-            "unused", memory.SHA256(), start=0, end=42
+            _UNUSED_PATH, memory.SHA256(), start=0, end=42
         )
         with pytest.raises(
             ValueError, match="File start offset must be non-negative"
@@ -174,11 +179,13 @@ class TestShardedFileHasher:
                 "File end offset must be stricly higher that file start offset"
             ),
         ):
-            file.ShardedFileHasher("unused", memory.SHA256(), start=42, end=2)
+            file.ShardedFileHasher(
+                _UNUSED_PATH, memory.SHA256(), start=42, end=2
+            )
 
     def test_set_fails_with_end_lower_than_start(self):
         hasher = file.ShardedFileHasher(
-            "unused", memory.SHA256(), start=0, end=42
+            _UNUSED_PATH, memory.SHA256(), start=0, end=42
         )
         with pytest.raises(
             ValueError,
@@ -195,11 +202,13 @@ class TestShardedFileHasher:
                 "File end offset must be stricly higher that file start offset"
             ),
         ):
-            file.ShardedFileHasher("unused", memory.SHA256(), start=42, end=42)
+            file.ShardedFileHasher(
+                _UNUSED_PATH, memory.SHA256(), start=42, end=42
+            )
 
     def test_set_fails_with_zero_read_span(self):
         hasher = file.ShardedFileHasher(
-            "unused", memory.SHA256(), start=0, end=42
+            _UNUSED_PATH, memory.SHA256(), start=0, end=42
         )
         with pytest.raises(
             ValueError,
@@ -214,12 +223,12 @@ class TestShardedFileHasher:
             ValueError, match="Must not read more than shard_size=2"
         ):
             file.ShardedFileHasher(
-                "unused", memory.SHA256(), start=0, end=42, shard_size=2
+                _UNUSED_PATH, memory.SHA256(), start=0, end=42, shard_size=2
             )
 
     def test_set_fails_with_read_span_too_large(self):
         hasher = file.ShardedFileHasher(
-            "unused", memory.SHA256(), start=0, end=2, shard_size=2
+            _UNUSED_PATH, memory.SHA256(), start=0, end=2, shard_size=2
         )
         with pytest.raises(
             ValueError, match="Must not read more than shard_size=2"
@@ -365,13 +374,13 @@ class TestShardedFileHasher:
 
     def test_default_digest_name(self):
         hasher = file.ShardedFileHasher(
-            "unused", memory.SHA256(), start=0, end=2, shard_size=10
+            _UNUSED_PATH, memory.SHA256(), start=0, end=2, shard_size=10
         )
         assert hasher.digest_name == "file-sha256-10"
 
     def test_override_digest_name(self):
         hasher = file.ShardedFileHasher(
-            "unused",
+            _UNUSED_PATH,
             memory.SHA256(),
             start=0,
             end=2,
