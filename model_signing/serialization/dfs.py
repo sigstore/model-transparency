@@ -112,7 +112,7 @@ class DFSSerializer(serialization.Serializer):
         self._merge_hasher_factory = merge_hasher_factory
 
     @override
-    def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
+    def serialize(self, model_path: pathlib.Path) -> manifest.DigestManifest:
         # TODO: github.com/sigstore/model-transparency/issues/196 - Add checks
         # to exclude symlinks if desired.
         check_file_or_directory(model_path)
@@ -204,7 +204,7 @@ class ShardedDFSSerializer(serialization.Serializer):
         self._shard_size = hasher.shard_size
 
     @override
-    def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
+    def serialize(self, model_path: pathlib.Path) -> manifest.DigestManifest:
         # Note: This function currently uses `pathlib.Path.glob` so the DFS
         # expansion relies on the `glob` implementation performing a DFS. We
         # will be truthful again when switching to `pathlib.Path.walk`, after

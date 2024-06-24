@@ -222,3 +222,25 @@ Machine M2: Debian 5.10.1 x86_64 GNU/Linux, 4GB RAM, 2 vCPUs, 56320 KB, Intel(R)
 | H2 | bertseq2seq          | 2.8G  | 13.8s | 25.9s |
 | H2 | bert-base-uncased    | 3.3G  | 22.7s | 23.3s |
 | H2 | tiiuae/falcon-7b     | 14GB  | 2m.1s | 2m3s  |
+
+## Development steps
+
+### Linting
+
+`model_signing` is automatically linted and formatted with a collection of tools:
+
+* [flake8](https://github.com/PyCQA/flake8)
+* [pytype](https://github.com/google/pytype)
+
+You can run the type checker locally by installing the `dev` dependencies:
+```shell
+python3 -m venv dev_env
+source dev_env/bin/activate
+os=Linux # Supported: Linux, Darwin.
+python3 -m pip install --require-hashes -r "install/requirements_dev_${os}".txt
+```
+
+Then point pytype at the desired module or package:
+```shell
+pytype --keep-going model_signing/hashing
+```
