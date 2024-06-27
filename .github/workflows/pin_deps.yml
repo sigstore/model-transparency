@@ -34,6 +34,7 @@ jobs:
         cache-dependency-path: |
           model_signing/install/requirements_${{ matrix.os_family }}.txt
           model_signing/install/requirements_test_${{ matrix.os_family }}.txt
+          model_signing/install/requirements_dev_${{ matrix.os_family }}.txt
           slsa_for_models/install/requirements_${{ matrix.os_family }}.txt
     - name: Create an empty virtualenv and install `pip-tools`
       run: |
@@ -49,6 +50,10 @@ jobs:
         pip-compile --upgrade --generate-hashes --strip-extras --output-file=model_signing/install/requirements_${{ matrix.os_family }}.txt model_signing/install/requirements.in
         pip-compile --upgrade --generate-hashes --strip-extras --output-file=model_signing/install/requirements_test_${{ matrix.os_family }}.txt model_signing/install/requirements_test.in
         pip-compile --upgrade --generate-hashes --strip-extras --output-file=slsa_for_models/install/requirements_${{ matrix.os_family }}.txt slsa_for_models/install/requirements.in
+        # pytype doesn't support Windows
+        if [[ "${{ matrix.os_family }}" != "Windows" ]]; then
+          pip-compile --upgrade --generate-hashes --strip-extras --output-file=model_signing/install/requirements_dev_${{ matrix.os_family }}.txt model_signing/install/requirements_dev.in
+        fi
     - name: Test freeze file (for model signing)
       run: |
         set -exuo pipefail
@@ -64,6 +69,15 @@ jobs:
         python -m venv venv
         .github/workflows/scripts/venv_activate.sh
         pip install -r model_signing/install/requirements_test_${{ matrix.os_family }}.txt
+        pip list  # For debugging
+    - name: Test freeze file (for dev tools model signing)
+      if: ${{ matrix.os_family != 'Windows' }} # pytype doesn't support Windows
+      run: |
+        set -exuo pipefail
+        rm -rf venv  # Need clean sandbox
+        python -m venv venv
+        .github/workflows/scripts/venv_activate.sh
+        pip install -r model_signing/install/requirements_dev_${{ matrix.os_family }}.txt
         pip list  # For debugging
     - name: Test freeze file (for SLSA for models)
       run: |
@@ -95,7 +109,7 @@ jobs:
         path: .
         merge-multiple: true
     - name: Create dependent PR with dependency changes
-      uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
+      uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6.1.0
       with:
         title: "Update frozen python dependencies"
         commit-message: "Bump frozen dependencies"

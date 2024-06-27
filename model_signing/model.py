@@ -20,13 +20,11 @@ from sigstore.oidc import (
     Issuer,
     detect_credential,
 )
-from sigstore_protobuf_specs.dev.sigstore.bundle.v1 import Bundle
+from sigstore.models import Bundle
+
 from sigstore.verify import (
     policy,
     Verifier,
-)
-from sigstore.verify.models import (
-    VerificationMaterials,
 )
 
 from sigstore._internal.fulcio.client import (
@@ -111,9 +109,9 @@ class SigstoreSigner():
             contentio = io.BytesIO(Serializer.serialize_v1(
                 inputfn, chunk_size(), signaturefn, ignorepaths))
             with self.signing_ctx.signer(oidc_token) as signer:
-                result = signer.sign(input_=contentio)
+                result = signer.sign_artifact(input_=contentio)
                 with signaturefn.open(mode="w") as b:
-                    print(result.to_bundle().to_json(), file=b)
+                    print(result.to_json(), file=b)
             return SignatureResult()
         except ExpiredIdentity:
             return SignatureResult(success=False,
@@ -143,20 +141,18 @@ class SigstoreVerifier():
                ignorepaths: [Path], offline: bool) -> VerificationResult:
         try:
             bundle_bytes = signaturefn.read_bytes()
-            bundle = Bundle().from_json(bundle_bytes)
+            bundle = Bundle.from_json(bundle_bytes)
 
-            material: tuple[Path, VerificationMaterials]
             contentio = io.BytesIO(Serializer.serialize_v1(
                 inputfn, chunk_size(), signaturefn, ignorepaths))
-            material = VerificationMaterials.from_bundle(input_=contentio,
-                                                         bundle=bundle,
-                                                         offline=offline)
             policy_ = policy.Identity(
                 identity=self.identity,
                 issuer=self.oidc_provider,
             )
-            result = self.verifier.verify(materials=material, policy=policy_)
-            if result:
+            result = self.verifier.verify_artifact(input_=contentio,
+                                                   bundle=bundle,
+                                                   policy=policy_)
+            if result is None:
                 return VerificationResult()
             return VerificationResult(success=False, reason=result.reason)
         except Exception as e:
