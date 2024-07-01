@@ -1,2 +1,8 @@
+absl-py
+cryptography
+in-toto-attestation
+OpenSSL
+protobuf
 psutil
 sigstore
+sigstore-protobuf-specs
