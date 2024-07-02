@@ -170,9 +170,9 @@ ninja==1.11.1.1 \
     --hash=sha256:ecf80cf5afd09f14dcceff28cb3f11dc90fb97c999c89307aea435889cb66877 \
     --hash=sha256:fa2ba9d74acfdfbfbcf06fad1b8282de8a7a8c481d9dee45c859a8c93fcc1082
     # via pytype
-pycnite==2024.6.13 \
-    --hash=sha256:301c5d7e2e2f61e5535d0af7c4486f3ea4f5083c4808a7645a55ddb45cb25027 \
-    --hash=sha256:7346099b2313894db65ffca177f9e6eb3251fdfedb019eb6da02822c2ff8c1e1
+pycnite==2024.6.28 \
+    --hash=sha256:228b2cfae86fecc82e1bddb2b44b4890b337e0a778c1521a56546642dd28bfe4 \
+    --hash=sha256:e3f1f9697b49af8d4edc0e0d228b23fdfc56acc7878bc64378e46ddf8150d3a8
     # via pytype
 pydot==2.0.0 \
     --hash=sha256:408a47913ea7bd5d2d34b274144880c1310c4aee901f353cf21fe2e526a4ea28 \
