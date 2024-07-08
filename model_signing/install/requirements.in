@@ -1,7 +1,7 @@
 absl-py
 cryptography
 in-toto-attestation
-OpenSSL
+pyOpenSSL
 protobuf
 psutil
 sigstore
