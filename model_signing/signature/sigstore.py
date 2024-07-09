@@ -25,9 +25,9 @@ from sigstore.verify import policy as sig_policy
 from sigstore.verify import models as sig_models
 from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 
-from signature.signing import Signer
-from signature.verifying import Verifier
-from signature.verifying import VerificationError
+from model_signing.signature.signing import Signer
+from model_signing.signature.verifying import Verifier
+from model_signing.signature.verifying import VerificationError
 
 
 class SigstoreSigner(Signer):

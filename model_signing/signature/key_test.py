@@ -18,9 +18,9 @@ import pytest
 from in_toto_attestation.v1 import statement
 from in_toto_attestation.v1 import resource_descriptor as res_desc
 
-from signature.key import ECKeySigner
-from signature.key import ECKeyVerifier
-from signature.verifying import VerificationError
+from model_signing.signature.key import ECKeySigner
+from model_signing.signature.key import ECKeyVerifier
+from model_signing.signature.verifying import VerificationError
 
 _PRIV_KEY_1 = b"""-----BEGIN EC PRIVATE KEY-----
 MHQCAQEEIDcpvDIigb10Ys3SbkoAd+yquWkiu/GW4Qx495pnsZh4oAcGBSuBBAAK

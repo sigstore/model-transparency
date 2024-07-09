@@ -26,12 +26,12 @@ from OpenSSL import crypto as ssl_crypto
 from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 from sigstore_protobuf_specs.dev.sigstore.common import v1 as common_pb
 
-from signature.key import ECKeySigner
-from signature.key import ECKeyVerifier
-from signature.key import load_ec_private_key
-from signature.signing import Signer
-from signature.verifying import Verifier
-from signature.verifying import VerificationError
+from model_signing.signature.key import ECKeySigner
+from model_signing.signature.key import ECKeyVerifier
+from model_signing.signature.key import load_ec_private_key
+from model_signing.signature.signing import Signer
+from model_signing.signature.verifying import Verifier
+from model_signing.signature.verifying import VerificationError
 
 
 def __load_single_cert(path: str) -> x509.Certificate:

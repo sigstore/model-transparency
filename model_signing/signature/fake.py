@@ -21,9 +21,9 @@ from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 from sigstore_protobuf_specs.dev.sigstore.common import v1 as common_pb
 from sigstore_protobuf_specs.io import intoto as intoto_pb
 
-from signature.signing import Signer
-from signature.encoding import PAYLOAD_TYPE
-from signature.verifying import Verifier
+from model_signing.signature.signing import Signer
+from model_signing.signature.encoding import PAYLOAD_TYPE
+from model_signing.signature.verifying import Verifier
 
 
 class FakeSigner(Signer):
