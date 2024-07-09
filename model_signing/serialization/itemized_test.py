@@ -28,7 +28,7 @@ from model_signing.serialization import itemized
 pytest_plugins = ("model_signing.serialization.fixtures",)
 
 
-def _extract_digests_from_manifest(manifest: manifest.Manifest) -> [str]:
+def _extract_digests_from_manifest(manifest: manifest.FileLevelManifest) -> [str]:
     """Extracts the hex digest for every subject in a manifest.
 
     Used in multiple tests to check that we obtained the expected digests.
@@ -36,7 +36,7 @@ def _extract_digests_from_manifest(manifest: manifest.Manifest) -> [str]:
     return [d.digest_hex for d in manifest._digest_info.values()]
 
 
-def _extract_items_from_manifest(manifest: manifest.Manifest) -> Dict[str, str]:
+def _extract_items_from_manifest(manifest: manifest.FileLevelManifest) -> Dict[str, str]:
     """Builds a dictionary representation of the items in a manifest.
 
     Every item is mapped to its digest.
@@ -176,8 +176,8 @@ class TestFilesSerializer:
 
     def _check_manifests_match_except_on_renamed_file(
         self,
-        old_manifest: manifest.Manifest,
-        new_manifest: manifest.Manifest,
+        old_manifest: manifest.FileLevelManifest,
+        new_manifest: manifest.FileLevelManifest,
         new_name: str,
         old_name: pathlib.PurePath,
     ):
@@ -213,8 +213,8 @@ class TestFilesSerializer:
 
     def _check_manifests_match_except_on_renamed_dir(
         self,
-        old_manifest: manifest.Manifest,
-        new_manifest: manifest.Manifest,
+        old_manifest: manifest.FileLevelManifest,
+        new_manifest: manifest.FileLevelManifest,
         new_name: str,
         old_name: str,
     ):
@@ -269,8 +269,8 @@ class TestFilesSerializer:
 
     def _check_manifests_match_except_on_entry(
         self,
-        old_manifest: manifest.Manifest,
-        new_manifest: manifest.Manifest,
+        old_manifest: manifest.FileLevelManifest,
+        new_manifest: manifest.FileLevelManifest,
         expected_mismatch_path: pathlib.PurePath,
     ):
         """Checks that the manifests match, except for given path."""
