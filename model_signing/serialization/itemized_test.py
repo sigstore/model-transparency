@@ -28,7 +28,9 @@ from model_signing.serialization import itemized
 pytest_plugins = ("model_signing.serialization.fixtures",)
 
 
-def _extract_digests_from_manifest(manifest: manifest.FileLevelManifest) -> [str]:
+def _extract_digests_from_manifest(
+    manifest: manifest.FileLevelManifest,
+) -> [str]:
     """Extracts the hex digest for every subject in a manifest.
 
     Used in multiple tests to check that we obtained the expected digests.
@@ -36,7 +38,9 @@ def _extract_digests_from_manifest(manifest: manifest.FileLevelManifest) -> [str
     return [d.digest_hex for d in manifest._digest_info.values()]
 
 
-def _extract_items_from_manifest(manifest: manifest.FileLevelManifest) -> Dict[str, str]:
+def _extract_items_from_manifest(
+    manifest: manifest.FileLevelManifest,
+) -> Dict[str, str]:
     """Builds a dictionary representation of the items in a manifest.
 
     Every item is mapped to its digest.
