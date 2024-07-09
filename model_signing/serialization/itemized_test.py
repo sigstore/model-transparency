@@ -14,7 +14,7 @@
 
 import os
 import pathlib
-from typing import Dict
+from typing import Dict, List
 import pytest
 
 from model_signing.hashing import file
@@ -30,7 +30,7 @@ pytest_plugins = ("model_signing.serialization.fixtures",)
 
 def _extract_digests_from_manifest(
     manifest: manifest.FileLevelManifest,
-) -> [str]:
+) -> List[str]:
     """Extracts the hex digest for every subject in a manifest.
 
     Used in multiple tests to check that we obtained the expected digests.
