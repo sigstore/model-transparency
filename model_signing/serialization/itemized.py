@@ -37,18 +37,18 @@ class FilesSerializer(serialization.Serializer):
 
     def __init__(
         self,
-        hasher_factory: Callable[[pathlib.Path], file.FileHasher],
+        file_hasher_factory: Callable[[pathlib.Path], file.FileHasher],
         max_workers: int | None = None,
     ):
         """Initializes an instance to serialize a model with this serializer.
 
         Args:
-            hasher_factory: A callable to build the hash engine used to hash
-              individual files.
+            file_hasher_factory: A callable to build the hash engine used to
+              hash individual files.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurent.futures` library.
         """
-        self._hasher_factory = hasher_factory
+        self._hasher_factory = file_hasher_factory
         self._max_workers = max_workers
 
     @override
@@ -124,7 +124,7 @@ class ShardedFilesSerializer(serialization.Serializer):
 
     def __init__(
         self,
-        hasher_factory: Callable[
+        sharded_hasher_factory: Callable[
             [pathlib.Path, int, int], file.ShardedFileHasher
         ],
         max_workers: int | None = None,
@@ -132,15 +132,15 @@ class ShardedFilesSerializer(serialization.Serializer):
         """Initializes an instance to serialize a model with this serializer.
 
         Args:
-            hasher_factory: A callable to build the hash engine used to hash
-              every shard of the files in the model. Because each shard is
+            sharded_hasher_factory: A callable to build the hash engine used to
+              hash every shard of the files in the model. Because each shard is
               processed in parallel, every thread needs to call the factory to
               start hashing. The arguments are the file, and the endpoints of
               the shard.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurent.futures` library.
         """
-        self._hasher_factory = hasher_factory
+        self._hasher_factory = sharded_hasher_factory
         self._max_workers = max_workers
 
         # Precompute some private values only once by using a mock file hasher.
