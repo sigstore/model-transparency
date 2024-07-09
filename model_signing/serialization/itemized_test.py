@@ -14,16 +14,55 @@
 
 import os
 import pathlib
+from typing import Dict
 import pytest
 
 from model_signing.hashing import file
 from model_signing.hashing import memory
+from model_signing.manifest import manifest
 from model_signing.serialization import fixtures_constants
 from model_signing.serialization import itemized
 
 
 # Load fixtures from serialization/fixtures.py
 pytest_plugins = ("model_signing.serialization.fixtures",)
+
+
+def _extract_digests_from_manifest(manifest: manifest.Manifest) -> [str]:
+    """Extracts the hex digest for every subject in a manifest.
+
+    Used in multiple tests to check that we obtained the expected digests.
+    """
+    return [d.digest_hex for d in manifest._digest_info.values()]
+
+
+def _extract_items_from_manifest(manifest: manifest.Manifest) -> Dict[str, str]:
+    """Builds a dictionary representation of the items in a manifest.
+
+    Every item is mapped to its digest.
+
+    Used in multiple tests to check that we obtained the expected manifest.
+    """
+    return {
+        str(path): digest.digest_hex
+        for path, digest in manifest._digest_info.items()
+    }
+
+
+def _get_first_directory(path: pathlib.Path) -> pathlib.Path:
+    """Returns the first directory that is a children of path.
+
+    It is assumed that there is always such a path.
+    """
+    return [d for d in path.iterdir() if d.is_dir()][0]
+
+
+def _get_first_file(path: pathlib.Path) -> pathlib.Path:
+    """Returns the first file that is a children of path.
+
+    It is assumed that there is always such a path.
+    """
+    return [f for f in path.iterdir() if f.is_file()][0]
 
 
 class TestFilesSerializer:
@@ -38,7 +77,7 @@ class TestFilesSerializer:
         ]
 
         manifest = serializer.serialize(sample_model_file)
-        digests = [d.digest_hex for d in manifest._digest_info.values()]
+        digests = _extract_digests_from_manifest(manifest)
 
         assert digests == expected
 
@@ -55,15 +94,11 @@ class TestFilesSerializer:
     def test_file_manifest_changes_if_content_changes(self, sample_model_file):
         serializer = itemized.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_file)
-        digests = set(
-            digest.digest_hex for digest in manifest._digest_info.values()
-        )
+        digests = set(_extract_digests_from_manifest(manifest))
 
         sample_model_file.write_bytes(fixtures_constants.ANOTHER_MODEL_TEXT)
         new_manifest = serializer.serialize(sample_model_file)
-        new_digests = set(
-            digest.digest_hex for digest in new_manifest._digest_info.values()
-        )
+        new_digests = set(_extract_digests_from_manifest(new_manifest))
 
         assert manifest != new_manifest
         assert digests != new_digests
@@ -72,14 +107,10 @@ class TestFilesSerializer:
     def test_directory_model_with_one_single_file(self, sample_model_file):
         serializer = itemized.FilesSerializer(self._hasher_factory)
         manifest_file = serializer.serialize(sample_model_file)
-        digests_file = set(
-            digest.digest_hex for digest in manifest_file._digest_info.values()
-        )
+        digests_file = set(_extract_digests_from_manifest(manifest_file))
 
         manifest = serializer.serialize(sample_model_file.parent)
-        digests = set(
-            digest.digest_hex for digest in manifest._digest_info.values()
-        )
+        digests = set(_extract_digests_from_manifest(manifest))
 
         assert manifest != manifest_file  # different paths
         assert digests == digests_file
@@ -102,10 +133,7 @@ class TestFilesSerializer:
         # Re-enable lint, so pylint: enable=line-too-long
 
         manifest = serializer.serialize(sample_model_folder)
-        items = {
-            str(path): digest.digest_hex
-            for path, digest in manifest._digest_info.items()
-        }
+        items = _extract_items_from_manifest(manifest)
 
         assert items == expected_items
 
@@ -125,8 +153,7 @@ class TestFilesSerializer:
         serializer = itemized.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        altered_dir = dirs[0]
+        altered_dir = _get_first_directory(sample_model_folder)
         new_empty_dir = altered_dir / "empty"
         new_empty_dir.mkdir()
         new_manifest = serializer.serialize(sample_model_folder)
@@ -137,8 +164,7 @@ class TestFilesSerializer:
         serializer = itemized.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        altered_dir = dirs[0]
+        altered_dir = _get_first_directory(sample_model_folder)
         new_empty_file = altered_dir / "empty"
         new_empty_file.write_text("")
         new_manifest = serializer.serialize(sample_model_folder)
@@ -148,29 +174,67 @@ class TestFilesSerializer:
         for path, digest in manifest._digest_info.items():
             assert new_manifest._digest_info[path] == digest
 
+    def _check_manifests_match_except_on_renamed_file(
+        self,
+        old_manifest: manifest.Manifest,
+        new_manifest: manifest.Manifest,
+        new_name: str,
+        old_name: pathlib.PurePath,
+    ):
+        """Checks that the manifests match, except on a renamed file.
+
+        For the renamed file, we still want to match the digest of the old name.
+        """
+        assert old_manifest != new_manifest
+        assert len(new_manifest._digest_info) == len(old_manifest._digest_info)
+        for path, digest in new_manifest._digest_info.items():
+            if path.name == new_name:
+                assert old_manifest._digest_info[old_name] == digest
+            else:
+                assert old_manifest._digest_info[path] == digest
+
     def test_folder_model_rename_file_only_changes_path_part(
         self, sample_model_folder
     ):
         serializer = itemized.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        altered_dir = dirs[0]
-        files = [f for f in altered_dir.iterdir() if f.is_file()]
-        file_to_rename = files[0]
+        altered_dir = _get_first_directory(sample_model_folder)
+        file_to_rename = _get_first_file(altered_dir)
         old_name = file_to_rename.relative_to(sample_model_folder)
         old_name = pathlib.PurePosixPath(old_name)  # canonicalize to Posix
         new_name = file_to_rename.with_name("new-file")
         file_to_rename.rename(new_name)
         new_manifest = serializer.serialize(sample_model_folder)
 
-        assert manifest != new_manifest
-        assert len(new_manifest._digest_info) == len(manifest._digest_info)
+        self._check_manifests_match_except_on_renamed_file(
+            manifest, new_manifest, "new-file", old_name
+        )
+
+    def _check_manifests_match_except_on_renamed_dir(
+        self,
+        old_manifest: manifest.Manifest,
+        new_manifest: manifest.Manifest,
+        new_name: str,
+        old_name: str,
+    ):
+        """Checks that the manifests match, minus on paths under changed dir.
+
+        For paths under the changed directory, we want to match the digest of
+        the old path.
+        """
+        assert old_manifest != new_manifest
+        assert len(new_manifest._digest_info) == len(old_manifest._digest_info)
         for path, digest in new_manifest._digest_info.items():
-            if path.name == "new-file":
-                assert manifest._digest_info[old_name] == digest
+            if new_name in path.parts:
+                parts = [
+                    old_name if part == new_name else part
+                    for part in path.parts
+                ]
+                old = pathlib.PurePosixPath(*parts)
+                assert old_manifest._digest_info[old] == digest
             else:
-                assert manifest._digest_info[path] == digest
+                assert old_manifest._digest_info[path] == digest
 
     def test_folder_model_rename_dir_only_changes_path_part(
         self, sample_model_folder
@@ -178,34 +242,22 @@ class TestFilesSerializer:
         serializer = itemized.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        dir_to_rename = dirs[0]
+        dir_to_rename = _get_first_directory(sample_model_folder)
         old_name = dir_to_rename.name
         new_name = dir_to_rename.with_name("new-dir")
         dir_to_rename.rename(new_name)
         new_manifest = serializer.serialize(sample_model_folder)
 
-        assert manifest != new_manifest
-        assert len(new_manifest._digest_info) == len(manifest._digest_info)
-        for path, digest in new_manifest._digest_info.items():
-            if "new-dir" in path.parts:
-                parts = [
-                    old_name if part == "new-dir" else part
-                    for part in path.parts
-                ]
-                old = pathlib.PurePosixPath(*parts)
-                assert manifest._digest_info[old] == digest
-            else:
-                assert manifest._digest_info[path] == digest
+        self._check_manifests_match_except_on_renamed_dir(
+            manifest, new_manifest, "new-dir", old_name
+        )
 
     def test_folder_model_replace_file_empty_folder(self, sample_model_folder):
         serializer = itemized.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        altered_dir = dirs[0]
-        files = [f for f in altered_dir.iterdir() if f.is_file()]
-        file_to_replace = files[0]
+        altered_dir = _get_first_directory(sample_model_folder)
+        file_to_replace = _get_first_file(altered_dir)
         file_to_replace.unlink()
         file_to_replace.mkdir()
         new_manifest = serializer.serialize(sample_model_folder)
@@ -215,26 +267,35 @@ class TestFilesSerializer:
         for path, digest in new_manifest._digest_info.items():
             assert manifest._digest_info[path] == digest
 
+    def _check_manifests_match_except_on_entry(
+        self,
+        old_manifest: manifest.Manifest,
+        new_manifest: manifest.Manifest,
+        expected_mismatch_path: pathlib.Path,
+    ):
+        """Checks that the manifests match, except for given path."""
+        assert old_manifest != new_manifest
+        assert len(new_manifest._digest_info) == len(old_manifest._digest_info)
+        for path, digest in new_manifest._digest_info.items():
+            if path == expected_mismatch_path:
+                assert old_manifest._digest_info[path] != digest
+            else:
+                assert old_manifest._digest_info[path] == digest
+
     def test_folder_model_change_file(self, sample_model_folder):
         serializer = itemized.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        altered_dir = dirs[0]
-        files = [f for f in altered_dir.iterdir() if f.is_file()]
-        file_to_change = files[0]
+        altered_dir = _get_first_directory(sample_model_folder)
+        file_to_change = _get_first_file(altered_dir)
         file_to_change.write_bytes(fixtures_constants.KNOWN_MODEL_TEXT)
         changed_entry = file_to_change.relative_to(sample_model_folder)
         changed_entry = pathlib.PurePosixPath(changed_entry)  # canonicalize
         new_manifest = serializer.serialize(sample_model_folder)
 
-        assert manifest != new_manifest
-        assert len(new_manifest._digest_info) == len(manifest._digest_info)
-        for path, digest in new_manifest._digest_info.items():
-            if path == changed_entry:
-                assert manifest._digest_info[path] != digest
-            else:
-                assert manifest._digest_info[path] == digest
+        self._check_manifests_match_except_on_entry(
+            manifest, new_manifest, changed_entry
+        )
 
     def test_deep_folder(self, deep_model_folder):
         serializer = itemized.FilesSerializer(self._hasher_factory)
@@ -248,10 +309,7 @@ class TestFilesSerializer:
         # Re-enable lint, so pylint: enable=line-too-long
 
         manifest = serializer.serialize(deep_model_folder)
-        items = {
-            str(path): digest.digest_hex
-            for path, digest in manifest._digest_info.items()
-        }
+        items = _extract_items_from_manifest(manifest)
 
         assert items == expected_items
 
@@ -262,7 +320,7 @@ class TestFilesSerializer:
         ]
 
         manifest = serializer.serialize(empty_model_file)
-        digests = [d.digest_hex for d in manifest._digest_info.values()]
+        digests = _extract_digests_from_manifest(manifest)
 
         assert digests == expected
 
@@ -274,8 +332,7 @@ class TestFilesSerializer:
     def test_special_file(self, sample_model_folder):
         serializer = itemized.FilesSerializer(self._hasher_factory)
 
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        altered_dir = dirs[0]
+        altered_dir = _get_first_directory(sample_model_folder)
         pipe = altered_dir / "pipe"
 
         try:
