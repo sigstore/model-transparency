@@ -68,4 +68,24 @@ jobs:
           .github/workflows/scripts/venv_activate.sh
           pip install -r model_signing/install/requirements_test_Linux.txt
           pip install -r model_signing/install/requirements_dev_Linux.txt
+          # TODO: https://github.com/sigstore/model-transparency/issues/231 - Support all repo
           pytype --keep-going model_signing/{hashing,manifest,serialization}
+
+  pylint-lint:
+    runs-on: ubuntu-latest
+    name: Type Check
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Set up Python environment
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
+        with:
+          python-version: "3.11"
+      - name: run pylint
+        run: |
+          python -m venv venv
+          .github/workflows/scripts/venv_activate.sh
+          pip install -r model_signing/install/requirements_test_Linux.txt
+          pip install -r model_signing/install/requirements_dev_Linux.txt
+          # TODO: https://github.com/sigstore/model-transparency/issues/231 - Support all repo
+          pylint --help ##--keep-going model_signing/{hashing,manifest,serialization}
