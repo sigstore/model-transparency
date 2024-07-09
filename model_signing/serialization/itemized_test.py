@@ -17,9 +17,7 @@ import pathlib
 import pytest
 
 from model_signing.hashing import file
-from model_signing.hashing import hashing
 from model_signing.hashing import memory
-from model_signing.manifest import manifest
 from model_signing.serialization import fixtures_constants
 from model_signing.serialization import itemized
 
