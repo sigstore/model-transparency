@@ -150,13 +150,13 @@ class ShardedFileManifestItem(ManifestItem):
         end: int,
         digest: hashing.Digest
     ):
-        """Builds a manifest item pairing a file with its digest.
+        """Builds a manifest item pairing a file shard with its digest.
 
         Args:
             path: The path to the file, relative to the model root.
             start: The start offset of the shard.
             end: The end offset of the shard.
-            digest: The digest of the file.
+            digest: The digest of the file shard.
         """
         # Note: we need to force a PosixPath to canonicalize the manifest
         self.path = pathlib.PurePosixPath(path)
