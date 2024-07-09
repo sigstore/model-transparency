@@ -145,7 +145,7 @@ class ShardedFilesSerializer(serialization.Serializer):
 
         # Precompute some private values only once by using a mock file hasher.
         # None of the arguments used to build the hasher are used.
-        hasher = hasher_factory(pathlib.Path(), 0, 1)
+        hasher = sharded_hasher_factory(pathlib.Path(), 0, 1)
         self._shard_size = hasher.shard_size
 
     @override
