@@ -96,7 +96,8 @@ class FilesSerializer(serialization.Serializer):
         Returns:
             The itemized manifest.
         """
-        relative_path = path.relative_to(model_path)
+        # Note: we need to force a PosixPath to canonicalize the manifest
+        relative_path = pathlib.PurePosixPath(path.relative_to(model_path))
         digest = self._hasher_factory(path).compute()
         return manifest.FileManifestItem(path=relative_path, digest=digest)
 
@@ -209,7 +210,8 @@ class ShardedFilesSerializer(serialization.Serializer):
         Returns:
             The itemized manifest.
         """
-        relative_path = path.relative_to(model_path)
+        # Note: we need to force a PosixPath to canonicalize the manifest
+        relative_path = pathlib.PurePosixPath(path.relative_to(model_path))
         digest = self._hasher_factory(path, start, end).compute()
         return manifest.ShardedFileManifestItem(
             path=relative_path, digest=digest, start=start, end=end
