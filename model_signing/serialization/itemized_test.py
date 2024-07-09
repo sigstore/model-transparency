@@ -271,7 +271,7 @@ class TestFilesSerializer:
         self,
         old_manifest: manifest.Manifest,
         new_manifest: manifest.Manifest,
-        expected_mismatch_path: pathlib.Path,
+        expected_mismatch_path: pathlib.PurePath,
     ):
         """Checks that the manifests match, except for given path."""
         assert old_manifest != new_manifest
