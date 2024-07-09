@@ -159,6 +159,7 @@ class TestFilesSerializer:
         files = [f for f in altered_dir.iterdir() if f.is_file()]
         file_to_rename = files[0]
         old_name = file_to_rename.relative_to(sample_model_folder)
+        old_name = pathlib.PurePosixPath(old_name)  # canonicalize to Posix
         new_name = file_to_rename.with_name("new-file")
         file_to_rename.rename(new_name)
         new_manifest = serializer.serialize(sample_model_folder)
@@ -192,7 +193,7 @@ class TestFilesSerializer:
                     old_name if part == "new-dir" else part
                     for part in path.parts
                 ]
-                old = pathlib.Path(*parts)
+                old = pathlib.PurePosixPath(*parts)
                 assert manifest._digest_info[old] == digest
             else:
                 assert manifest._digest_info[path] == digest
