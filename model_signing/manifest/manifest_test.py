@@ -22,11 +22,11 @@ class TestFileLevelManifest:
 
     def test_insert_order_does_not_matter(self):
         path1 = pathlib.PurePath("file1")
-        digest1 = hashing.Digest("test", "abcd")
+        digest1 = hashing.Digest("test", b"abcd")
         item1 = manifest.FileManifestItem(path=path1, digest=digest1)
 
         path2 = pathlib.PurePath("file2")
-        digest2 = hashing.Digest("test", "efgh")
+        digest2 = hashing.Digest("test", b"efgh")
         item2 = manifest.FileManifestItem(path=path2, digest=digest2)
 
         manifest1 = manifest.FileLevelManifest([item1, item2])
@@ -39,13 +39,13 @@ class TestShardLevelManifest:
 
     def test_insert_order_does_not_matter(self):
         path1 = pathlib.PurePath("file1")
-        digest1 = hashing.Digest("test", "abcd")
+        digest1 = hashing.Digest("test", b"abcd")
         item1 = manifest.ShardedFileManifestItem(
             path=path1, digest=digest1, start=0, end=4
         )
 
         path2 = pathlib.PurePath("file2")
-        digest2 = hashing.Digest("test", "efgh")
+        digest2 = hashing.Digest("test", b"efgh")
         item2 = manifest.ShardedFileManifestItem(
             path=path2, digest=digest2, start=0, end=4
         )
@@ -57,7 +57,7 @@ class TestShardLevelManifest:
 
     def test_same_path_different_shards_gives_different_manifest(self):
         path = pathlib.PurePath("file")
-        digest = hashing.Digest("test", "abcd")
+        digest = hashing.Digest("test", b"abcd")
 
         item = manifest.ShardedFileManifestItem(
             path=path, digest=digest, start=0, end=2
