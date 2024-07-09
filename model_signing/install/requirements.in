@@ -1,4 +1,5 @@
 absl-py
+betterproto
 cryptography
 in-toto-attestation
 pyOpenSSL
