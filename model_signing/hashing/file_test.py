@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pathlib
 import pytest
-
-from pathlib import Path
 
 from model_signing.hashing import file
 from model_signing.hashing import memory
@@ -25,7 +24,7 @@ _HEADER: str = "Some "
 _CONTENT: str = "text."  # note that these have the same length
 _FULL_CONTENT = _HEADER + _CONTENT
 _SHARD_SIZE = len(_HEADER)
-_UNUSED_PATH = Path("unused")
+_UNUSED_PATH = pathlib.Path("unused")
 
 
 @pytest.fixture(scope="session")

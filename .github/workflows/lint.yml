@@ -8,20 +8,12 @@ on:
 permissions: read-all
 
 jobs:
-  flake8-lint:
+  whitespace-lint:
     runs-on: ubuntu-latest
-    name: Lint
+    name: Lint whitespace
     steps:
       - name: Check out source repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - name: Set up Python environment
-        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
-        with:
-          python-version: "3.11"
-      - name: flake8 Lint
-        uses: py-actions/flake8@84ec6726560b6d5bd68f2a5bed83d62b52bb50ba # v2.3.0
-        with:
-          max-line-length: "80"
       - name: Detect empty lines at end of file and trailing whitespace
         run: |
           set -euxo pipefail  # No -x here!
@@ -55,6 +47,7 @@ jobs:
             echo "::error Found $failed whitespace errors, failing"
             exit 1
           fi
+
   pytype-lint:
     runs-on: ubuntu-latest
     name: Type Check
@@ -71,4 +64,25 @@ jobs:
           .github/workflows/scripts/venv_activate.sh
           pip install -r model_signing/install/requirements_test_Linux.txt
           pip install -r model_signing/install/requirements_dev_Linux.txt
+          # TODO: https://github.com/sigstore/model-transparency/issues/231 - Support all repo
           pytype --keep-going model_signing/{hashing,manifest,serialization}
+
+  pylint-lint:
+    runs-on: ubuntu-latest
+    name: Python lint
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Set up Python environment
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
+        with:
+          python-version: "3.11"
+      - name: run pylint
+        run: |
+          python -m venv venv
+          .github/workflows/scripts/venv_activate.sh
+          pip install -r model_signing/install/requirements_test_Linux.txt
+          pip install -r model_signing/install/requirements_dev_Linux.txt
+          # TODO: https://github.com/sigstore/model-transparency/issues/231 - Support all repo
+          # We should actually migrate to ruff, but that's configured via pyproject.toml which we use when we release the wheel
+          pylint --disable C0114,C0115,C0116,R0903,R0904,R0913,R0914,R1721,R1737,W0107,W0223,W0231,W0511,W0621 model_signing/{hashing,manifest,serialization}
