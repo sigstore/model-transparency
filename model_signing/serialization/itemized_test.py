@@ -231,7 +231,7 @@ class TestFilesSerializer:
         assert manifest != new_manifest
         assert len(new_manifest._digest_info) == len(manifest._digest_info)
         for path, digest in new_manifest._digest_info.items():
-            if path == changed_manifest_entry:
+            if path == changed_entry:
                 assert manifest._digest_info[path] != digest
             else:
                 assert manifest._digest_info[path] == digest
@@ -569,7 +569,7 @@ class TestShardedFilesSerializer:
         assert len(new_manifest._digest_info) == len(manifest._digest_info)
         for shard, digest in new_manifest._digest_info.items():
             path, _, _ = shard
-            if path == changed_manifest_entry:
+            if path == changed_entry:
                 # Note that the file size changes
                 assert manifest._digest_info[(path, 0, 23)] != digest
             else:
