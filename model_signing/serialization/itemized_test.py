@@ -224,12 +224,14 @@ class TestFilesSerializer:
         files = [f for f in altered_dir.iterdir() if f.is_file()]
         file_to_change = files[0]
         file_to_change.write_bytes(fixtures_constants.KNOWN_MODEL_TEXT)
+        changed_entry = file_to_change.relative_to(sample_model_folder)
+        changed_entry = pathlib.PurePosixPath(changed_entry)  # canonicalize
         new_manifest = serializer.serialize(sample_model_folder)
 
         assert manifest != new_manifest
         assert len(new_manifest._digest_info) == len(manifest._digest_info)
         for path, digest in new_manifest._digest_info.items():
-            if path == file_to_change.relative_to(sample_model_folder):
+            if path == changed_manifest_entry:
                 assert manifest._digest_info[path] != digest
             else:
                 assert manifest._digest_info[path] == digest
@@ -491,6 +493,7 @@ class TestShardedFilesSerializer:
         files = [f for f in altered_dir.iterdir() if f.is_file()]
         file_to_rename = files[0]
         old_name = file_to_rename.relative_to(sample_model_folder)
+        old_name = pathlib.PurePosixPath(old_name)  # canonicalize to Posix
         new_name = file_to_rename.with_name("new-file")
         file_to_rename.rename(new_name)
         new_manifest = serializer.serialize(sample_model_folder)
@@ -527,7 +530,7 @@ class TestShardedFilesSerializer:
                     old_name if part == "new-dir" else part
                     for part in path.parts
                 ]
-                old = (pathlib.Path(*parts), start, end)
+                old = (pathlib.PurePosixPath(*parts), start, end)
                 assert manifest._digest_info[old] == digest
             else:
                 assert manifest._digest_info[shard] == digest
@@ -558,13 +561,15 @@ class TestShardedFilesSerializer:
         files = [f for f in altered_dir.iterdir() if f.is_file()]
         file_to_change = files[0]
         file_to_change.write_bytes(fixtures_constants.KNOWN_MODEL_TEXT)
+        changed_entry = file_to_change.relative_to(sample_model_folder)
+        changed_entry = pathlib.PurePosixPath(changed_entry)  # canonicalize
         new_manifest = serializer.serialize(sample_model_folder)
 
         assert manifest != new_manifest
         assert len(new_manifest._digest_info) == len(manifest._digest_info)
         for shard, digest in new_manifest._digest_info.items():
             path, _, _ = shard
-            if path == file_to_change.relative_to(sample_model_folder):
+            if path == changed_manifest_entry:
                 # Note that the file size changes
                 assert manifest._digest_info[(path, 0, 23)] != digest
             else:
