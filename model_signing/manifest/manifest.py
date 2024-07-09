@@ -96,7 +96,7 @@ class ManifestItem(metaclass=abc.ABCMeta):
     pass
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class FileManifestItem(ManifestItem):
     """A manifest item that records a filename path together with its digest.
 
@@ -105,6 +105,17 @@ class FileManifestItem(ManifestItem):
 
     path: pathlib.PurePath
     digest: hashing.Digest
+
+    def __init__(self, *, path: pathlib.PurePath, digest: hashing.Digest):
+        """Builds a manifest item pairing a file with its digest.
+
+        Args:
+            path: The path to the file, relative to the model root.
+            digest: The digest of the file.
+        """
+        # Note: we need to force a PosixPath to canonicalize the manifest
+        self.path = pathlib.PurePosixPath(path)
+        self.digest = digest
 
 
 class FileLevelManifest(ItemizedManifest):
@@ -122,7 +133,7 @@ class FileLevelManifest(ItemizedManifest):
         return self._digest_info == other._digest_info
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class ShardedFileManifestItem(ManifestItem):
     """A manifest item that records a file shard together with its digest."""
 
@@ -130,6 +141,28 @@ class ShardedFileManifestItem(ManifestItem):
     start: int
     end: int
     digest: hashing.Digest
+
+    def __init__(
+        self,
+        *,
+        path: pathlib.PurePath,
+        start: int,
+        end: int,
+        digest: hashing.Digest
+    ):
+        """Builds a manifest item pairing a file with its digest.
+
+        Args:
+            path: The path to the file, relative to the model root.
+            start: The start offset of the shard.
+            end: The end offset of the shard.
+            digest: The digest of the file.
+        """
+        # Note: we need to force a PosixPath to canonicalize the manifest
+        self.path = pathlib.PurePosixPath(path)
+        self.start = start
+        self.end = end
+        self.digest = digest
 
     @property
     def input_tuple(self) -> tuple[pathlib.PurePath, int, int]:
