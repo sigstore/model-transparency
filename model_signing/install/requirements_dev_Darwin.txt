@@ -186,13 +186,13 @@ ninja==1.11.1.1 \
     --hash=sha256:ecf80cf5afd09f14dcceff28cb3f11dc90fb97c999c89307aea435889cb66877 \
     --hash=sha256:fa2ba9d74acfdfbfbcf06fad1b8282de8a7a8c481d9dee45c859a8c93fcc1082
     # via pytype
+pycnite==2024.7.9 \
+    --hash=sha256:aece401e70e8b6bf369b3b33867c79a1b8bf584e68da9790de2f821503cebcf8 \
+    --hash=sha256:f07bea393ee4d5820013fae66db6cc091e8dc01fd3f6b367595108752f264872
 platformdirs==4.2.2 \
     --hash=sha256:2d7a1657e36a80ea911db832a8a6ece5ee53d8de21edd5cc5879af6530b1bfee \
     --hash=sha256:38b7b51f512eed9e84a22788b4bce1de17c0adb134d6becb09836e37d8654cd3
     # via pylint
-pycnite==2024.6.28 \
-    --hash=sha256:228b2cfae86fecc82e1bddb2b44b4890b337e0a778c1521a56546642dd28bfe4 \
-    --hash=sha256:e3f1f9697b49af8d4edc0e0d228b23fdfc56acc7878bc64378e46ddf8150d3a8
     # via pytype
 pydot==2.0.0 \
     --hash=sha256:408a47913ea7bd5d2d34b274144880c1310c4aee901f353cf21fe2e526a4ea28 \

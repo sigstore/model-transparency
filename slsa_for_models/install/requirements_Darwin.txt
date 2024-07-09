@@ -189,6 +189,7 @@ fsspec==2024.6.1 \
     #   etils
     #   torch
 gast==0.6.0 \
+    --hash=sha256:52b182313f7330389f72b069ba00f174cfe2a06411099547288839c6cbafbd54 \
     --hash=sha256:88fc5300d32c7ac6ca7b515310862f71e6fdf2c029bbec7c66c0f5dd47b6b1fb
     # via tensorflow
 google-pasta==0.2.0 \
