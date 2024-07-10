@@ -55,9 +55,10 @@ objects to represent only a part of the model that can be verified individually.
 """
 
 import abc
+from collections.abc import Iterable
 import dataclasses
 import pathlib
-from typing import Iterable, Self
+from typing import Self
 
 from model_signing.hashing import hashing
 
@@ -113,7 +114,7 @@ class FileManifestItem(ManifestItem):
             path: The path to the file, relative to the model root.
             digest: The digest of the file.
         """
-        # Note: we need to force a PosixPath to canonicalize the manifest
+        # Note: we need to force a PosixPath to canonicalize the manifest.
         self.path = pathlib.PurePosixPath(path)
         self.digest = digest
 
@@ -127,10 +128,10 @@ class FileLevelManifest(ItemizedManifest):
         Rather than recording the items in a list, we use a dictionary, to allow
         efficient updates and retrieval of digests.
         """
-        self._digest_info = {item.path: item.digest for item in items}
+        self._item_to_digest = {item.path: item.digest for item in items}
 
     def __eq__(self, other: Self):
-        return self._digest_info == other._digest_info
+        return self._item_to_digest == other._item_to_digest
 
 
 @dataclasses.dataclass
@@ -170,7 +171,7 @@ class ShardedFileManifestItem(ManifestItem):
         return (self.path, self.start, self.end)
 
 
-class ShardLevelManifest(ItemizedManifest):
+class ShardLevelManifest(FileLevelManifest):
     """A detailed manifest, recording integrity of every model file."""
 
     def __init__(self, items: Iterable[ShardedFileManifestItem]):
@@ -179,7 +180,4 @@ class ShardLevelManifest(ItemizedManifest):
         Rather than recording the items in a list, we use a dictionary, to allow
         efficient updates and retrieval of digests.
         """
-        self._digest_info = {item.input_tuple: item.digest for item in items}
-
-    def __eq__(self, other: Self):
-        return self._digest_info == other._digest_info
+        self._item_to_digest = {item.input_tuple: item.digest for item in items}

@@ -29,13 +29,13 @@ pytest_plugins = ("model_signing.serialization.fixtures",)
 
 
 def _extract_digests_from_manifest(
-    manifest: manifest.FileLevelManifest | manifest.ShardLevelManifest,
+    manifest: manifest.FileLevelManifest,
 ) -> List[str]:
     """Extracts the hex digest for every subject in a manifest.
 
     Used in multiple tests to check that we obtained the expected digests.
     """
-    return [d.digest_hex for d in manifest._digest_info.values()]
+    return [d.digest_hex for d in manifest._item_to_digest.values()]
 
 
 def _extract_items_from_manifest(
@@ -49,7 +49,7 @@ def _extract_items_from_manifest(
     """
     return {
         str(path): digest.digest_hex
-        for path, digest in manifest._digest_info.items()
+        for path, digest in manifest._item_to_digest.items()
     }
 
 
@@ -65,7 +65,7 @@ def _extract_shard_items_from_manifest(
     return {
         # convert to file path (relative to model) string and endpoints
         (str(shard[0]), shard[1], shard[2]): digest.digest_hex
-        for shard, digest in manifest._digest_info.items()
+        for shard, digest in manifest._item_to_digest.items()
     }
 
 
@@ -190,9 +190,12 @@ class TestFilesSerializer:
         new_manifest = serializer.serialize(sample_model_folder)
 
         assert manifest != new_manifest
-        assert len(new_manifest._digest_info) == len(manifest._digest_info) + 1
-        for path, digest in manifest._digest_info.items():
-            assert new_manifest._digest_info[path] == digest
+        assert (
+            len(new_manifest._item_to_digest)
+            == len(manifest._item_to_digest) + 1
+        )
+        for path, digest in manifest._item_to_digest.items():
+            assert new_manifest._item_to_digest[path] == digest
 
     def _check_manifests_match_except_on_renamed_file(
         self,
@@ -206,12 +209,14 @@ class TestFilesSerializer:
         For the renamed file, we still want to match the digest of the old name.
         """
         assert old_manifest != new_manifest
-        assert len(new_manifest._digest_info) == len(old_manifest._digest_info)
-        for path, digest in new_manifest._digest_info.items():
+        assert len(new_manifest._item_to_digest) == len(
+            old_manifest._item_to_digest
+        )
+        for path, digest in new_manifest._item_to_digest.items():
             if path.name == new_name:
-                assert old_manifest._digest_info[old_name] == digest
+                assert old_manifest._item_to_digest[old_name] == digest
             else:
-                assert old_manifest._digest_info[path] == digest
+                assert old_manifest._item_to_digest[path] == digest
 
     def test_folder_model_rename_file_only_changes_path_part(
         self, sample_model_folder
@@ -244,17 +249,19 @@ class TestFilesSerializer:
         the old path.
         """
         assert old_manifest != new_manifest
-        assert len(new_manifest._digest_info) == len(old_manifest._digest_info)
-        for path, digest in new_manifest._digest_info.items():
+        assert len(new_manifest._item_to_digest) == len(
+            old_manifest._item_to_digest
+        )
+        for path, digest in new_manifest._item_to_digest.items():
             if new_name in path.parts:
                 parts = [
                     old_name if part == new_name else part
                     for part in path.parts
                 ]
                 old = pathlib.PurePosixPath(*parts)
-                assert old_manifest._digest_info[old] == digest
+                assert old_manifest._item_to_digest[old] == digest
             else:
-                assert old_manifest._digest_info[path] == digest
+                assert old_manifest._item_to_digest[path] == digest
 
     def test_folder_model_rename_dir_only_changes_path_part(
         self, sample_model_folder
@@ -283,9 +290,12 @@ class TestFilesSerializer:
         new_manifest = serializer.serialize(sample_model_folder)
 
         assert manifest != new_manifest
-        assert len(new_manifest._digest_info) == len(manifest._digest_info) - 1
-        for path, digest in new_manifest._digest_info.items():
-            assert manifest._digest_info[path] == digest
+        assert (
+            len(new_manifest._item_to_digest)
+            == len(manifest._item_to_digest) - 1
+        )
+        for path, digest in new_manifest._item_to_digest.items():
+            assert manifest._item_to_digest[path] == digest
 
     def _check_manifests_match_except_on_entry(
         self,
@@ -295,12 +305,14 @@ class TestFilesSerializer:
     ):
         """Checks that the manifests match, except for given path."""
         assert old_manifest != new_manifest
-        assert len(new_manifest._digest_info) == len(old_manifest._digest_info)
-        for path, digest in new_manifest._digest_info.items():
+        assert len(new_manifest._item_to_digest) == len(
+            old_manifest._item_to_digest
+        )
+        for path, digest in new_manifest._item_to_digest.items():
             if path == expected_mismatch_path:
-                assert old_manifest._digest_info[path] != digest
+                assert old_manifest._item_to_digest[path] != digest
             else:
-                assert old_manifest._digest_info[path] == digest
+                assert old_manifest._item_to_digest[path] == digest
 
     def test_folder_model_change_file(self, sample_model_folder):
         serializer = itemized.FilesSerializer(self._hasher_factory)
@@ -347,7 +359,7 @@ class TestFilesSerializer:
     def test_empty_folder(self, empty_model_folder):
         serializer = itemized.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(empty_model_folder)
-        assert not manifest._digest_info
+        assert not manifest._item_to_digest
 
     def test_special_file(self, sample_model_folder):
         serializer = itemized.FilesSerializer(self._hasher_factory)
@@ -557,14 +569,16 @@ class TestShardedFilesSerializer:
         For the renamed file, we still want to match the digest of the old name.
         """
         assert old_manifest != new_manifest
-        assert len(new_manifest._digest_info) == len(old_manifest._digest_info)
-        for shard, digest in new_manifest._digest_info.items():
+        assert len(new_manifest._item_to_digest) == len(
+            old_manifest._item_to_digest
+        )
+        for shard, digest in new_manifest._item_to_digest.items():
             path, start, end = shard
             if path.name == new_name:
                 old_shard = (old_name, start, end)
-                assert old_manifest._digest_info[old_shard] == digest
+                assert old_manifest._item_to_digest[old_shard] == digest
             else:
-                assert old_manifest._digest_info[shard] == digest
+                assert old_manifest._item_to_digest[shard] == digest
 
     def test_folder_model_rename_file_only_changes_path_part(
         self, sample_model_folder
@@ -597,8 +611,10 @@ class TestShardedFilesSerializer:
         the old path.
         """
         assert old_manifest != new_manifest
-        assert len(new_manifest._digest_info) == len(old_manifest._digest_info)
-        for shard, digest in new_manifest._digest_info.items():
+        assert len(new_manifest._item_to_digest) == len(
+            old_manifest._item_to_digest
+        )
+        for shard, digest in new_manifest._item_to_digest.items():
             path, start, end = shard
             if new_name in path.parts:
                 parts = [
@@ -606,9 +622,9 @@ class TestShardedFilesSerializer:
                     for part in path.parts
                 ]
                 old = (pathlib.PurePosixPath(*parts), start, end)
-                assert old_manifest._digest_info[old] == digest
+                assert old_manifest._item_to_digest[old] == digest
             else:
-                assert old_manifest._digest_info[shard] == digest
+                assert old_manifest._item_to_digest[shard] == digest
 
     def test_folder_model_rename_dir_only_changes_path_part(
         self, sample_model_folder
@@ -637,9 +653,12 @@ class TestShardedFilesSerializer:
         new_manifest = serializer.serialize(sample_model_folder)
 
         assert manifest != new_manifest
-        assert len(new_manifest._digest_info) == len(manifest._digest_info) - 1
-        for path, digest in new_manifest._digest_info.items():
-            assert manifest._digest_info[path] == digest
+        assert (
+            len(new_manifest._item_to_digest)
+            == len(manifest._item_to_digest) - 1
+        )
+        for path, digest in new_manifest._item_to_digest.items():
+            assert manifest._item_to_digest[path] == digest
 
     def _check_manifests_match_except_on_entry(
         self,
@@ -649,14 +668,16 @@ class TestShardedFilesSerializer:
     ):
         """Checks that the manifests match, except for given path."""
         assert old_manifest != new_manifest
-        assert len(new_manifest._digest_info) == len(old_manifest._digest_info)
-        for shard, digest in new_manifest._digest_info.items():
+        assert len(new_manifest._item_to_digest) == len(
+            old_manifest._item_to_digest
+        )
+        for shard, digest in new_manifest._item_to_digest.items():
             path, _, _ = shard
             if path == expected_mismatch_path:
                 # Note that the file size changes
-                assert old_manifest._digest_info[(path, 0, 23)] != digest
+                assert old_manifest._item_to_digest[(path, 0, 23)] != digest
             else:
-                assert old_manifest._digest_info[shard] == digest
+                assert old_manifest._item_to_digest[shard] == digest
 
     def test_folder_model_change_file(self, sample_model_folder):
         serializer = itemized.ShardedFilesSerializer(self._hasher_factory)
@@ -708,12 +729,12 @@ class TestShardedFilesSerializer:
     def test_empty_file(self, empty_model_file):
         serializer = itemized.ShardedFilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(empty_model_file)
-        assert not manifest._digest_info
+        assert not manifest._item_to_digest
 
     def test_empty_folder(self, empty_model_folder):
         serializer = itemized.ShardedFilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(empty_model_folder)
-        assert not manifest._digest_info
+        assert not manifest._item_to_digest
 
     def test_special_file(self, sample_model_folder):
         serializer = itemized.ShardedFilesSerializer(self._hasher_factory)

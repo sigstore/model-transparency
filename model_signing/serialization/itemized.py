@@ -14,9 +14,10 @@
 
 """Model serializers that build an itemized manifest."""
 
+from collections.abc import Iterable
 import concurrent.futures
 import pathlib
-from typing import Callable, Iterable
+from typing import Callable
 from typing_extensions import override
 
 from model_signing.hashing import file
@@ -46,7 +47,7 @@ class FilesSerializer(serialization.Serializer):
             file_hasher_factory: A callable to build the hash engine used to
               hash individual files.
             max_workers: Maximum number of workers to use in parallel. Default
-              is to defer to the `concurent.futures` library.
+              is to defer to the `concurrent.futures` library.
         """
         self._hasher_factory = file_hasher_factory
         self._max_workers = max_workers
@@ -137,7 +138,7 @@ class ShardedFilesSerializer(serialization.Serializer):
               start hashing. The arguments are the file, and the endpoints of
               the shard.
             max_workers: Maximum number of workers to use in parallel. Default
-              is to defer to the `concurent.futures` library.
+              is to defer to the `concurrent.futures` library.
         """
         self._hasher_factory = sharded_hasher_factory
         self._max_workers = max_workers
