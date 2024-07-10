@@ -25,7 +25,7 @@ could be a signature over a single digest).
 When testing the integrity of a model, we start with the model path and model
 type. From this, we extract the path to the signed manifest. Next step is to
 verify the authenticity of the signature, after which we extract an in-memory
-representation of the _trusted_ manifest. To verify the model in its integrity,
+representation of the _trusted_ manifest. To verify the integrity of the model,
 we run another `serialization.Serializer` instance to compute the _untrusted_
 manifest of the model as we're seeing it. If these 2 manifests are conforming,
 then the model integrity is maintained.
