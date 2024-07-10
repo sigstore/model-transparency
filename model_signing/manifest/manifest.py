@@ -16,31 +16,28 @@
 
 When saving a model, or signing an existing one, we build a manifest from the
 model (either by using a `serialization.Serializer` or building it from helper
-methods that use precomputed values to reduce amount of I/O involved). This
-manifest then gets signed and the signed manifest (or just signature) is stored
-in a signature file determined from the model path and type. The signature is
-loosely tied with the manifest (e.g., it could be a field in the manifest or it
-could be a signature over a single digest).
+methods that use precomputed values to reduce amount of I/O involved). This is
+the manifest used for generating a signature of the model.
 
 When testing the integrity of a model, we start with the model path and model
 type. From this, we extract the path to the signed manifest. Next step is to
 verify the authenticity of the signature, after which we extract an in-memory
-representation of the _trusted_ manifest. To verify the integrity of the model,
-we run another `serialization.Serializer` instance to compute the _untrusted_
-manifest of the model as we're seeing it. If these 2 manifests are conforming,
-then the model integrity is maintained.
+representation of the _expected_ manifest. To verify the integrity of the model,
+we run another `serialization.Serializer` instance to compute the _actual_
+manifest of the model as we're seeing it. If these two manifests agree then the
+model integrity is maintained.
 
 In the simplest case, we are working with `DigestManifest` objects. Here, the
 two manifests are conforming iff the digests are the same. A more complex case
 is when the manifest itemizes each model component (e.g., every file (or file
-shard) is paired with its digest). The manifests would be conforming if every
-file and digest matches. Alternatively, we could allow for file renames, and
-check only the digests. Optionally, we can have arbitrary logic, saying that the
-untrusted manifest must match only a subset of the trusted one: e.g., we could
-have a model saved in multiple formats but with a single signature. At
-verification time, only one format is used, so we only need to verify the
-corresponding subset. We need to check that we still have a valid complete model
-though.
+shard) is paired with its digest). The manifests agree if every file and digest
+matches. Alternatively, we could allow for file renames, and check only the
+digests. Optionally, we can have arbitrary logic, saying that the actual
+manifest (i.e., files of the model as they are on disk) must match only a subset
+of the expected one: e.g., we could have a model saved in multiple formats but
+with a single signature. At verification time, only one format is used, so we
+only need to verify the corresponding subset. We need to check that we still
+have a valid complete model though.
 
 In the future, we envision an API that would allow verification to be done in a
 streaming fashion. As the model is loaded for inference, only the integrity of
