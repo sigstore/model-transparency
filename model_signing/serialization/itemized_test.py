@@ -55,7 +55,7 @@ def _extract_items_from_manifest(
 
 def _extract_shard_items_from_manifest(
     manifest: manifest.ShardLevelManifest,
-) -> Dict[Tuple[str, str, str], str]:
+) -> Dict[Tuple[str, int, int], str]:
     """Builds a dictionary representation of the items in a manifest.
 
     Every item is mapped to its digest.
