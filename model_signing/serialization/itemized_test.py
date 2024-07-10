@@ -29,7 +29,7 @@ pytest_plugins = ("model_signing.serialization.fixtures",)
 
 
 def _extract_digests_from_manifest(
-    manifest: manifest.FileLevelManifest,
+    manifest: manifest.FileLevelManifest | manifest.ShardLevelManifest,
 ) -> List[str]:
     """Extracts the hex digest for every subject in a manifest.
 
@@ -54,7 +54,7 @@ def _extract_items_from_manifest(
 
 
 def _extract_shard_items_from_manifest(
-    manifest: manifest.FileLevelManifest,
+    manifest: manifest.ShardLevelManifest,
 ) -> Dict[Tuple[str, str, str], str]:
     """Builds a dictionary representation of the items in a manifest.
 
@@ -547,8 +547,8 @@ class TestShardedFilesSerializer:
 
     def _check_manifests_match_except_on_renamed_file(
         self,
-        old_manifest: manifest.FileLevelManifest,
-        new_manifest: manifest.FileLevelManifest,
+        old_manifest: manifest.ShardLevelManifest,
+        new_manifest: manifest.ShardLevelManifest,
         new_name: str,
         old_name: pathlib.PurePath,
     ):
@@ -586,8 +586,8 @@ class TestShardedFilesSerializer:
 
     def _check_manifests_match_except_on_renamed_dir(
         self,
-        old_manifest: manifest.FileLevelManifest,
-        new_manifest: manifest.FileLevelManifest,
+        old_manifest: manifest.ShardLevelManifest,
+        new_manifest: manifest.ShardLevelManifest,
         new_name: str,
         old_name: str,
     ):
@@ -643,8 +643,8 @@ class TestShardedFilesSerializer:
 
     def _check_manifests_match_except_on_entry(
         self,
-        old_manifest: manifest.FileLevelManifest,
-        new_manifest: manifest.FileLevelManifest,
+        old_manifest: manifest.ShardLevelManifest,
+        new_manifest: manifest.ShardLevelManifest,
         expected_mismatch_path: pathlib.PurePath,
     ):
         """Checks that the manifests match, except for given path."""
