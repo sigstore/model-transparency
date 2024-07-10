@@ -28,7 +28,7 @@ manifest of the model as we're seeing it. If these two manifests agree then the
 model integrity is maintained.
 
 In the simplest case, we are working with `DigestManifest` objects. Here, the
-two manifests are conforming iff the digests are the same. A more complex case
+two manifests agree if and only if the digests are the same. A more complex case
 is when the manifest itemizes each model component (e.g., every file (or file
 shard) is paired with its digest). The manifests agree if every file and digest
 matches. Alternatively, we could allow for file renames, and check only the
