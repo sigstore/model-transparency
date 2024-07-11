@@ -204,8 +204,8 @@ class ShardedFilesSerializer(serialization.Serializer):
             model_path: The path to the model.
             path: Path to the file in the model, that is currently transformed
               to a manifest item.
-            start: Offset for the start of the path shard.
-            end: Offset for the end of the path shard.
+            start: The start offset of the shard (included).
+            end: The end offset of the shard (not included).
 
         Returns:
             The itemized manifest.

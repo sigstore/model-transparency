@@ -152,8 +152,8 @@ class ShardedFileManifestItem(ManifestItem):
 
         Args:
             path: The path to the file, relative to the model root.
-            start: The start offset of the shard.
-            end: The end offset of the shard.
+            start: The start offset of the shard (included).
+            end: The end offset of the shard (not included).
             digest: The digest of the file shard.
         """
         # Note: we need to force a PosixPath to canonicalize the manifest
