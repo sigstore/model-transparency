@@ -418,33 +418,64 @@ class TestOpenedFileHasher:
 
     def test_hash_of_known_file(self, sample_file, expected_digest):
         with open(sample_file, "rb") as f:
+            # https://github.com/python/typeshed/issues/2166
+            # pytype: disable=wrong-arg-types
             hasher = file.OpenedFileHasher(f)
+            # pytype: enable=wrong-arg-types
+            digest = hasher.compute()
+
+        assert digest.digest_hex == expected_digest
+
+    def test_set_file_descriptor(self, sample_file, expected_digest):
+        with open(sample_file, "rb") as f:
+            # https://github.com/python/typeshed/issues/2166
+            # pytype: disable=wrong-arg-types
+            hasher = file.OpenedFileHasher(f)
+            # pytype: enable=wrong-arg-types
+
+        with open(sample_file, "rb") as f:
+            # https://github.com/python/typeshed/issues/2166
+            # pytype: disable=wrong-arg-types
+            hasher.set_file_descriptor(f)
+            # pytype: enable=wrong-arg-types
             digest = hasher.compute()
 
         assert digest.digest_hex == expected_digest
 
     def test_default_digest_name(self, sample_file):
         with open(sample_file, "rb") as f:
+            # https://github.com/python/typeshed/issues/2166
+            # pytype: disable=wrong-arg-types
             hasher = file.OpenedFileHasher(f)
+            # pytype: enable=wrong-arg-types
 
         assert hasher.digest_name == "file-fd-sha256"
 
     def test_override_digest_name(self, sample_file):
         with open(sample_file, "rb") as f:
+            # https://github.com/python/typeshed/issues/2166
+            # pytype: disable=wrong-arg-types
             hasher = file.OpenedFileHasher(f, digest_name_override="test-hash")
+            # pytype: enable=wrong-arg-types
 
         assert hasher.digest_name == "test-hash"
 
     def test_digest_algorithm_is_digest_name(self, sample_file):
         with open(sample_file, "rb") as f:
+            # https://github.com/python/typeshed/issues/2166
+            # pytype: disable=wrong-arg-types
             hasher = file.OpenedFileHasher(f)
+            # pytype: enable=wrong-arg-types
             digest = hasher.compute()
 
         assert digest.algorithm == hasher.digest_name
 
     def test_digest_size(self, sample_file):
         with open(sample_file, "rb") as f:
+            # https://github.com/python/typeshed/issues/2166
+            # pytype: disable=wrong-arg-types
             hasher = file.OpenedFileHasher(f)
+            # pytype: enable=wrong-arg-types
 
         memory_hasher = memory.SHA256()
         assert hasher.digest_size == memory_hasher.digest_size
