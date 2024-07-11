@@ -97,7 +97,7 @@ class DFSSerializer(serialization.Serializer):
 
     def __init__(
         self,
-        file_hasher: file.FileHasher,
+        file_hasher: file.SimpleFileHasher,
         merge_hasher_factory: Callable[[], hashing.StreamingHashEngine],
     ):
         """Initializes an instance to serialize a model with this serializer.
