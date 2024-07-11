@@ -412,3 +412,39 @@ class TestShardedFileHasher:
             sample_file, memory_hasher, start=0, end=2
         )
         assert hasher.digest_size == memory_hasher.digest_size
+
+
+class TestOpenedFileHasher:
+
+    def test_hash_of_known_file(self, sample_file, expected_digest):
+        with open(sample_file, "rb") as f:
+            hasher = file.OpenedFileHasher(f)
+            digest = hasher.compute()
+
+        assert digest.digest_hex == expected_digest
+
+    def test_default_digest_name(self, sample_file):
+        with open(sample_file, "rb") as f:
+            hasher = file.OpenedFileHasher(f)
+
+        assert hasher.digest_name == "file-fd-sha256"
+
+    def test_override_digest_name(self, sample_file):
+        with open(sample_file, "rb") as f:
+            hasher = file.OpenedFileHasher(f, digest_name_override="test-hash")
+
+        assert hasher.digest_name == "test-hash"
+
+    def test_digest_algorithm_is_digest_name(self, sample_file):
+        with open(sample_file, "rb") as f:
+            hasher = file.OpenedFileHasher(f)
+            digest = hasher.compute()
+
+        assert digest.algorithm == hasher.digest_name
+
+    def test_digest_size(self, sample_file):
+        with open(sample_file, "rb") as f:
+            hasher = file.OpenedFileHasher(f)
+
+        memory_hasher = memory.SHA256()
+        assert hasher.digest_size == memory_hasher.digest_size
