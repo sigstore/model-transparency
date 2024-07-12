@@ -87,7 +87,7 @@ def _get_first_file(path: pathlib.Path) -> pathlib.Path:
 class TestFilesSerializer:
 
     def _hasher_factory(self, path: pathlib.Path) -> file.FileHasher:
-        return file.FileHasher(path, memory.SHA256())
+        return file.SimpleFileHasher(path, memory.SHA256())
 
     def test_known_file(self, sample_model_file):
         serializer = itemized.FilesSerializer(self._hasher_factory)

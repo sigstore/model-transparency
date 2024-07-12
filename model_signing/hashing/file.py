@@ -14,11 +14,11 @@
 
 """Machinery for computing digests for a single file.
 
-Example usage for `FileHasher`:
+Example usage for `SimpleFileHasher`:
 ```python
 >>> with open("/tmp/file", "w") as f:
 ...     f.write("abcd")
->>> hasher = FileHasher("/tmp/file", SHA256())
+>>> hasher = SimpleFileHasher("/tmp/file", SHA256())
 >>> digest = hasher.compute()
 >>> digest.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
@@ -33,9 +33,22 @@ Example usage for `ShardedFileHasher`, reading only the second part of a file:
 >>> digest.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
 ```
+
+Example usage for `OpenedFileHasher`:
+```python
+>>> with open("/tmp/file", "w") as f:
+...     f.write("abcd")
+>>> with open("/tmp/file", "rb") as f:
+...     hasher = OpenedFileHasher(f)
+...     digest = hasher.compute()
+>>> digest.digest_hex
+'88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
+```
 """
 
+import hashlib
 import pathlib
+from typing import BinaryIO
 from typing_extensions import override
 
 from model_signing.hashing import hashing
@@ -44,19 +57,23 @@ from model_signing.hashing import hashing
 class FileHasher(hashing.HashEngine):
     """Generic file hash engine.
 
+    This class is intentionally empty (and abstract, via inheritance) to be used
+    only as a type annotation (to signal that API expects a hasher capable of
+    hashing files, instead of any `HashEngine` instance).
+    """
+
+    pass
+
+
+class SimpleFileHasher(FileHasher):
+    """Simple file hash engine that computes the digest iteratively.
+
     To compute the hash of a file, we read the file exactly once, including for
     very large files that don't fit in memory. Files are read in chunks and each
     chunk is passed to the `update` method of an inner
     `hashing.StreamingHashEngine`, instance. This ensures that the file digest
     will not change even if the chunk size changes. As such, we can dynamically
     determine an optimal value for the chunk argument.
-
-    The `digest_name()` method MUST record all parameters that influence the
-    hash output. For example, if a file is split into shards which are hashed
-    separately and the final digest value is computed by aggregating these
-    hashes, then the shard size must be given in the output string. However, for
-    simplicity, predefined names can be used to override the `digest_name()`
-    output.
     """
 
     def __init__(
@@ -93,8 +110,8 @@ class FileHasher(hashing.HashEngine):
         """Redefines the file to be hashed in `compute`."""
         self._file = file
 
-    @override
     @property
+    @override
     def digest_name(self) -> str:
         if self._digest_name_override is not None:
             return self._digest_name_override
@@ -118,14 +135,76 @@ class FileHasher(hashing.HashEngine):
         digest = self._content_hasher.compute()
         return hashing.Digest(self.digest_name, digest.digest_value)
 
-    @override
     @property
+    @override
     def digest_size(self) -> int:
         """The size, in bytes, of the digests produced by the engine."""
         return self._content_hasher.digest_size
 
 
-class ShardedFileHasher(FileHasher):
+class OpenedFileHasher(FileHasher):
+    """File hasher using `hashlib.file_digest` to operate on opened files.
+
+    This also supports other file-like objects opened for reading in binary
+    mode, e.g., BytesIO, SocketIO.
+
+    Since the `hashlib.file_digest` may bypass Python's I/O, this could be
+    faster than `SimpleFileHasher`, at the cost of having the file descriptor
+    maintained by the caller, according to `hashlib.file_digest` requirements.
+    """
+
+    def __init__(
+        self,
+        # https://github.com/python/typeshed/issues/2166
+        file_descriptor: BinaryIO,
+        *,
+        algorithm: str = "sha256",
+        digest_name_override: str | None = None,
+    ):
+        """Initializes an instance to hash a file with a specific algorithm.
+
+        Args:
+            file_descriptor: Descriptor to the opened file.
+            algorithm: a hashing algorithm that can be passed as argument to
+              `hashlib.new`. By default, this is "sha256".
+            digest_name_override: Optional string to allow overriding the
+              `digest_name` property to support shorter, standardized names.
+        """
+        self._fd = file_descriptor
+        self._algorithm = algorithm
+        self._digest_name_override = digest_name_override
+
+    def set_file_descriptor(
+        self,
+        # https://github.com/python/typeshed/issues/2166
+        file_descriptor: BinaryIO,
+    ) -> None:
+        """Redefines the file_descriptor to be hashed in `compute`."""
+        self._fd = file_descriptor
+
+    @property
+    @override
+    def digest_name(self) -> str:
+        if self._digest_name_override is not None:
+            return self._digest_name_override
+        return f"file-fd-{self._algorithm}"
+
+    @override
+    def compute(self) -> hashing.Digest:
+        # https://github.com/python/typeshed/issues/2166
+        # pytype: disable=wrong-arg-types
+        digest = hashlib.file_digest(self._fd, self._algorithm)
+        # pytype: enable=wrong-arg-types
+        return hashing.Digest(self.digest_name, digest.digest())
+
+    @property
+    @override
+    def digest_size(self) -> int:
+        """The size, in bytes, of the digests produced by the engine."""
+        return hashlib.new(self._algorithm).digest_size
+
+
+class ShardedFileHasher(SimpleFileHasher):
     """File hash engine that can be invoked in parallel.
 
     To efficiently support hashing large files, this class provides an ability
@@ -220,8 +299,8 @@ class ShardedFileHasher(FileHasher):
         digest = self._content_hasher.compute()
         return hashing.Digest(self.digest_name, digest.digest_value)
 
-    @override
     @property
+    @override
     def digest_name(self) -> str:
         if self._digest_name_override is not None:
             return self._digest_name_override

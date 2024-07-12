@@ -59,13 +59,13 @@ class SHA256(hashing.StreamingHashEngine):
     def compute(self) -> hashing.Digest:
         return hashing.Digest(self.digest_name, self._hasher.digest())
 
-    @override
     @property
+    @override
     def digest_name(self) -> str:
         return "sha256"
 
-    @override
     @property
+    @override
     def digest_size(self) -> int:
         return self._hasher.digest_size
 
@@ -93,12 +93,12 @@ class BLAKE2(hashing.StreamingHashEngine):
     def compute(self) -> hashing.Digest:
         return hashing.Digest(self.digest_name, self._hasher.digest())
 
-    @override
     @property
+    @override
     def digest_name(self) -> str:
         return "blake2b"
 
-    @override
     @property
+    @override
     def digest_size(self) -> int:
         return self._hasher.digest_size
