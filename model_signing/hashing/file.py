@@ -48,6 +48,7 @@ Example usage for `OpenedFileHasher`:
 
 import hashlib
 import pathlib
+from typing import BinaryIO
 from typing_extensions import override
 
 from model_signing.hashing import hashing
@@ -154,12 +155,13 @@ class OpenedFileHasher(FileHasher):
 
     def __init__(
         self,
-        file_descriptor: "hashlib._BytesIOLike | hashlib._FileDigestFileObj",
+        # https://github.com/python/typeshed/issues/2166
+        file_descriptor: BinaryIO,
         *,
         algorithm: str = "sha256",
         digest_name_override: str | None = None,
     ):
-        """Initializes an instance to hash a file with a specific `HashEngine`.
+        """Initializes an instance to hash a file with a specific algorithm.
 
         Args:
             file_descriptor: Descriptor to the opened file.
@@ -174,7 +176,8 @@ class OpenedFileHasher(FileHasher):
 
     def set_file_descriptor(
         self,
-        file_descriptor: "hashlib._BytesIOLike | hashlib._FileDigestFileObj",
+        # https://github.com/python/typeshed/issues/2166
+        file_descriptor: BinaryIO,
     ) -> None:
         """Redefines the file_descriptor to be hashed in `compute`."""
         self._fd = file_descriptor
@@ -188,7 +191,10 @@ class OpenedFileHasher(FileHasher):
 
     @override
     def compute(self) -> hashing.Digest:
+        # https://github.com/python/typeshed/issues/2166
+        # pytype: disable=wrong-arg-types
         digest = hashlib.file_digest(self._fd, self._algorithm)
+        # pytype: enable=wrong-arg-types
         return hashing.Digest(self.digest_name, digest.digest())
 
     @property
