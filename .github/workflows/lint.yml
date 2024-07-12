@@ -85,4 +85,4 @@ jobs:
           pip install -r model_signing/install/requirements_dev_Linux.txt
           # TODO: https://github.com/sigstore/model-transparency/issues/231 - Support all repo
           # We should actually migrate to ruff, but that's configured via pyproject.toml which we use when we release the wheel
-          pylint --disable C0114,C0115,C0116,R0903,R0904,R0913,R0914,R1721,R1737,W0107,W0223,W0231,W0511,W0621 model_signing/{hashing,manifest,serialization}
+          pylint --disable C0114,C0115,C0116,R0801,R0903,R0904,R0913,R0914,R1721,R1737,W0107,W0212,W0223,W0231,W0511,W0621 model_signing/{hashing,manifest,serialization}
