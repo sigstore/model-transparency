@@ -56,15 +56,9 @@ from model_signing.hashing import hashing
 class FileHasher(hashing.HashEngine):
     """Generic file hash engine.
 
-    The `digest_name()` method MUST record all parameters that influence the
-    hash output. For example, if a file is split into shards which are hashed
-    separately and the final digest value is computed by aggregating these
-    hashes, then the shard size must be given in the output string. However, for
-    simplicity, predefined names can be used to override the `digest_name()`
-    output.
-
     This class is intentionally empty (and abstract, via inheritance) to be used
-    only as a type annotation.
+    only as a type annotation (to signal that API expects a hasher capable of
+    hashing files, instead of any `HashEngine` instance).
     """
 
     pass

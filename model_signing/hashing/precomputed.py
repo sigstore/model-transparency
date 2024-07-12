@@ -45,13 +45,13 @@ class PrecomputedDigest(hashing.HashEngine):
     def compute(self) -> hashing.Digest:
         return hashing.Digest(self._digest_type, self._digest_value)
 
-    @override
     @property
+    @override
     def digest_name(self) -> str:
         return self._digest_type
 
-    @override
     @property
+    @override
     def digest_size(self) -> int:
         """The size, in bytes, of the digests produced by the engine."""
         return len(self._digest_value)
