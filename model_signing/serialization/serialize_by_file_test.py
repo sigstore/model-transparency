@@ -30,7 +30,9 @@ pytest_plugins = ("model_signing.serialization.fixtures",)
 class TestDFSSerializer:
 
     def test_known_file(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         expected = (
             "3aab065c7181a173b5dd9e9d32a9f79923440b413be1e1ffcdba26a7365f719b"
@@ -41,7 +43,9 @@ class TestDFSSerializer:
         assert manifest.digest.digest_hex == expected
 
     def test_file_hash_is_same_as_hash_of_content(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
 
         manifest = serializer.serialize(sample_model_file)
@@ -50,7 +54,9 @@ class TestDFSSerializer:
         assert manifest.digest.digest_hex == digest.digest_hex
 
     def test_file_manifest_unchanged_when_model_moved(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_file)
 
@@ -61,7 +67,9 @@ class TestDFSSerializer:
         assert manifest == new_manifest
 
     def test_file_manifest_changes_if_content_changes(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_file)
 
@@ -73,7 +81,9 @@ class TestDFSSerializer:
         assert manifest.digest.digest_value != new_manifest.digest.digest_value
 
     def test_directory_model_with_only_known_file(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest_file = serializer.serialize(sample_model_file)
         expected = (
@@ -88,7 +98,9 @@ class TestDFSSerializer:
         assert manifest.digest.digest_hex != content_digest.digest_hex
 
     def test_known_folder(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         expected = (
             "310af4fc4c52bf63cd1687c67076ed3e56bc5480a1b151539e6c550506ae0301"
@@ -101,7 +113,9 @@ class TestDFSSerializer:
     def test_folder_model_hash_is_same_if_model_is_moved(
         self, sample_model_folder
     ):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_folder)
 
@@ -112,7 +126,9 @@ class TestDFSSerializer:
         assert manifest == new_manifest
 
     def test_folder_model_empty_folder_gets_included(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_folder)
 
@@ -124,7 +140,9 @@ class TestDFSSerializer:
         assert manifest != new_manifest
 
     def test_folder_model_empty_file_gets_included(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_folder)
 
@@ -136,7 +154,9 @@ class TestDFSSerializer:
         assert manifest != new_manifest
 
     def test_folder_model_rename_file(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_folder)
 
@@ -149,7 +169,9 @@ class TestDFSSerializer:
         assert manifest != new_manifest
 
     def test_folder_model_rename_dir(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_folder)
 
@@ -161,7 +183,9 @@ class TestDFSSerializer:
         assert manifest != new_manifest
 
     def test_folder_model_replace_file_empty_folder(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_folder)
 
@@ -174,7 +198,9 @@ class TestDFSSerializer:
         assert manifest != new_manifest
 
     def test_folder_model_change_file(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_folder)
 
@@ -186,7 +212,9 @@ class TestDFSSerializer:
         assert manifest != new_manifest
 
     def test_deep_folder(self, deep_model_folder):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         expected = (
             "36eed9389ebbbe15ac15d33c81dabb60ccb7c945ff641d78f59db9aa9dc47ac9"
@@ -197,7 +225,9 @@ class TestDFSSerializer:
         assert manifest.digest.digest_hex == expected
 
     def test_empty_file(self, empty_model_file):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         expected = (
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -208,7 +238,9 @@ class TestDFSSerializer:
         assert manifest.digest.digest_hex == expected
 
     def test_empty_folder(self, empty_model_folder):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         expected = (
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -219,7 +251,9 @@ class TestDFSSerializer:
         assert manifest.digest.digest_hex == expected
 
     def test_directory_model_with_only_empty_file(self, empty_model_file):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         expected = (
             "8a587b2129fdecfbea38d5152b626299f5994d9b99d36b321aea356f69b38c61"
@@ -232,7 +266,9 @@ class TestDFSSerializer:
     def test_empty_folder_hashes_differently_than_empty_file(
         self, empty_model_file, empty_model_folder
     ):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
 
         folder_manifest = serializer.serialize(empty_model_folder)
@@ -243,7 +279,9 @@ class TestDFSSerializer:
     def test_model_with_empty_folder_hashes_differently_than_with_empty_file(
         self, sample_model_folder
     ):
-        file_hasher = file.SimpleFileHasher(test_support.UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
 
         # Compute digest of model with empty folder
@@ -294,7 +332,9 @@ class TestFilesSerializer:
 
         sample_model_file.write_bytes(test_support.ANOTHER_MODEL_TEXT)
         new_manifest = serializer.serialize(sample_model_file)
-        new_digests = set(test_support.extract_digests_from_manifest(new_manifest))
+        new_digests = set(
+            test_support.extract_digests_from_manifest(new_manifest)
+        )
 
         assert manifest != new_manifest
         assert digests != new_digests
@@ -303,7 +343,9 @@ class TestFilesSerializer:
     def test_directory_model_with_only_known_file(self, sample_model_file):
         serializer = serialize_by_file.FilesSerializer(self._hasher_factory)
         manifest_file = serializer.serialize(sample_model_file)
-        digests_file = set(test_support.extract_digests_from_manifest(manifest_file))
+        digests_file = set(
+            test_support.extract_digests_from_manifest(manifest_file)
+        )
 
         manifest = serializer.serialize(sample_model_file.parent)
         digests = set(test_support.extract_digests_from_manifest(manifest))

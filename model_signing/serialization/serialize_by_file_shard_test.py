@@ -319,7 +319,6 @@ class TestShardedDFSSerializer:
         assert manifest1.digest.digest_value != manifest2.digest.digest_value
 
 
-
 def _extract_shard_items_from_manifest(
     manifest: manifest.ShardLevelManifest,
 ) -> dict[tuple[str, int, int], str]:
@@ -386,7 +385,9 @@ class TestShardedFilesSerializer:
 
         sample_model_file.write_bytes(test_support.ANOTHER_MODEL_TEXT)
         new_manifest = serializer.serialize(sample_model_file)
-        new_digests = set(test_support.extract_digests_from_manifest(new_manifest))
+        new_digests = set(
+            test_support.extract_digests_from_manifest(new_manifest)
+        )
 
         assert manifest != new_manifest
         assert len(digests) == len(new_digests)
@@ -397,7 +398,9 @@ class TestShardedFilesSerializer:
             self._hasher_factory
         )
         manifest_file = serializer.serialize(sample_model_file)
-        digests_file = set(test_support.extract_digests_from_manifest(manifest_file))
+        digests_file = set(
+            test_support.extract_digests_from_manifest(manifest_file)
+        )
 
         manifest = serializer.serialize(sample_model_file.parent)
         digests = set(test_support.extract_digests_from_manifest(manifest))
