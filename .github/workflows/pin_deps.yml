@@ -113,5 +113,7 @@ jobs:
       with:
         title: "Update frozen python dependencies"
         commit-message: "Bump frozen dependencies"
+        committer: "Mihai Maruseac (automated) <mihaimaruseac@google.com>"
+        author: "Mihai Maruseac (automated) <mihaimaruseac@google.com>"
         signoff: true
         delete-branch: true
