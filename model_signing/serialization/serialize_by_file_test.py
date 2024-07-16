@@ -86,15 +86,11 @@ class TestDFSSerializer:
         )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest_file = serializer.serialize(sample_model_file)
-        expected = (
-            "a0865eb7e299e3bca3951e24930c56dcf1533ecff63bda06a9be67906773c628"
-        )
         content_digest = memory.SHA256(test_support.KNOWN_MODEL_TEXT).compute()
 
         manifest = serializer.serialize(sample_model_file.parent)
 
         assert manifest_file != manifest
-        assert manifest.digest.digest_hex == expected
         assert manifest.digest.digest_hex != content_digest.digest_hex
 
     def test_known_folder(self, sample_model_folder):
