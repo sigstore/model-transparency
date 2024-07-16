@@ -4,9 +4,9 @@
 #
 #    pip-compile --generate-hashes --output-file=model_signing/install/requirements_dev_Darwin.txt --strip-extras model_signing/install/requirements_dev.in
 #
-astroid==3.2.2 \
-    --hash=sha256:8ead48e31b92b2e217b6c9733a21afafe479d52d6e164dd25fb1a770c7c3cf94 \
-    --hash=sha256:e8a0083b4bb28fcffb6207a3bfc9e5d0a68be951dd7e336d5dcf639c682388c0
+astroid==3.2.3 \
+    --hash=sha256:3eae9ea67c11c858cdd2c91337d2e816bd019ac897ca07d7b346ac10105fceb3 \
+    --hash=sha256:7099b5a60985529d8d46858befa103b82d0d05a5a5e8b816b5303ed96075e1d9
     # via pylint
 attrs==23.2.0 \
     --hash=sha256:935dc3b529c262f6cf76e50877d35a4bd3c1de194fd41f47a2b7ae8f19971f30 \
@@ -186,17 +186,17 @@ ninja==1.11.1.1 \
     --hash=sha256:ecf80cf5afd09f14dcceff28cb3f11dc90fb97c999c89307aea435889cb66877 \
     --hash=sha256:fa2ba9d74acfdfbfbcf06fad1b8282de8a7a8c481d9dee45c859a8c93fcc1082
     # via pytype
-pycnite==2024.7.9 \
-    --hash=sha256:aece401e70e8b6bf369b3b33867c79a1b8bf584e68da9790de2f821503cebcf8 \
-    --hash=sha256:f07bea393ee4d5820013fae66db6cc091e8dc01fd3f6b367595108752f264872
 platformdirs==4.2.2 \
     --hash=sha256:2d7a1657e36a80ea911db832a8a6ece5ee53d8de21edd5cc5879af6530b1bfee \
     --hash=sha256:38b7b51f512eed9e84a22788b4bce1de17c0adb134d6becb09836e37d8654cd3
     # via pylint
+pycnite==2024.7.9 \
+    --hash=sha256:aece401e70e8b6bf369b3b33867c79a1b8bf584e68da9790de2f821503cebcf8 \
+    --hash=sha256:f07bea393ee4d5820013fae66db6cc091e8dc01fd3f6b367595108752f264872
     # via pytype
-pydot==2.0.0 \
-    --hash=sha256:408a47913ea7bd5d2d34b274144880c1310c4aee901f353cf21fe2e526a4ea28 \
-    --hash=sha256:60246af215123fa062f21cd791be67dda23a6f280df09f68919e637a1e4f3235
+pydot==3.0.0 \
+    --hash=sha256:4d7e680af1f0b62b3dc7dc0ad5bed6c764add94cb1fc932c5ce2567639d2e712 \
+    --hash=sha256:764640e04f7560dbf0fdfae25f8b6ab59f8c0cd93351d552d779b00d70885411
     # via pytype
 pylint==3.2.5 \
     --hash=sha256:32cd6c042b5004b8e857d727708720c54a676d1e22917cf1a2df9b4d4868abd6 \
@@ -282,9 +282,9 @@ toml==0.10.2 \
     --hash=sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b \
     --hash=sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f
     # via pytype
-tomlkit==0.12.5 \
-    --hash=sha256:af914f5a9c59ed9d0762c7b64d3b5d5df007448eb9cd2edc8a46b1eafead172f \
-    --hash=sha256:eef34fba39834d4d6b73c9ba7f3e4d1c417a4e56f89a7e96e090dd0d24b8fb3c
+tomlkit==0.13.0 \
+    --hash=sha256:08ad192699734149f5b97b45f1f18dad7eb1b6d16bc72ad0c2335772650d7b72 \
+    --hash=sha256:7075d3042d03b80f603482d69bf0c8f345c2b30e41699fd8883227f89972b264
     # via pylint
 typing-extensions==4.12.2 \
     --hash=sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d \
