@@ -16,14 +16,14 @@
 
 import pytest
 
-from model_signing.serialization import fixtures_constants
+from model_signing.serialization import test_support
 
 
 # Note: Don't make fixtures with global scope as we are altering the models!
 @pytest.fixture
 def sample_model_file(tmp_path_factory):
     file = tmp_path_factory.mktemp("model") / "file"
-    file.write_bytes(fixtures_constants.KNOWN_MODEL_TEXT)
+    file.write_bytes(test_support.KNOWN_MODEL_TEXT)
     return file
 
 

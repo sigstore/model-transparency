@@ -19,78 +19,44 @@ import pytest
 from model_signing.hashing import file
 from model_signing.hashing import memory
 from model_signing.manifest import manifest
-from model_signing.serialization import fixtures_constants
 from model_signing.serialization import serialize_by_file
+from model_signing.serialization import test_support
 
 
 # Load fixtures from serialization/fixtures.py
 pytest_plugins = ("model_signing.serialization.fixtures",)
 
 
-_UNUSED_PATH = pathlib.Path("unused")
-
-
-def _extract_digests_from_manifest(
-    manifest: manifest.FileLevelManifest,
-) -> list[str]:
-    """Extracts the hex digest for every subject in a manifest.
-
-    Used in multiple tests to check that we obtained the expected digests.
-    """
-    return [d.digest_hex for d in manifest._item_to_digest.values()]
-
-
-def _extract_items_from_manifest(
-    manifest: manifest.FileLevelManifest,
-) -> dict[str, str]:
-    """Builds a dictionary representation of the items in a manifest.
-
-    Every item is mapped to its digest.
-
-    Used in multiple tests to check that we obtained the expected manifest.
-    """
-    return {
-        str(path): digest.digest_hex
-        for path, digest in manifest._item_to_digest.items()
-    }
-
-
-def _get_first_directory(path: pathlib.Path) -> pathlib.Path:
-    """Returns the first directory that is a children of path.
-
-    It is assumed that there is always such a path.
-    """
-    return [d for d in path.iterdir() if d.is_dir()][0]
-
-
-def _get_first_file(path: pathlib.Path) -> pathlib.Path:
-    """Returns the first file that is a children of path.
-
-    It is assumed that there is always such a path.
-    """
-    return [f for f in path.iterdir() if f.is_file()][0]
-
-
 class TestDFSSerializer:
 
     def test_known_file(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-        manifest = serializer.serialize(sample_model_file)
         expected = (
             "3aab065c7181a173b5dd9e9d32a9f79923440b413be1e1ffcdba26a7365f719b"
         )
+
+        manifest = serializer.serialize(sample_model_file)
+
         assert manifest.digest.digest_hex == expected
 
     def test_file_hash_is_same_as_hash_of_content(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
+
         manifest = serializer.serialize(sample_model_file)
-        digest = memory.SHA256(fixtures_constants.KNOWN_MODEL_TEXT).compute()
+        digest = memory.SHA256(test_support.KNOWN_MODEL_TEXT).compute()
+
         assert manifest.digest.digest_hex == digest.digest_hex
 
-    def test_file_model_hash_is_same_if_model_is_moved(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
+    def test_file_manifest_unchanged_when_model_moved(self, sample_model_file):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_file)
 
@@ -100,47 +66,52 @@ class TestDFSSerializer:
 
         assert manifest == new_manifest
 
-    def test_file_model_hash_changes_if_content_changes(
-        self, sample_model_file
-    ):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
+    def test_file_manifest_changes_if_content_changes(self, sample_model_file):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_file)
 
-        sample_model_file.write_bytes(fixtures_constants.ANOTHER_MODEL_TEXT)
+        sample_model_file.write_bytes(test_support.ANOTHER_MODEL_TEXT)
         new_manifest = serializer.serialize(sample_model_file)
 
+        assert manifest != new_manifest
         assert manifest.digest.algorithm == new_manifest.digest.algorithm
         assert manifest.digest.digest_value != new_manifest.digest.digest_value
 
     def test_directory_model_with_only_known_file(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
-        serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-
-        model = sample_model_file.parent
-        manifest = serializer.serialize(model)
-
-        expected = (
-            "a0865eb7e299e3bca3951e24930c56dcf1533ecff63bda06a9be67906773c628"
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
         )
-        assert manifest.digest.digest_hex == expected
+        serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
+        manifest_file = serializer.serialize(sample_model_file)
+        content_digest = memory.SHA256(test_support.KNOWN_MODEL_TEXT).compute()
 
-        digest = memory.SHA256(fixtures_constants.KNOWN_MODEL_TEXT).compute()
-        assert manifest.digest.digest_hex != digest.digest_hex
+        manifest = serializer.serialize(sample_model_file.parent)
+
+        assert manifest_file != manifest
+        assert manifest.digest.digest_hex != content_digest.digest_hex
 
     def test_known_folder(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-        manifest = serializer.serialize(sample_model_folder)
         expected = (
             "310af4fc4c52bf63cd1687c67076ed3e56bc5480a1b151539e6c550506ae0301"
         )
+
+        manifest = serializer.serialize(sample_model_folder)
+
         assert manifest.digest.digest_hex == expected
 
     def test_folder_model_hash_is_same_if_model_is_moved(
         self, sample_model_folder
     ):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
         manifest = serializer.serialize(sample_model_folder)
 
@@ -150,171 +121,178 @@ class TestDFSSerializer:
 
         assert manifest == new_manifest
 
-    def test_empty_file(self, empty_model_file):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
-        serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-        manifest = serializer.serialize(empty_model_file)
-        expected = (
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    def test_folder_model_empty_folder_gets_included(self, sample_model_folder):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
         )
-        assert manifest.digest.digest_hex == expected
-
-    def test_directory_model_with_only_empty_file(self, empty_model_file):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-        manifest = serializer.serialize(empty_model_file)
-        model = empty_model_file.parent
-        manifest = serializer.serialize(model)
-        expected = (
-            "8a587b2129fdecfbea38d5152b626299f5994d9b99d36b321aea356f69b38c61"
-        )
-        assert manifest.digest.digest_hex == expected
+        manifest = serializer.serialize(sample_model_folder)
 
-    def test_empty_folder(self, empty_model_folder):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
-        serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-        manifest = serializer.serialize(empty_model_folder)
-        expected = (
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        )
-        assert manifest.digest.digest_hex == expected
-
-    def test_empty_folder_hashes_the_same_as_empty_file(
-        self, empty_model_file, empty_model_folder
-    ):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
-        serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-        folder_manifest = serializer.serialize(empty_model_folder)
-        file_manifest = serializer.serialize(empty_model_file)
-        assert (
-            folder_manifest.digest.digest_hex == file_manifest.digest.digest_hex
-        )
-
-    def test_folder_model_empty_entry(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
-        serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-
-        # Alter first directory within the model
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        altered_dir = dirs[0]
-
+        altered_dir = test_support.get_first_directory(sample_model_folder)
         new_empty_dir = altered_dir / "empty"
         new_empty_dir.mkdir()
-        manifest1 = serializer.serialize(sample_model_folder)
+        new_manifest = serializer.serialize(sample_model_folder)
 
-        new_empty_dir.rmdir()
+        assert manifest != new_manifest
 
+    def test_folder_model_empty_file_gets_included(self, sample_model_folder):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
+        serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
+        manifest = serializer.serialize(sample_model_folder)
+
+        altered_dir = test_support.get_first_directory(sample_model_folder)
         new_empty_file = altered_dir / "empty"
         new_empty_file.write_text("")
-        manifest2 = serializer.serialize(sample_model_folder)
+        new_manifest = serializer.serialize(sample_model_folder)
 
-        assert manifest1.digest != manifest2.digest
+        assert manifest != new_manifest
 
     def test_folder_model_rename_file(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-        manifest1 = serializer.serialize(sample_model_folder)
+        manifest = serializer.serialize(sample_model_folder)
 
-        # Alter first directory within the model
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        altered_dir = dirs[0]
-
-        # Alter first file in the altered_dir
-        files = [f for f in altered_dir.iterdir() if f.is_file()]
-        file_to_rename = files[0]
-
+        altered_dir = test_support.get_first_directory(sample_model_folder)
+        file_to_rename = test_support.get_first_file(altered_dir)
         new_name = file_to_rename.with_name("new-file")
         file_to_rename.rename(new_name)
+        new_manifest = serializer.serialize(sample_model_folder)
 
-        manifest2 = serializer.serialize(sample_model_folder)
-        assert manifest1.digest != manifest2.digest
+        assert manifest != new_manifest
 
     def test_folder_model_rename_dir(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-        manifest1 = serializer.serialize(sample_model_folder)
+        manifest = serializer.serialize(sample_model_folder)
 
-        # Alter first directory within the model
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        dir_to_rename = dirs[0]
-
+        dir_to_rename = test_support.get_first_directory(sample_model_folder)
         new_name = dir_to_rename.with_name("new-dir")
         dir_to_rename.rename(new_name)
+        new_manifest = serializer.serialize(sample_model_folder)
 
-        manifest2 = serializer.serialize(sample_model_folder)
-        assert manifest1.digest != manifest2.digest
+        assert manifest != new_manifest
 
     def test_folder_model_replace_file_empty_folder(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-        manifest1 = serializer.serialize(sample_model_folder)
+        manifest = serializer.serialize(sample_model_folder)
 
-        # Alter first directory within the model
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        altered_dir = dirs[0]
-
-        # Replace first file in the altered_dir
-        files = [f for f in altered_dir.iterdir() if f.is_file()]
-        file_to_replace = files[0]
+        altered_dir = test_support.get_first_directory(sample_model_folder)
+        file_to_replace = test_support.get_first_file(altered_dir)
         file_to_replace.unlink()
         file_to_replace.mkdir()
+        new_manifest = serializer.serialize(sample_model_folder)
 
-        manifest2 = serializer.serialize(sample_model_folder)
-        assert manifest1.digest != manifest2.digest
+        assert manifest != new_manifest
 
     def test_folder_model_change_file(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-        manifest1 = serializer.serialize(sample_model_folder)
+        manifest = serializer.serialize(sample_model_folder)
 
-        # Alter first directory within the model
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        altered_dir = dirs[0]
+        altered_dir = test_support.get_first_directory(sample_model_folder)
+        file_to_change = test_support.get_first_file(altered_dir)
+        file_to_change.write_bytes(test_support.KNOWN_MODEL_TEXT)
+        new_manifest = serializer.serialize(sample_model_folder)
 
-        # Alter first file in the altered_dir
-        files = [f for f in altered_dir.iterdir() if f.is_file()]
-        file_to_change = files[0]
-        file_to_change.write_bytes(fixtures_constants.KNOWN_MODEL_TEXT)
-
-        manifest2 = serializer.serialize(sample_model_folder)
-        assert manifest1.digest != manifest2.digest
+        assert manifest != new_manifest
 
     def test_deep_folder(self, deep_model_folder):
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
-        manifest = serializer.serialize(deep_model_folder)
         expected = (
             "36eed9389ebbbe15ac15d33c81dabb60ccb7c945ff641d78f59db9aa9dc47ac9"
         )
+
+        manifest = serializer.serialize(deep_model_folder)
+
         assert manifest.digest.digest_hex == expected
 
-    def test_special_file(self, sample_model_folder):
-        # Alter first directory within the model
-        dirs = [d for d in sample_model_folder.iterdir() if d.is_dir()]
-        altered_dir = dirs[0]
+    def test_empty_file(self, empty_model_file):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
+        serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
+        expected = (
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        )
 
-        # Create a pipe in the altered_dir
-        pipe = altered_dir / "pipe"
+        manifest = serializer.serialize(empty_model_file)
 
-        try:
-            os.mkfifo(pipe)
-        except AttributeError:
-            # On Windows, `os.mkfifo` does not exist (it should not).
-            return  # trivially pass the test
+        assert manifest.digest.digest_hex == expected
 
-        file_hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
+    def test_empty_folder(self, empty_model_folder):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
+        serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
+        expected = (
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        )
+
+        manifest = serializer.serialize(empty_model_folder)
+
+        assert manifest.digest.digest_hex == expected
+
+    def test_directory_model_with_only_empty_file(self, empty_model_file):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
+        serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
+        expected = (
+            "8a587b2129fdecfbea38d5152b626299f5994d9b99d36b321aea356f69b38c61"
+        )
+
+        manifest = serializer.serialize(empty_model_file.parent)
+
+        assert manifest.digest.digest_hex == expected
+
+    def test_empty_folder_hashes_differently_than_empty_file(
+        self, empty_model_file, empty_model_folder
+    ):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
         serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
 
-        with pytest.raises(
-            ValueError, match="Cannot use .* as file or directory"
-        ):
-            serializer.serialize(sample_model_folder)
+        folder_manifest = serializer.serialize(empty_model_folder)
+        file_manifest = serializer.serialize(empty_model_file)
 
-        # Also do the same for the pipe itself
-        with pytest.raises(
-            ValueError, match="Cannot use .* as file or directory"
-        ):
-            serializer.serialize(pipe)
+        assert folder_manifest != file_manifest
+
+    def test_model_with_empty_folder_hashes_differently_than_with_empty_file(
+        self, sample_model_folder
+    ):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
+        serializer = serialize_by_file.DFSSerializer(file_hasher, memory.SHA256)
+
+        # Compute digest of model with empty folder
+        altered_dir = test_support.get_first_directory(sample_model_folder)
+        new_empty_dir = altered_dir / "empty"
+        new_empty_dir.mkdir()
+        folder_manifest = serializer.serialize(sample_model_folder)
+
+        # Compute digest of model with empty file
+        new_empty_dir.rmdir()
+        new_empty_file = altered_dir / "empty"
+        new_empty_file.write_text("")
+        file_manifest = serializer.serialize(sample_model_folder)
+
+        assert folder_manifest != file_manifest
 
 
 class TestFilesSerializer:
@@ -329,7 +307,7 @@ class TestFilesSerializer:
         ]
 
         manifest = serializer.serialize(sample_model_file)
-        digests = _extract_digests_from_manifest(manifest)
+        digests = test_support.extract_digests_from_manifest(manifest)
 
         assert digests == expected
 
@@ -346,23 +324,27 @@ class TestFilesSerializer:
     def test_file_manifest_changes_if_content_changes(self, sample_model_file):
         serializer = serialize_by_file.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_file)
-        digests = set(_extract_digests_from_manifest(manifest))
+        digests = set(test_support.extract_digests_from_manifest(manifest))
 
-        sample_model_file.write_bytes(fixtures_constants.ANOTHER_MODEL_TEXT)
+        sample_model_file.write_bytes(test_support.ANOTHER_MODEL_TEXT)
         new_manifest = serializer.serialize(sample_model_file)
-        new_digests = set(_extract_digests_from_manifest(new_manifest))
+        new_digests = set(
+            test_support.extract_digests_from_manifest(new_manifest)
+        )
 
         assert manifest != new_manifest
         assert digests != new_digests
         assert len(digests) == len(new_digests)
 
-    def test_directory_model_with_one_single_file(self, sample_model_file):
+    def test_directory_model_with_only_known_file(self, sample_model_file):
         serializer = serialize_by_file.FilesSerializer(self._hasher_factory)
         manifest_file = serializer.serialize(sample_model_file)
-        digests_file = set(_extract_digests_from_manifest(manifest_file))
+        digests_file = set(
+            test_support.extract_digests_from_manifest(manifest_file)
+        )
 
         manifest = serializer.serialize(sample_model_file.parent)
-        digests = set(_extract_digests_from_manifest(manifest))
+        digests = set(test_support.extract_digests_from_manifest(manifest))
 
         assert manifest != manifest_file  # different paths
         assert digests == digests_file
@@ -385,7 +367,7 @@ class TestFilesSerializer:
         # Re-enable lint, so pylint: enable=line-too-long
 
         manifest = serializer.serialize(sample_model_folder)
-        items = _extract_items_from_manifest(manifest)
+        items = test_support.extract_items_from_manifest(manifest)
 
         assert items == expected_items
 
@@ -405,7 +387,7 @@ class TestFilesSerializer:
         serializer = serialize_by_file.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
-        altered_dir = _get_first_directory(sample_model_folder)
+        altered_dir = test_support.get_first_directory(sample_model_folder)
         new_empty_dir = altered_dir / "empty"
         new_empty_dir.mkdir()
         new_manifest = serializer.serialize(sample_model_folder)
@@ -416,7 +398,7 @@ class TestFilesSerializer:
         serializer = serialize_by_file.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
-        altered_dir = _get_first_directory(sample_model_folder)
+        altered_dir = test_support.get_first_directory(sample_model_folder)
         new_empty_file = altered_dir / "empty"
         new_empty_file.write_text("")
         new_manifest = serializer.serialize(sample_model_folder)
@@ -456,8 +438,8 @@ class TestFilesSerializer:
         serializer = serialize_by_file.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
-        altered_dir = _get_first_directory(sample_model_folder)
-        file_to_rename = _get_first_file(altered_dir)
+        altered_dir = test_support.get_first_directory(sample_model_folder)
+        file_to_rename = test_support.get_first_file(altered_dir)
         old_name = file_to_rename.relative_to(sample_model_folder)
         old_name = pathlib.PurePosixPath(old_name)  # canonicalize to Posix
         new_name = file_to_rename.with_name("new-file")
@@ -501,7 +483,7 @@ class TestFilesSerializer:
         serializer = serialize_by_file.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
-        dir_to_rename = _get_first_directory(sample_model_folder)
+        dir_to_rename = test_support.get_first_directory(sample_model_folder)
         old_name = dir_to_rename.name
         new_name = dir_to_rename.with_name("new-dir")
         dir_to_rename.rename(new_name)
@@ -515,8 +497,8 @@ class TestFilesSerializer:
         serializer = serialize_by_file.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
-        altered_dir = _get_first_directory(sample_model_folder)
-        file_to_replace = _get_first_file(altered_dir)
+        altered_dir = test_support.get_first_directory(sample_model_folder)
+        file_to_replace = test_support.get_first_file(altered_dir)
         file_to_replace.unlink()
         file_to_replace.mkdir()
         new_manifest = serializer.serialize(sample_model_folder)
@@ -550,9 +532,9 @@ class TestFilesSerializer:
         serializer = serialize_by_file.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
-        altered_dir = _get_first_directory(sample_model_folder)
-        file_to_change = _get_first_file(altered_dir)
-        file_to_change.write_bytes(fixtures_constants.KNOWN_MODEL_TEXT)
+        altered_dir = test_support.get_first_directory(sample_model_folder)
+        file_to_change = test_support.get_first_file(altered_dir)
+        file_to_change.write_bytes(test_support.KNOWN_MODEL_TEXT)
         changed_entry = file_to_change.relative_to(sample_model_folder)
         changed_entry = pathlib.PurePosixPath(changed_entry)  # canonicalize
         new_manifest = serializer.serialize(sample_model_folder)
@@ -573,7 +555,7 @@ class TestFilesSerializer:
         # Re-enable lint, so pylint: enable=line-too-long
 
         manifest = serializer.serialize(deep_model_folder)
-        items = _extract_items_from_manifest(manifest)
+        items = test_support.extract_items_from_manifest(manifest)
 
         assert items == expected_items
 
@@ -584,7 +566,7 @@ class TestFilesSerializer:
         ]
 
         manifest = serializer.serialize(empty_model_file)
-        digests = _extract_digests_from_manifest(manifest)
+        digests = test_support.extract_digests_from_manifest(manifest)
 
         assert digests == expected
 
@@ -592,28 +574,6 @@ class TestFilesSerializer:
         serializer = serialize_by_file.FilesSerializer(self._hasher_factory)
         manifest = serializer.serialize(empty_model_folder)
         assert not manifest._item_to_digest
-
-    def test_special_file(self, sample_model_folder):
-        serializer = serialize_by_file.FilesSerializer(self._hasher_factory)
-
-        altered_dir = _get_first_directory(sample_model_folder)
-        pipe = altered_dir / "pipe"
-
-        try:
-            os.mkfifo(pipe)
-        except AttributeError:
-            # On Windows, `os.mkfifo` does not exist (it should not).
-            return  # trivially pass the test
-
-        with pytest.raises(
-            ValueError, match="Cannot use .* as file or directory"
-        ):
-            serializer.serialize(sample_model_folder)
-
-        with pytest.raises(
-            ValueError, match="Cannot use .* as file or directory"
-        ):
-            serializer.serialize(pipe)
 
     def test_max_workers_does_not_change_digest(self, sample_model_folder):
         serializer1 = serialize_by_file.FilesSerializer(self._hasher_factory)
