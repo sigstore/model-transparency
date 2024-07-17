@@ -220,9 +220,9 @@ class _FileDigestTree:
 
         # Handle empty model
         if not path_to_node:
-            return cls(pathlib.PurePath())
+            return cls(pathlib.PurePosixPath())
 
-        return path_to_node[pathlib.PurePath()]
+        return path_to_node[pathlib.PurePosixPath()]
 
     def get_digest(
         self,
