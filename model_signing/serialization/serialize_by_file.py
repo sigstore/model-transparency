@@ -196,10 +196,15 @@ class _FileDigestTree:
         """Builds a node in the digest tree.
 
         Don't call this from outside of the class. Instead, use `build_tree`.
+
+        Args:
+            path: Path included in the node.
+            digest: Optional hash of the path. Files must have a digest,
+              directories never have one.
         """
         self._path = path
         self._digest = digest
-        self._children: set[_FileDigestTree] = set()
+        self._children: list[_FileDigestTree] = []
 
     @classmethod
     def build_tree(
@@ -212,10 +217,14 @@ class _FileDigestTree:
             file = file_item.path
             node = cls(file, file_item.digest)
             for parent in file.parents:
-                if parent not in path_to_node:
-                    path_to_node[parent] = cls(parent)
-                parent_node = path_to_node[parent]
-                parent_node._children.add(node)
+                if parent in path_to_node:
+                    parent_node = path_to_node[parent]
+                    parent_node._children.append(node)
+                    break  # everything else already exists
+
+                parent_node = cls(parent)  # no digest for directories
+                parent_node._children.append(node)
+                path_to_node[parent] = parent_node
                 node = parent_node
 
         # Handle empty model
