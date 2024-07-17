@@ -185,9 +185,7 @@ class _FileDigestTree:
 
     Every leaf in the tree is a file, paired with its digest. Every intermediate
     node represents a directory. We need to pair every directory with a digest,
-    in a top-down fashion.
-
-    Every internal node has a list of children, sorted alphabetically.
+    in a bottom-up fashion.
     """
 
     def __init__(
@@ -211,7 +209,7 @@ class _FileDigestTree:
         cls, items: Iterable[manifest.FileManifestItem]
     ) -> "_FileDigestTree":
         """Builds a tree out of the sequence of manifest items."""
-        path_to_node = {}
+        path_to_node: dict[pathlib.PurePath, _FileDigestTree] = {}
 
         for file_item in items:
             file = file_item.path
