@@ -23,10 +23,6 @@ from model_signing.serialization import serialize_by_file
 from model_signing.serialization import test_support
 
 
-# Load fixtures from serialization/fixtures.py
-pytest_plugins = ("model_signing.serialization.fixtures",)
-
-
 class TestDFSSerializer:
 
     def test_known_file(self, sample_model_file):

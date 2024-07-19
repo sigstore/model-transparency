@@ -21,10 +21,6 @@ from model_signing.serialization import serialize_by_file_shard
 from model_signing.serialization import test_support
 
 
-# Load fixtures from serialization/fixtures.py
-pytest_plugins = ("model_signing.serialization.fixtures",)
-
-
 class TestShardedDFSSerializer:
 
     def _hasher_factory(
