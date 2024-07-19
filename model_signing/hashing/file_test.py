@@ -27,21 +27,21 @@ _SHARD_SIZE = len(_HEADER)
 _UNUSED_PATH = pathlib.Path("unused")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def sample_file(tmp_path_factory):
     file_path = tmp_path_factory.mktemp("dir") / "text.txt"
     file_path.write_text(_FULL_CONTENT)
     return file_path
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def sample_file_content_only(tmp_path_factory):
     file_path = tmp_path_factory.mktemp("dir") / "text.txt"
     file_path.write_text(_CONTENT)
     return file_path
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def expected_digest():
     # To ensure that the expected file digest is always up to date, use the
     # memory hashing and create a fixture for the expected value.
@@ -50,14 +50,14 @@ def expected_digest():
     return digest.digest_hex
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def expected_header_digest():
     hasher = memory.SHA256(_HEADER.encode("utf-8"))
     digest = hasher.compute()
     return digest.digest_hex
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def expected_content_digest():
     hasher = memory.SHA256(_CONTENT.encode("utf-8"))
     digest = hasher.compute()
