@@ -19,9 +19,20 @@ import pytest
 from model_signing.serialization import test_support
 
 
+def pytest_addoption(parser):
+    """Adds a flag argument to update the goldens."""
+    parser.addoption(
+        "--update_goldens",
+        action="store_true",
+        default=False,
+        help="update golden files",
+    )
+
+
 # Note: Don't make fixtures with global scope as we are altering the models!
 @pytest.fixture
 def sample_model_file(tmp_path_factory):
+    """A model with just a single file."""
     file = tmp_path_factory.mktemp("model") / "file"
     file.write_bytes(test_support.KNOWN_MODEL_TEXT)
     return file
@@ -29,6 +40,7 @@ def sample_model_file(tmp_path_factory):
 
 @pytest.fixture
 def empty_model_file(tmp_path_factory):
+    """A model with just an empty file."""
     file = tmp_path_factory.mktemp("model") / "file"
     file.write_bytes(b"")
     return file
@@ -36,6 +48,7 @@ def empty_model_file(tmp_path_factory):
 
 @pytest.fixture
 def sample_model_folder(tmp_path_factory):
+    """A model with multiple files and directories."""
     model_root = tmp_path_factory.mktemp("model") / "root"
     model_root.mkdir()
 
@@ -55,13 +68,27 @@ def sample_model_folder(tmp_path_factory):
 
 @pytest.fixture
 def empty_model_folder(tmp_path_factory):
+    """A model with just an empty directory."""
     model_root = tmp_path_factory.mktemp("model") / "root"
     model_root.mkdir()
     return model_root
 
 
 @pytest.fixture
+def model_folder_with_empty_file(tmp_path_factory):
+    """A model with just an empty file, inside a directory."""
+    model_root = tmp_path_factory.mktemp("model") / "root"
+    model_root.mkdir()
+
+    empty_file = model_root / "empty_file"
+    empty_file.write_bytes(b"")
+
+    return model_root
+
+
+@pytest.fixture
 def deep_model_folder(tmp_path_factory):
+    """A model with a deep directory hierarchy."""
     model_root = tmp_path_factory.mktemp("model") / "root"
     model_root.mkdir()
 
