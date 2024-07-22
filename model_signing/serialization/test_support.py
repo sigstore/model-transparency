@@ -29,6 +29,19 @@ ANOTHER_MODEL_TEXT: bytes = b"This is another simple model"
 UNUSED_PATH = pathlib.Path("unused")
 
 
+# All models to use in testing. Each of these is defined as a fixture in
+# conftest.py. Here, we used them as strings, these names must match the
+# function name used for the fixture.
+all_test_models = [
+    "sample_model_file",
+    "sample_model_folder",
+    "deep_model_folder",
+    "empty_model_file",
+    "empty_model_folder",
+    "model_folder_with_empty_file",
+]
+
+
 def get_first_directory(path: pathlib.Path) -> pathlib.Path:
     """Returns the first directory that is a children of path.
 
