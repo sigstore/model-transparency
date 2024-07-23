@@ -14,6 +14,8 @@
 
 """Test fixtures to share between tests. Not part of the public API."""
 
+import os
+import pathlib
 import pytest
 
 from model_signing import test_support
@@ -102,3 +104,12 @@ def deep_model_folder(tmp_path_factory):
         file.write_text(f"This is file f{i}.")
 
     return model_root
+
+@pytest.fixture
+def symlink_model_file(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """A model with a symlink to a single file."""
+    source_file = tmp_path_factory.mktemp("source") / "file"
+    source_file.write_bytes(test_support.KNOWN_MODEL_TEXT)
+    symlink_file = tmp_path_factory.mktemp("symlink") / "file"
+    os.symlink(source_file.absolute(), symlink_file.absolute())
+    return symlink_file
