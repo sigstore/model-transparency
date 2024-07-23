@@ -4,9 +4,9 @@
 #
 #    pip-compile --generate-hashes --output-file=model_signing/install/requirements_dev_Darwin.txt --strip-extras model_signing/install/requirements_dev.in
 #
-astroid==3.2.3 \
-    --hash=sha256:3eae9ea67c11c858cdd2c91337d2e816bd019ac897ca07d7b346ac10105fceb3 \
-    --hash=sha256:7099b5a60985529d8d46858befa103b82d0d05a5a5e8b816b5303ed96075e1d9
+astroid==3.2.4 \
+    --hash=sha256:0e14202810b30da1b735827f78f5157be2bbd4a7a59b7707ca0bfc2fb4c0063a \
+    --hash=sha256:413658a61eeca6202a59231abb473f932038fbcbf1666587f66d482083413a25
     # via pylint
 attrs==23.2.0 \
     --hash=sha256:935dc3b529c262f6cf76e50877d35a4bd3c1de194fd41f47a2b7ae8f19971f30 \
@@ -194,13 +194,13 @@ pycnite==2024.7.9 \
     --hash=sha256:aece401e70e8b6bf369b3b33867c79a1b8bf584e68da9790de2f821503cebcf8 \
     --hash=sha256:f07bea393ee4d5820013fae66db6cc091e8dc01fd3f6b367595108752f264872
     # via pytype
-pydot==3.0.0 \
-    --hash=sha256:4d7e680af1f0b62b3dc7dc0ad5bed6c764add94cb1fc932c5ce2567639d2e712 \
-    --hash=sha256:764640e04f7560dbf0fdfae25f8b6ab59f8c0cd93351d552d779b00d70885411
+pydot==3.0.1 \
+    --hash=sha256:43f1e878dc1ff7c1c2e3470a6999d4e9e97771c5c862440c2f0af0ba844c231f \
+    --hash=sha256:e18cf7f287c497d77b536a3d20a46284568fea390776dface6eabbdf1b1b5efc
     # via pytype
-pylint==3.2.5 \
-    --hash=sha256:32cd6c042b5004b8e857d727708720c54a676d1e22917cf1a2df9b4d4868abd6 \
-    --hash=sha256:e9b7171e242dcc6ebd0aaa7540481d1a72860748a0a7816b8fe6cf6c80a6fe7e
+pylint==3.2.6 \
+    --hash=sha256:03c8e3baa1d9fb995b12c1dbe00aa6c4bcef210c2a2634374aedeb22fb4a8f8f \
+    --hash=sha256:a5d01678349454806cff6d886fb072294f56a58c4761278c97fb557d708e1eb3
     # via -r model_signing/install/requirements_dev.in
 pyparsing==3.1.2 \
     --hash=sha256:a1bac0ce561155ecc3ed78ca94d3c9378656ad4c94c1270de543f621420f94ad \
