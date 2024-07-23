@@ -299,7 +299,7 @@ class TestShardedDFSSerializer:
         assert manifest1.digest.digest_value != manifest2.digest.digest_value
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, order=True)
 class _Shard:
     """A shard of a file from a manifest."""
 
