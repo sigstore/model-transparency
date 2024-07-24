@@ -275,7 +275,7 @@ class TestDigestSerializer:
 
         assert folder_manifest != file_manifest
 
-    def test_symlinks_disallowed_by_default(self, symlink_model_file):
+    def test_symlinks_disallowed_by_default(self, symlink_model_folder):
         file_hasher = file.SimpleFileHasher(
             test_support.UNUSED_PATH, memory.SHA256()
         )
@@ -283,7 +283,7 @@ class TestDigestSerializer:
             file_hasher, memory.SHA256
         )
         with pytest.raises(ValueError):
-            _ = serializer.serialize(symlink_model_file)
+            _ = serializer.serialize(symlink_model_folder)
 
 
 class TestManifestSerializer:
@@ -548,10 +548,10 @@ class TestManifestSerializer:
         assert manifest1 == manifest2
         assert manifest1 == manifest3
 
-    def test_symlinks_disallowed_by_default(self, symlink_model_file):
+    def test_symlinks_disallowed_by_default(self, symlink_model_folder):
         serializer = serialize_by_file.ManifestSerializer(self._hasher_factory)
         with pytest.raises(ValueError):
-            _ = serializer.serialize(symlink_model_file)
+            _ = serializer.serialize(symlink_model_folder)
 
 
 class TestUtilities:

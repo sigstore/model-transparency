@@ -302,12 +302,12 @@ class TestDigestSerializer:
 
         assert manifest1.digest.digest_value != manifest2.digest.digest_value
 
-    def test_symlinks_disallowed_by_default(self, symlink_model_file):
+    def test_symlinks_disallowed_by_default(self, symlink_model_folder):
         serializer = serialize_by_file_shard.DigestSerializer(
             self._hasher_factory, memory.SHA256()
         )
         with pytest.raises(ValueError):
-            _ = serializer.serialize(symlink_model_file)
+            _ = serializer.serialize(symlink_model_folder)
 
 
 @dataclasses.dataclass(frozen=True, order=True)
@@ -678,9 +678,9 @@ class TestManifestSerializer:
         assert manifest1 == manifest2
         assert manifest1 == manifest3
 
-    def test_symlinks_disallowed_by_default(self, symlink_model_file):
+    def test_symlinks_disallowed_by_default(self, symlink_model_folder):
         serializer = serialize_by_file_shard.ManifestSerializer(
             self._hasher_factory
         )
         with pytest.raises(ValueError):
-            _ = serializer.serialize(symlink_model_file)
+            _ = serializer.serialize(symlink_model_folder)
