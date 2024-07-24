@@ -93,6 +93,7 @@ class ShardedFilesSerializer(serialization.Serializer):
             [pathlib.Path, int, int], file.ShardedFileHasher
         ],
         max_workers: int | None = None,
+        allow_symlinks: bool = False,
     ):
         """Initializes an instance to serialize a model with this serializer.
 
@@ -104,9 +105,13 @@ class ShardedFilesSerializer(serialization.Serializer):
               the shard.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurrent.futures` library.
+            allow_symlinks: Controls whether symbolic links are included. If a
+              symlink is present but the flag is `False` (default) the
+              serialization would raise an error.
         """
         self._hasher_factory = sharded_hasher_factory
         self._max_workers = max_workers
+        self._allow_symlinks = allow_symlinks
 
         # Precompute some private values only once by using a mock file hasher.
         # None of the arguments used to build the hasher are used.
@@ -115,9 +120,15 @@ class ShardedFilesSerializer(serialization.Serializer):
 
     @override
     def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
-        # TODO: github.com/sigstore/model-transparency/issues/196 - Add checks
-        # to exclude symlinks if desired.
-        serialize_by_file.check_file_or_directory(model_path)
+        """Serializes the model given by the `model_path` argument.
+
+        Raises:
+            ValueError: The model contains a symbolic link, but the serializer
+              was not initialized with `allow_symlinks=True`.
+        """
+        serialize_by_file.check_file_or_directory(
+            model_path, allow_symlinks=self._allow_symlinks
+        )
 
         shards = []
         if model_path.is_file():
@@ -128,7 +139,9 @@ class ShardedFilesSerializer(serialization.Serializer):
             # with `pathlib.Path.walk` for a clearer interface, and some speed
             # improvement.
             for path in model_path.glob("**/*"):
-                serialize_by_file.check_file_or_directory(path)
+                serialize_by_file.check_file_or_directory(
+                    path, allow_symlinks=self._allow_symlinks
+                )
                 if path.is_file():
                     shards.extend(self._get_shards(path))
 
@@ -207,6 +220,10 @@ class ManifestSerializer(ShardedFilesSerializer):
         The only reason for the override is to change the return type, to be
         more restrictive. This is to signal that the only manifests that can be
         returned are `manifest.FileLevelManifest` instances.
+
+        Raises:
+            ValueError: The model contains a symbolic link, but the serializer
+              was not initialized with `allow_symlinks=True`.
         """
         return cast(manifest.ShardLevelManifest, super().serialize(model_path))
 
@@ -230,6 +247,7 @@ class DigestSerializer(ShardedFilesSerializer):
         ],
         merge_hasher: hashing.StreamingHashEngine,
         max_workers: int | None = None,
+        allow_symlinks: bool = False,
     ):
         """Initializes an instance to serialize a model with this serializer.
 
@@ -243,8 +261,11 @@ class DigestSerializer(ShardedFilesSerializer):
               individual file shard digests to compute an aggregate digest.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurent.futures` library.
+            allow_symlinks: Controls whether symbolic links are included. If a
+              symlink is present but the flag is `False` (default) the
+              serialization would raise an error.
         """
-        super().__init__(file_hasher_factory, max_workers)
+        super().__init__(file_hasher_factory, max_workers, allow_symlinks)
         self._merge_hasher = merge_hasher
 
     @override
@@ -254,6 +275,10 @@ class DigestSerializer(ShardedFilesSerializer):
         The only reason for the override is to change the return type, to be
         more restrictive. This is to signal that the only manifests that can be
         returned are `manifest.FileLevelManifest` instances.
+
+        Raises:
+            ValueError: The model contains a symbolic link, but the serializer
+              was not initialized with `allow_symlinks=True`.
         """
         return cast(manifest.DigestManifest, super().serialize(model_path))
 

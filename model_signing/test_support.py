@@ -39,6 +39,7 @@ all_test_models = [
     "empty_model_file",
     "empty_model_folder",
     "model_folder_with_empty_file",
+    "symlink_model_folder",
 ]
 
 
