@@ -105,8 +105,9 @@ class ShardedFilesSerializer(serialization.Serializer):
               the shard.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurrent.futures` library.
-            allow_symlinks: Controls whether symlinks are serialized or raise
-              a ValueError. Default is to disallow symlinks.
+            allow_symlinks: Controls whether symbolic links are included. If a
+              symlink is present but the flag is `False` (default) the
+              serialization would raise an error.
         """
         self._hasher_factory = sharded_hasher_factory
         self._max_workers = max_workers
@@ -119,8 +120,6 @@ class ShardedFilesSerializer(serialization.Serializer):
 
     @override
     def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
-        # TODO: github.com/sigstore/model-transparency/issues/196 - Add checks
-        # to exclude symlinks if desired.
         serialize_by_file.check_file_or_directory(
             model_path, allow_symlinks=self._allow_symlinks
         )
@@ -252,8 +251,9 @@ class DigestSerializer(ShardedFilesSerializer):
               individual file shard digests to compute an aggregate digest.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurent.futures` library.
-            allow_symlinks: Controls whether symlinks are serialized or raise
-              a ValueError. Default is to disallow symlinks.
+            allow_symlinks: Controls whether symbolic links are included. If a
+              symlink is present but the flag is `False` (default) the
+              serialization would raise an error.
         """
         super().__init__(file_hasher_factory, max_workers, allow_symlinks)
         self._merge_hasher = merge_hasher

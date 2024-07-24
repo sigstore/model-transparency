@@ -87,7 +87,7 @@ class TestDigestSerializer:
         serializer = serialize_by_file_shard.DigestSerializer(
             self._hasher_factory_small_shards,
             memory.SHA256(),
-            allow_symlinks=True
+            allow_symlinks=True,
         )
         manifest = serializer.serialize(model)
 
