@@ -118,6 +118,12 @@ class FilesSerializer(serialization.Serializer):
 
     @override
     def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
+        """Serializes the model given by the `model_path` argument.
+
+        Raises:
+            ValueError: The model contains a symbolic link, but the serializer
+              was not initialized with `allow_symlinks=True`.
+        """
         check_file_or_directory(model_path, allow_symlinks=self._allow_symlinks)
 
         paths = []
@@ -187,6 +193,10 @@ class ManifestSerializer(FilesSerializer):
         The only reason for the override is to change the return type, to be
         more restrictive. This is to signal that the only manifests that can be
         returned are `manifest.FileLevelManifest` instances.
+
+        Raises:
+            ValueError: The model contains a symbolic link, but the serializer
+              was not initialized with `allow_symlinks=True`.
         """
         return cast(manifest.FileLevelManifest, super().serialize(model_path))
 
@@ -321,6 +331,10 @@ class DigestSerializer(FilesSerializer):
         The only reason for the override is to change the return type, to be
         more restrictive. This is to signal that the only manifests that can be
         returned are `manifest.DigestManifest` instances.
+
+        Raises:
+            ValueError: The model contains a symbolic link, but the serializer
+              was not initialized with `allow_symlinks=True`.
         """
         return cast(manifest.DigestManifest, super().serialize(model_path))
 
