@@ -16,7 +16,7 @@
 
 import pytest
 
-from model_signing.serialization import test_support
+from model_signing import test_support
 
 
 def pytest_addoption(parser):

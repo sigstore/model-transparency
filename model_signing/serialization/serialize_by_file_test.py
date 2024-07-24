@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Tests for file serializers.
+
+NOTE: This test uses a goldens setup to compute digest of several test
+models. If the golden tests are failing, regenerate the golden files with
+
+  pytest model_signing/ --update_goldens
+"""
+
 import os
 import pathlib
 import pytest
@@ -20,13 +28,7 @@ from model_signing.hashing import file
 from model_signing.hashing import memory
 from model_signing.manifest import manifest
 from model_signing.serialization import serialize_by_file
-from model_signing.serialization import test_support
-
-
-# NOTE: This test uses a goldens setup to compute digest of several test
-# models. If the golden tests are failing, regenerate the golden files with
-#
-#   pytest model_signing/serialization/ --update_goldens
+from model_signing import test_support
 
 
 class TestDigestSerializer:
