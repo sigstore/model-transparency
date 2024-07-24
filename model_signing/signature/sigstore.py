@@ -20,9 +20,9 @@ from in_toto_attestation.v1 import statement
 from sigstore import dsse
 from sigstore import oidc
 from sigstore import sign
+from sigstore import models as sig_models
 from sigstore.verify import verifier as sig_verifier
 from sigstore.verify import policy as sig_policy
-from sigstore.verify import models as sig_models
 from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 
 from model_signing.signature.signing import Signer
@@ -35,7 +35,10 @@ class SigstoreSigner(Signer):
 
     CLIENT_ID = "sigstore"
 
-    def __init__(self, disable_ambient: bool = True, id_provider: str = None):
+    def __init__(
+            self,
+            disable_ambient: bool = True,
+            id_provider: str | None = None):
         token = self.__get_identity_token(disable_ambient, id_provider)
         if not token:
             raise ValueError("No identity token supplied or detected!")
@@ -99,4 +102,4 @@ class SigstoreVerifier(Verifier):
             sig_bundle = sig_models.Bundle(bundle)
             _ = self._verifier.verify_dsse(sig_bundle, self._policy)
         except Exception as e:
-            raise VerificationError(str(e))
+            raise VerificationError(str(e)) from e

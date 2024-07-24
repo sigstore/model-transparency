@@ -82,6 +82,7 @@ jobs:
         run: |
           python -m venv venv
           .github/workflows/scripts/venv_activate.sh
+          pip install -r model_signing/install/requirements_Linux.txt
           pip install -r model_signing/install/requirements_test_Linux.txt
           pip install -r model_signing/install/requirements_dev_Linux.txt
           # TODO: https://github.com/sigstore/model-transparency/issues/231 - Support all repo
