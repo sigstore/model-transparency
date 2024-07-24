@@ -131,6 +131,28 @@ class FileLevelManifest(ItemizedManifest):
         return self._item_to_digest == other._item_to_digest
 
 
+@dataclasses.dataclass(frozen=True, order=True)
+class Shard:
+    """A dataclass to hold information about a file shard.
+
+    Attributes:
+        path: The path to the file, relative to the model root.
+        start: The start offset of the shard (included).
+        end: The end offset of the shard (not included).
+    """
+
+    path: pathlib.PurePath
+    start: int
+    end: int
+
+    def __str__(self) -> str:
+        """Converts the item to a canonicalized string representation.
+
+        The format is {path}:{start}:{end}, which should also be easy to decode.
+        """
+        return f"{str(self.path)}:{self.start}:{self.end}"
+
+
 @dataclasses.dataclass
 class ShardedFileManifestItem(ManifestItem):
     """A manifest item that records a file shard together with its digest."""
@@ -146,7 +168,7 @@ class ShardedFileManifestItem(ManifestItem):
         path: pathlib.PurePath,
         start: int,
         end: int,
-        digest: hashing.Digest
+        digest: hashing.Digest,
     ):
         """Builds a manifest item pairing a file shard with its digest.
 
@@ -163,9 +185,9 @@ class ShardedFileManifestItem(ManifestItem):
         self.digest = digest
 
     @property
-    def input_tuple(self) -> tuple[pathlib.PurePath, int, int]:
+    def input_tuple(self) -> Shard:
         """Returns the triple that uniquely determines the manifest item."""
-        return (self.path, self.start, self.end)
+        return Shard(self.path, self.start, self.end)
 
 
 class ShardLevelManifest(FileLevelManifest):
