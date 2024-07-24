@@ -69,11 +69,11 @@ class TestFileLevelManifest:
         assert len(descriptors) == num_items
 
     def test_manifest_has_the_correct_resource_descriptors(self):
-        path1 = pathlib.PurePath(f"file1")
+        path1 = pathlib.PurePath("file1")
         digest1 = hashing.Digest("test", b"hash1")
         item1 = manifest.FileManifestItem(path=path1, digest=digest1)
 
-        path2 = pathlib.PurePath(f"file2")
+        path2 = pathlib.PurePath("file2")
         digest2 = hashing.Digest("test", b"hash2")
         item2 = manifest.FileManifestItem(path=path2, digest=digest2)
 
@@ -128,7 +128,7 @@ class TestShardLevelManifest:
     def test_manifest_has_all_resource_descriptors(self, num_items):
         items: list[manifest.ShardedFileManifestItem] = []
         for i in range(num_items):
-            path = pathlib.PurePath(f"file")
+            path = pathlib.PurePath("file")
             digest = hashing.Digest("test", b"hash{i}")
             item = manifest.ShardedFileManifestItem(
                 path=path, digest=digest, start=i, end=i + 2
@@ -141,13 +141,13 @@ class TestShardLevelManifest:
         assert len(descriptors) == num_items
 
     def test_manifest_has_the_correct_resource_descriptors(self):
-        path1 = pathlib.PurePath(f"file1")
+        path1 = pathlib.PurePath("file1")
         digest1 = hashing.Digest("test", b"hash1")
         item1 = manifest.ShardedFileManifestItem(
             path=path1, digest=digest1, start=0, end=4
         )
 
-        path2 = pathlib.PurePath(f"file2")
+        path2 = pathlib.PurePath("file2")
         digest2 = hashing.Digest("test", b"hash2")
         item2 = manifest.ShardedFileManifestItem(
             path=path2, digest=digest2, start=0, end=4
