@@ -48,7 +48,7 @@ class TestDigestSerializer:
             test_support.UNUSED_PATH, memory.SHA256()
         )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            file_hasher, memory.SHA256, allow_symlinks=True
         )
         manifest = serializer.serialize(model)
 
@@ -275,6 +275,16 @@ class TestDigestSerializer:
 
         assert folder_manifest != file_manifest
 
+    def test_symlinks_disallowed_by_default(self, symlink_model_file):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
+        serializer = serialize_by_file.DigestSerializer(
+            file_hasher, memory.SHA256
+        )
+        with pytest.raises(ValueError):
+            _ = serializer.serialize(symlink_model_file)
+
 
 class TestManifestSerializer:
 
@@ -292,7 +302,9 @@ class TestManifestSerializer:
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute model manifest (act)
-        serializer = serialize_by_file.ManifestSerializer(self._hasher_factory)
+        serializer = serialize_by_file.ManifestSerializer(
+            self._hasher_factory, allow_symlinks=True
+        )
         manifest = serializer.serialize(model)
         items = test_support.extract_items_from_manifest(manifest)
 
@@ -535,6 +547,11 @@ class TestManifestSerializer:
 
         assert manifest1 == manifest2
         assert manifest1 == manifest3
+
+    def test_symlinks_disallowed_by_default(self, symlink_model_file):
+        serializer = serialize_by_file.ManifestSerializer(self._hasher_factory)
+        with pytest.raises(ValueError):
+            _ = serializer.serialize(symlink_model_file)
 
 
 class TestUtilities:

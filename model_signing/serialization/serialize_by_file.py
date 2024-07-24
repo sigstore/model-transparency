@@ -27,7 +27,10 @@ from model_signing.manifest import manifest
 from model_signing.serialization import serialization
 
 
-def check_file_or_directory(path: pathlib.Path) -> None:
+def check_file_or_directory(
+    path: pathlib.Path,
+    allow_symlinks: bool = False
+) -> None:
     """Checks that the given path is either a file or a directory.
 
     There is no support for sockets, pipes, or any other operating system
@@ -38,10 +41,18 @@ def check_file_or_directory(path: pathlib.Path) -> None:
 
     Args:
         path: The path to check.
+        allow_symlinks: Controls whether symlinks are serialized or raise
+          a ValueError. Default is to disallow symlinks.
 
     Raises:
-        ValueError: The path is neither a file or a directory.
+        ValueError: The path is neither a file or a directory, or the path
+          is a symlink and allow_symlinks is false.
     """
+    if not allow_symlinks and path.is_symlink():
+        raise ValueError(
+            f"Cannot use '{path}' because it is a symlink. This"
+            " behavior can be changed with allow_symlinks."
+        )
     if not (path.is_file() or path.is_dir()):
         raise ValueError(
             f"Cannot use '{path}' as file or directory. It could be a"
@@ -87,6 +98,7 @@ class FilesSerializer(serialization.Serializer):
         self,
         file_hasher_factory: Callable[[pathlib.Path], file.FileHasher],
         max_workers: int | None = None,
+        allow_symlinks: bool = False,
     ):
         """Initializes an instance to serialize a model with this serializer.
 
@@ -95,15 +107,18 @@ class FilesSerializer(serialization.Serializer):
               hash individual files.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurrent.futures` library.
+            allow_symlinks: Controls whether symlinks are serialized or raise
+              a ValueError. Default is to disallow symlinks.
         """
         self._hasher_factory = file_hasher_factory
         self._max_workers = max_workers
+        self._allow_symlinks = allow_symlinks
 
     @override
     def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
         # TODO: github.com/sigstore/model-transparency/issues/196 - Add checks
         # to exclude symlinks if desired.
-        check_file_or_directory(model_path)
+        check_file_or_directory(model_path, allow_symlinks=self._allow_symlinks)
 
         paths = []
         if model_path.is_file():
@@ -114,7 +129,9 @@ class FilesSerializer(serialization.Serializer):
             # with `pathlib.Path.walk` for a clearer interface, and some speed
             # improvement.
             for path in model_path.glob("**/*"):
-                check_file_or_directory(path)
+                check_file_or_directory(
+                    path, allow_symlinks=self._allow_symlinks
+                )
                 if path.is_file():
                     paths.append(path)
 
@@ -276,6 +293,7 @@ class DigestSerializer(FilesSerializer):
         self,
         file_hasher: file.SimpleFileHasher,
         merge_hasher_factory: Callable[[], hashing.StreamingHashEngine],
+        allow_symlinks: bool = False,
     ):
         """Initializes an instance to serialize a model with this serializer.
 
@@ -284,13 +302,15 @@ class DigestSerializer(FilesSerializer):
             merge_hasher_factory: A callable that returns a
               `hashing.StreamingHashEngine` instance used to merge individual
               file digests to compute an aggregate digest.
+            allow_symlinks: Controls whether symlinks are serialized or raise
+              a ValueError. Default is to disallow symlinks.
         """
 
         def _factory(path: pathlib.Path) -> file.FileHasher:
             file_hasher.set_file(path)
             return file_hasher
 
-        super().__init__(_factory, max_workers=1)
+        super().__init__(_factory, max_workers=1, allow_symlinks=allow_symlinks)
         self._merge_hasher_factory = merge_hasher_factory
 
     @override

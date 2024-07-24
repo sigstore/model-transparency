@@ -59,7 +59,7 @@ class TestDigestSerializer:
 
         # Compute model manifest (act)
         serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
+            self._hasher_factory, memory.SHA256(), allow_symlinks=True
         )
         manifest = serializer.serialize(model)
 
@@ -85,7 +85,9 @@ class TestDigestSerializer:
 
         # Compute model manifest (act)
         serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory_small_shards, memory.SHA256()
+            self._hasher_factory_small_shards,
+            memory.SHA256(),
+            allow_symlinks=True
         )
         manifest = serializer.serialize(model)
 
@@ -300,6 +302,13 @@ class TestDigestSerializer:
 
         assert manifest1.digest.digest_value != manifest2.digest.digest_value
 
+    def test_symlinks_disallowed_by_default(self, symlink_model_file):
+        serializer = serialize_by_file_shard.DigestSerializer(
+            self._hasher_factory, memory.SHA256()
+        )
+        with pytest.raises(ValueError):
+            _ = serializer.serialize(symlink_model_file)
+
 
 @dataclasses.dataclass(frozen=True, order=True)
 class _Shard:
@@ -368,7 +377,7 @@ class TestManifestSerializer:
 
         # Compute model manifest (act)
         serializer = serialize_by_file_shard.ManifestSerializer(
-            self._hasher_factory
+            self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(model)
         items = _extract_shard_items_from_manifest(manifest)
@@ -401,7 +410,7 @@ class TestManifestSerializer:
 
         # Compute model manifest (act)
         serializer = serialize_by_file_shard.ManifestSerializer(
-            self._hasher_factory_small_shards
+            self._hasher_factory_small_shards, allow_symlinks=True
         )
         manifest = serializer.serialize(model)
         items = _extract_shard_items_from_manifest(manifest)
@@ -668,3 +677,10 @@ class TestManifestSerializer:
 
         assert manifest1 == manifest2
         assert manifest1 == manifest3
+
+    def test_symlinks_disallowed_by_default(self, symlink_model_file):
+        serializer = serialize_by_file_shard.ManifestSerializer(
+            self._hasher_factory
+        )
+        with pytest.raises(ValueError):
+            _ = serializer.serialize(symlink_model_file)
