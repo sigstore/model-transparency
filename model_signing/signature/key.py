@@ -96,7 +96,8 @@ class ECKeyVerifier(Verifier):
     def verify(self, bundle: bundle_pb.Bundle) -> None:
         statement = json_format.Parse(
             bundle.dsse_envelope.payload,
-            statement_pb.Statement())  # pylint: disable=no-member
+            statement_pb.Statement()  # pylint: disable=no-member
+        )
         pae = encoding.pae(statement)
         try:
             self._public_key.verify(
