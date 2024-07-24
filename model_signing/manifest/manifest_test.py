@@ -141,26 +141,26 @@ class TestShardLevelManifest:
         assert len(descriptors) == num_items
 
     def test_manifest_has_the_correct_resource_descriptors(self):
-        path1 = pathlib.PurePath("file1")
+        path_to_file1 = pathlib.PurePath("file1")
         digest1 = hashing.Digest("test", b"hash1")
         item1 = manifest.ShardedFileManifestItem(
-            path=path1, digest=digest1, start=0, end=4
-        )
-
-        path2 = pathlib.PurePath("file2")
-        digest2 = hashing.Digest("test", b"hash2")
-        item2 = manifest.ShardedFileManifestItem(
-            path=path2, digest=digest2, start=0, end=4
+            path=path_to_file1, digest=digest1, start=0, end=4
         )
 
         # First file, but second shard
-        digest3 = hashing.Digest("test", b"hash3")
-        item3 = manifest.ShardedFileManifestItem(
-            path=path1, digest=digest3, start=4, end=8
+        digest2 = hashing.Digest("test", b"hash2")
+        item2 = manifest.ShardedFileManifestItem(
+            path=path_to_file1, digest=digest2, start=4, end=8
         )
 
-        # Note order is reversed
-        manifest_file = manifest.ShardLevelManifest([item3, item2, item1])
+        path_to_file2 = pathlib.PurePath("file2")
+        digest3 = hashing.Digest("test", b"hash3")
+        item3 = manifest.ShardedFileManifestItem(
+            path=path_to_file2, digest=digest3, start=0, end=4
+        )
+
+        # Note order is not preserved (random permutation)
+        manifest_file = manifest.ShardLevelManifest([item2, item3, item1])
         descriptors = list(manifest_file.resource_descriptors())
 
         # But we expect the descriptors to be in order by file shard
@@ -168,5 +168,5 @@ class TestShardLevelManifest:
         assert descriptors[1].identifier == "file1:4:8"
         assert descriptors[2].identifier == "file2:0:4"
         assert descriptors[0].digest.digest_value == b"hash1"
-        assert descriptors[1].digest.digest_value == b"hash3"
-        assert descriptors[2].digest.digest_value == b"hash2"
+        assert descriptors[1].digest.digest_value == b"hash2"
+        assert descriptors[2].digest.digest_value == b"hash3"

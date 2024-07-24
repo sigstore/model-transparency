@@ -52,10 +52,10 @@ objects to represent only a part of the model that can be verified individually.
 """
 
 import abc
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 import dataclasses
 import pathlib
-from typing import Iterator, Self
+from typing import Self
 from typing_extensions import override
 
 from model_signing.hashing import hashing
@@ -76,8 +76,14 @@ class ResourceDescriptor:
     for the in-toto specification.
 
     Attributes:
-        identifier: A string that uniquely identifies this `ResourceDescriptor`.
-          Corresponds to `name`, `uri`, or `content` in in-toto specification.
+        identifier: A string that uniquely identifies this `ResourceDescriptor`
+          within the manifest. Depending on serialized format, users might
+          require the identifier to be unique across all manifests stored in a
+          system. Producers and consumers can agree on additional requirements
+          (e.g., several descriptors must have a common pattern for the
+          identifier and the integrity of the model implies integrity of all
+          these items, ignoring any other descriptor). Corresponds to `name`,
+          `uri`, or `content` in in-toto specification.
         digest: One digest for the item. Note that unlike in-toto, we only have
           one digest for the item and it is always required.
     """
@@ -106,9 +112,9 @@ class DigestManifest(Manifest):
         """Yields each resource from the manifest, one by one.
 
         In this case, we have only one descriptor to return. Since model paths
-        are already encoded in the digest, use "." for the digest. Subclasses
-        might record additional fields to have distinguishable human readable
-        identifiers.
+        are already encoded in the digest, use "." for the identifier.
+        Subclasses might record additional fields to have distinguishable human
+        readable identifiers.
         """
         yield ResourceDescriptor(identifier=".", digest=self.digest)
 
@@ -254,9 +260,9 @@ class ShardLevelManifest(FileLevelManifest):
     def resource_descriptors(self) -> Iterator[ResourceDescriptor]:
         """Yields each resource from the manifest, one by one.
 
-        The items are returned in the order given by the `input_tuple` property
-        of `ShardedFileManifestItem` used to create this instance (the triple of
-        file name and shard endpoints).
+        The items are returned in the order given by the `Shard` dataclass
+        (implicit ordering: by file, shard start offset and shard end offset, in
+        order).
         """
         for item, digest in sorted(self._item_to_digest.items()):
             yield ResourceDescriptor(identifier=str(item), digest=digest)
