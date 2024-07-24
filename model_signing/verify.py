@@ -45,7 +45,7 @@ def __arguments() -> argparse.Namespace:
         help='the path to the model\'s base folder',
         type=pathlib.Path,
         dest='model_path')
-    
+
     method_cmd = parser.add_subparsers(required=True, dest='method')
     # sigstore subcommand
     sigstore = method_cmd.add_parser('sigstore')

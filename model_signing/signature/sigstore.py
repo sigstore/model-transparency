@@ -40,7 +40,7 @@ class SigstoreSigner(Signer):
             raise ValueError("No identity token supplied or detected!")
         self._id_provider = token.expected_certificate_subject
         self._signing_id = token.identity
-        
+
         self._signer = sign.Signer(
             identity_token=token,
             signing_ctx=sign.SigningContext.production(),

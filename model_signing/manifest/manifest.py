@@ -129,7 +129,7 @@ class FileLevelManifest(ItemizedManifest):
 
     def __eq__(self, other: Self):
         return self._item_to_digest == other._item_to_digest
- 
+
     @property
     def files(self):
         return self._item_to_digest
