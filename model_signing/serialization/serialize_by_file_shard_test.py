@@ -23,11 +23,11 @@ models. If the golden tests are failing, regenerate the golden files with
 import pathlib
 import pytest
 
+from model_signing import test_support
 from model_signing.hashing import file
 from model_signing.hashing import memory
 from model_signing.manifest import manifest
 from model_signing.serialization import serialize_by_file_shard
-from model_signing import test_support
 
 
 class TestDigestSerializer:
