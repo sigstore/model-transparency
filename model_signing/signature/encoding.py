@@ -16,11 +16,9 @@ from in_toto_attestation.v1 import statement_pb2 as statement_pb
 
 PAYLOAD_TYPE = "application/vnd.in-toto+json"
 
-# The proto contains a Statement message.
-# pylint: disable=no-member
 
-
-def pae(statement: statement_pb.Statement) -> bytes:
+def pae(statement: statement_pb.Statement  # pyline: disable=no-member
+        ) -> bytes:
     """Generates the PAE encoding of the statement.
 
     See https://github.com/secure-systems-lab/dsse/blob/v1.0.0/protocol.md
