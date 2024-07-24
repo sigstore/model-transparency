@@ -20,7 +20,6 @@ models. If the golden tests are failing, regenerate the golden files with
   pytest model_signing/ --update_goldens
 """
 
-import dataclasses
 import pathlib
 import pytest
 
