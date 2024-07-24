@@ -105,4 +105,5 @@ class ECKeyVerifier(Verifier):
                 pae, ec.ECDSA(SHA256()))
         except Exception as e:
             raise VerificationError(
-                'signature verification failed ' + str(e)) from e
+                'signature verification failed ' + str(e)
+            ) from e
