@@ -154,7 +154,8 @@ class PKIVerifier(Verifier):
             store_ctx.verify_certificate()
         except ssl_crypto.X509StoreContextError as err:
             raise VerificationError(
-                f'signing certificate verification failed: {err}') from err
+                f'signing certificate verification failed: {err}'
+            ) from err
         usage = signing_cert_crypto.extensions.get_extension_for_class(
             x509.KeyUsage)
         if not usage.value.digital_signature:
