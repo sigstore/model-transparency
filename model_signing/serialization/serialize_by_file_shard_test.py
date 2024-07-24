@@ -20,7 +20,6 @@ models. If the golden tests are failing, regenerate the golden files with
   pytest model_signing/ --update_goldens
 """
 
-import dataclasses
 import pathlib
 import pytest
 
@@ -301,18 +300,9 @@ class TestDigestSerializer:
         assert manifest1.digest.digest_value != manifest2.digest.digest_value
 
 
-@dataclasses.dataclass(frozen=True, order=True)
-class _Shard:
-    """A shard of a file from a manifest."""
-
-    path: str
-    start: int
-    end: int
-
-
 def _extract_shard_items_from_manifest(
     manifest: manifest.ShardLevelManifest,
-) -> dict[_Shard, str]:
+) -> dict[manifest.Shard, str]:
     """Builds a dictionary representation of the items in a manifest.
 
     Every item is mapped to its digest.
@@ -320,13 +310,12 @@ def _extract_shard_items_from_manifest(
     Used in multiple tests to check that we obtained the expected manifest.
     """
     return {
-        # convert to file path (relative to model) string and endpoints
-        _Shard(str(shard[0]), shard[1], shard[2]): digest.digest_hex
+        shard: digest.digest_hex
         for shard, digest in manifest._item_to_digest.items()
     }
 
 
-def _parse_shard_and_digest(line: str) -> tuple[_Shard, str]:
+def _parse_shard_and_digest(line: str) -> tuple[manifest.Shard, str]:
     """Reads a file shard and its digest from a line in the golden file.
 
     Args:
@@ -336,7 +325,7 @@ def _parse_shard_and_digest(line: str) -> tuple[_Shard, str]:
         The shard tuple and the digest corresponding to the line that was read.
     """
     path, start, end, digest = line.strip().split(":")
-    shard = _Shard(path, int(start), int(end))
+    shard = manifest.Shard(pathlib.PurePosixPath(path), int(start), int(end))
     return shard, digest
 
 
@@ -370,18 +359,16 @@ class TestManifestSerializer:
         serializer = serialize_by_file_shard.ManifestSerializer(
             self._hasher_factory
         )
-        manifest = serializer.serialize(model)
-        items = _extract_shard_items_from_manifest(manifest)
+        manifest_file = serializer.serialize(model)
+        items = _extract_shard_items_from_manifest(manifest_file)
 
         # Compare with golden, or write to golden (approximately "assert")
         if should_update:
             with open(golden_path, "w", encoding="utf-8") as f:
                 for shard, digest in sorted(items.items()):
-                    f.write(
-                        f"{shard.path}:{shard.start}:{shard.end}:{digest}\n"
-                    )
+                    f.write(f"{shard}:{digest}\n")
         else:
-            found_items: dict[_Shard, str] = {}
+            found_items: dict[manifest.Shard, str] = {}
             with open(golden_path, "r", encoding="utf-8") as f:
                 for line in f:
                     shard, digest = _parse_shard_and_digest(line)
@@ -403,18 +390,16 @@ class TestManifestSerializer:
         serializer = serialize_by_file_shard.ManifestSerializer(
             self._hasher_factory_small_shards
         )
-        manifest = serializer.serialize(model)
-        items = _extract_shard_items_from_manifest(manifest)
+        manifest_file = serializer.serialize(model)
+        items = _extract_shard_items_from_manifest(manifest_file)
 
         # Compare with golden, or write to golden (approximately "assert")
         if should_update:
             with open(golden_path, "w", encoding="utf-8") as f:
                 for shard, digest in sorted(items.items()):
-                    f.write(
-                        f"{shard.path}:{shard.start}:{shard.end}:{digest}\n"
-                    )
+                    f.write(f"{shard}:{digest}\n")
         else:
-            found_items: dict[_Shard, str] = {}
+            found_items: dict[manifest.Shard, str] = {}
             with open(golden_path, "r", encoding="utf-8") as f:
                 for line in f:
                     shard, digest = _parse_shard_and_digest(line)
@@ -522,9 +507,8 @@ class TestManifestSerializer:
             old_manifest._item_to_digest
         )
         for shard, digest in new_manifest._item_to_digest.items():
-            path, start, end = shard
-            if path.name == new_name:
-                old_shard = (old_name, start, end)
+            if shard.path.name == new_name:
+                old_shard = manifest.Shard(old_name, shard.start, shard.end)
                 assert old_manifest._item_to_digest[old_shard] == digest
             else:
                 assert old_manifest._item_to_digest[shard] == digest
@@ -566,13 +550,14 @@ class TestManifestSerializer:
             old_manifest._item_to_digest
         )
         for shard, digest in new_manifest._item_to_digest.items():
-            path, start, end = shard
-            if new_name in path.parts:
+            if new_name in shard.path.parts:
                 parts = [
                     old_name if part == new_name else part
-                    for part in path.parts
+                    for part in shard.path.parts
                 ]
-                old = (pathlib.PurePosixPath(*parts), start, end)
+                old = manifest.Shard(
+                    pathlib.PurePosixPath(*parts), shard.start, shard.end
+                )
                 assert old_manifest._item_to_digest[old] == digest
             else:
                 assert old_manifest._item_to_digest[shard] == digest
@@ -627,10 +612,10 @@ class TestManifestSerializer:
             old_manifest._item_to_digest
         )
         for shard, digest in new_manifest._item_to_digest.items():
-            path, _, _ = shard
-            if path == expected_mismatch_path:
+            if shard.path == expected_mismatch_path:
                 # Note that the file size changes
-                assert old_manifest._item_to_digest[(path, 0, 23)] != digest
+                item = manifest.Shard(shard.path, 0, 23)
+                assert old_manifest._item_to_digest[item] != digest
             else:
                 assert old_manifest._item_to_digest[shard] == digest
 
@@ -668,3 +653,9 @@ class TestManifestSerializer:
 
         assert manifest1 == manifest2
         assert manifest1 == manifest3
+
+
+    def test_shard_to_string(self):
+        """Ensure the shard's `__str__` method behaves as assumed."""
+        shard = manifest.Shard(pathlib.PurePosixPath("a"), 0, 42)
+        assert str(shard) == "a:0:42"
