@@ -43,6 +43,16 @@ all_test_models = [
 ]
 
 
+# All directory models to use in testing, where only non empty directory models
+# are supported. See also `all_test_models` comments.
+all_non_empty_directory_test_models = [
+    "sample_model_folder",
+    "deep_model_folder",
+    "model_folder_with_empty_file",
+    "symlink_model_folder",
+]
+
+
 def get_first_directory(path: pathlib.Path) -> pathlib.Path:
     """Returns the first directory that is a children of path.
 
