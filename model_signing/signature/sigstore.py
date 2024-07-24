@@ -38,7 +38,8 @@ class SigstoreSigner(Signer):
     def __init__(
             self,
             disable_ambient: bool = True,
-            id_provider: str | None = None):
+            id_provider: str | None = None
+        ):
         token = self.__get_identity_token(disable_ambient, id_provider)
         if not token:
             raise ValueError("No identity token supplied or detected!")
