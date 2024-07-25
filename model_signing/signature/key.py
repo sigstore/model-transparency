@@ -95,7 +95,9 @@ class ECKeyVerifier(Verifier):
 
     def verify(self, bundle: bundle_pb.Bundle) -> None:
         statement = json_format.Parse(
-            bundle.dsse_envelope.payload, statement_pb.Statement())
+            bundle.dsse_envelope.payload,
+            statement_pb.Statement()  # pylint: disable=no-member
+        )
         pae = encoding.pae(statement)
         try:
             self._public_key.verify(
@@ -103,4 +105,5 @@ class ECKeyVerifier(Verifier):
                 pae, ec.ECDSA(SHA256()))
         except Exception as e:
             raise VerificationError(
-                'signature verification failed ' + str(e))
+                'signature verification failed ' + str(e)
+            ) from e

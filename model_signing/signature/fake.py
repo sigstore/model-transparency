@@ -14,7 +14,6 @@
 """This package provides the functionality to generate and verify
 bundles without invoking signing."""
 
-from cryptography.hazmat.primitives import serialization
 from google.protobuf import json_format
 from in_toto_attestation.v1 import statement
 from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
@@ -38,10 +37,7 @@ class FakeSigner(Signer):
             media_type='application/vnd.dev.sigstore.bundle.v0.3+json',
             verification_material=bundle_pb.VerificationMaterial(
                 public_key=common_pb.PublicKey(
-                    raw_bytes=self._private_key.public_key().public_bytes(
-                        encoding=serialization.Encoding.PEM,
-                        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-                    ),
+                    raw_bytes=None,
                     key_details=common_pb.
                     PublicKeyDetails.PKIX_ECDSA_P256_SHA_256,
                 ),
