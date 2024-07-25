@@ -132,9 +132,9 @@ class ShardedFilesSerializer(serialization.Serializer):
         # Python3.12 is the minimum supported version, the glob can be replaced
         # with `pathlib.Path.walk` for a clearer interface, and some speed
         # improvement.
-        def root() -> Iterable[pathlib.Path]:
-            yield model_path
-        for path in itertools.chain(root(), model_path.glob("**/*")):
+        for path in itertools.chain(
+            iter([model_path]), model_path.glob("**/*")
+        ):
             serialize_by_file.check_file_or_directory(
                 path, allow_symlinks=self._allow_symlinks
             )
