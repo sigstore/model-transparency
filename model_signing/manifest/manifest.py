@@ -112,11 +112,11 @@ class DigestManifest(Manifest):
         """Yields each resource from the manifest, one by one.
 
         In this case, we have only one descriptor to return. Since model paths
-        are already encoded in the digest, use "." for the identifier.
+        are already encoded in the digest, use "" for the identifier.
         Subclasses might record additional fields to have distinguishable human
         readable identifiers.
         """
-        yield ResourceDescriptor(identifier=".", digest=self.digest)
+        yield ResourceDescriptor(identifier="", digest=self.digest)
 
 
 class ItemizedManifest(Manifest):

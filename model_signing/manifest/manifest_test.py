@@ -34,7 +34,7 @@ class TestDigestManifest:
         manifest_file = manifest.DigestManifest(digest)
 
         for descriptor in manifest_file.resource_descriptors():
-            assert descriptor.identifier == "."
+            assert descriptor.identifier == ""
             assert descriptor.digest == digest
 
 
