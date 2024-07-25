@@ -17,6 +17,7 @@
 import abc
 import base64
 import concurrent.futures
+import itertools
 import pathlib
 from typing import Callable, Iterable, cast
 from typing_extensions import override
@@ -126,24 +127,19 @@ class ShardedFilesSerializer(serialization.Serializer):
             ValueError: The model contains a symbolic link, but the serializer
               was not initialized with `allow_symlinks=True`.
         """
-        serialize_by_file.check_file_or_directory(
-            model_path, allow_symlinks=self._allow_symlinks
-        )
-
         shards = []
-        if model_path.is_file():
-            shards.extend(self._get_shards(model_path))
-        else:
-            # TODO: github.com/sigstore/model-transparency/issues/200 - When
-            # Python3.12 is the minimum supported version, this can be replaced
-            # with `pathlib.Path.walk` for a clearer interface, and some speed
-            # improvement.
-            for path in model_path.glob("**/*"):
-                serialize_by_file.check_file_or_directory(
-                    path, allow_symlinks=self._allow_symlinks
-                )
-                if path.is_file():
-                    shards.extend(self._get_shards(path))
+        # TODO: github.com/sigstore/model-transparency/issues/200 - When
+        # Python3.12 is the minimum supported version, the glob can be replaced
+        # with `pathlib.Path.walk` for a clearer interface, and some speed
+        # improvement.
+        def root() -> Iterable[pathlib.Path]:
+            yield model_path
+        for path in itertools.chain(root(), model_path.glob("**/*")):
+            serialize_by_file.check_file_or_directory(
+                path, allow_symlinks=self._allow_symlinks
+            )
+            if path.is_file():
+                shards.extend(self._get_shards(path))
 
         manifest_items = []
         with concurrent.futures.ThreadPoolExecutor(
