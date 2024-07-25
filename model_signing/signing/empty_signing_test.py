@@ -53,9 +53,9 @@ class TestEmptySignature:
 
     def test_write_and_read(self):
         signature = empty_signing.EmptySignature()
-        signature.write_signature(test_support.UNUSED_PATH)
+        signature.write(test_support.UNUSED_PATH)
 
-        new_signature = empty_signing.EmptySignature.read_signature(
+        new_signature = empty_signing.EmptySignature.read(
             test_support.UNUSED_PATH
         )
 
@@ -77,12 +77,12 @@ class _FakeSignature(signing.Signature):
     """A test only signature that does nothing."""
 
     @override
-    def write_signature(self, path: pathlib.Path) -> None:
+    def write(self, path: pathlib.Path) -> None:
         del path  # unused, do nothing
 
     @classmethod
     @override
-    def read_signature(cls, path: pathlib.Path) -> Self:
+    def read(cls, path: pathlib.Path) -> Self:
         del path  # unused, do nothing
         return cls()
 

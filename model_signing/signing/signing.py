@@ -69,7 +69,7 @@ class Signature(metaclass=abc.ABCMeta):
     """Generic signature support."""
 
     @abc.abstractmethod
-    def write_signature(self, path: pathlib.Path) -> None:
+    def write(self, path: pathlib.Path) -> None:
         """Writes the signature to disk, to the given path.
 
         Args:
@@ -79,7 +79,7 @@ class Signature(metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractmethod
-    def read_signature(cls, path: pathlib.Path) -> Self:
+    def read(cls, path: pathlib.Path) -> Self:
         """Reads the signature from disk.
 
         Does not perform any signature verification, except what is needed to
@@ -131,9 +131,7 @@ class Verifier(metaclass=abc.ABCMeta):
 
     Every subclass of `Verifier` is paired with a subclass of `Signer`. This is
     to ensure that they support the same signing payload and signature formats
-    as well as have similar key materialsEvery subclass of `Verifier` is paired
-    with a subclass of `Signer`. This is to ensure that they support the same
-    signing payload and signature formats as well as have similar key materials.
+    as well as have similar key materials.
 
     If the signature is valid, the payload is expanded to a `Manifest` instance
     which can then be used to check the model integrity.
@@ -150,7 +148,7 @@ class Verifier(metaclass=abc.ABCMeta):
             A `manifest.Manifest` instance that represents the model.
 
         Raises:
-            ValueError: If the signature cannot be verified.
+            ValueError: If the signature verification fails.
             TypeError: If the signature is not one of the `Signature` subclasses
               accepted by the verifier.
         """

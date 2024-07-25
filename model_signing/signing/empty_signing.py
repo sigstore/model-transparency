@@ -45,9 +45,11 @@ class EmptySigningPayload(signing.SigningPayload):
         del manifest  # unused
         return cls()
 
-    def __eq__(self, other: "EmptySigningPayload") -> bool:
-        """Checks that `other` is also an `EmptySigningPayload`."""
-        return isinstance(other, EmptySigningPayload)
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, type(self)):
+            return NotImplemented
+
+        return True  # all instances are equal
 
 
 class EmptySignature(signing.Signature):
@@ -61,7 +63,7 @@ class EmptySignature(signing.Signature):
     """
 
     @override
-    def write_signature(self, path: pathlib.Path) -> None:
+    def write(self, path: pathlib.Path) -> None:
         """Writes the signature to disk, to the given path.
 
         Since the signature is empty this function actually does nothing, it's
@@ -74,7 +76,7 @@ class EmptySignature(signing.Signature):
 
     @classmethod
     @override
-    def read_signature(cls, path: pathlib.Path) -> Self:
+    def read(cls, path: pathlib.Path) -> Self:
         """Reads the signature from disk.
 
         Since the signature is empty, this does nothing besides just returning
@@ -89,9 +91,11 @@ class EmptySignature(signing.Signature):
         del path  # unused
         return cls()
 
-    def __eq__(self, other: "EmptySignature") -> bool:
-        """Checks that `other` is also an `EmptySignature`."""
-        return isinstance(other, EmptySignature)
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, type(self)):
+            return NotImplemented
+
+        return True  # all instances are equal
 
 
 class EmptySigner(signing.Signer):
