@@ -52,18 +52,53 @@ objects to represent only a part of the model that can be verified individually.
 """
 
 import abc
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 import dataclasses
 import pathlib
 from typing import Self
+from typing_extensions import override
 
 from model_signing.hashing import hashing
+
+
+@dataclasses.dataclass(frozen=True)
+class ResourceDescriptor:
+    """A description of any content from any `Manifest`.
+
+    We aim this to be similar to in-toto's `ResourceDescriptor`. To support
+    cases where in-toto cannot be directly used, we make this a dataclass that
+    can be mapped to in-toto when needed, and used as its own otherwise.
+
+    Not all fields from in-toto are specified at this moment. All fields here
+    must be present, unlike in-toto, where all are optional.
+
+    See github.com/in-toto/attestation/blob/main/spec/v1/resource_descriptor.md
+    for the in-toto specification.
+
+    Attributes:
+        identifier: A string that uniquely identifies this `ResourceDescriptor`
+          within the manifest. Depending on serialized format, users might
+          require the identifier to be unique across all manifests stored in a
+          system. Producers and consumers can agree on additional requirements
+          (e.g., several descriptors must have a common pattern for the
+          identifier and the integrity of the model implies integrity of all
+          these items, ignoring any other descriptor). Corresponds to `name`,
+          `uri`, or `content` in in-toto specification.
+        digest: One digest for the item. Note that unlike in-toto, we only have
+          one digest for the item and it is always required.
+    """
+
+    identifier: str
+    digest: hashing.Digest
 
 
 class Manifest(metaclass=abc.ABCMeta):
     """Generic manifest file to represent a model."""
 
-    pass
+    @abc.abstractmethod
+    def resource_descriptors(self) -> Iterator[ResourceDescriptor]:
+        """Yields each resource from the manifest, one by one."""
+        pass
 
 
 @dataclasses.dataclass(frozen=True)
@@ -71,6 +106,17 @@ class DigestManifest(Manifest):
     """A manifest that is just a hash."""
 
     digest: hashing.Digest
+
+    @override
+    def resource_descriptors(self) -> Iterator[ResourceDescriptor]:
+        """Yields each resource from the manifest, one by one.
+
+        In this case, we have only one descriptor to return. Since model paths
+        are already encoded in the digest, use "" for the identifier.
+        Subclasses might record additional fields to have distinguishable human
+        readable identifiers.
+        """
+        yield ResourceDescriptor(identifier="", digest=self.digest)
 
 
 class ItemizedManifest(Manifest):
@@ -129,6 +175,15 @@ class FileLevelManifest(ItemizedManifest):
 
     def __eq__(self, other: Self):
         return self._item_to_digest == other._item_to_digest
+
+    @override
+    def resource_descriptors(self) -> Iterator[ResourceDescriptor]:
+        """Yields each resource from the manifest, one by one.
+
+        The items are returned in alphabetical order of the path.
+        """
+        for item, digest in sorted(self._item_to_digest.items()):
+            yield ResourceDescriptor(identifier=str(item), digest=digest)
 
 
 @dataclasses.dataclass(frozen=True, order=True)
@@ -200,3 +255,14 @@ class ShardLevelManifest(FileLevelManifest):
         efficient updates and retrieval of digests.
         """
         self._item_to_digest = {item.input_tuple: item.digest for item in items}
+
+    @override
+    def resource_descriptors(self) -> Iterator[ResourceDescriptor]:
+        """Yields each resource from the manifest, one by one.
+
+        The items are returned in the order given by the `Shard` dataclass
+        (implicit ordering: by file, shard start offset and shard end offset, in
+        order).
+        """
+        for item, digest in sorted(self._item_to_digest.items()):
+            yield ResourceDescriptor(identifier=str(item), digest=digest)
