@@ -103,5 +103,4 @@ class SigstoreVerifier(Verifier):
             sig_bundle = sig_models.Bundle(bundle)
             _ = self._verifier.verify_dsse(sig_bundle, self._policy)
         except Exception as e:
-            raise VerificationError(str(e)
-        ) from e
+            raise VerificationError(str(e)) from e
