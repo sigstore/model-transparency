@@ -14,9 +14,13 @@
 """This package provides the functionality to sign and verify models
 with keys."""
 from typing import Optional
+from typing_extensions import override
+
+import dataclasses
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric import utils
 from cryptography.hazmat.primitives.hashes import SHA256
 from google.protobuf import json_format
 from in_toto_attestation.v1 import statement
@@ -26,9 +30,7 @@ from sigstore_protobuf_specs.dev.sigstore.common import v1 as common_pb
 from sigstore_protobuf_specs.io import intoto as intoto_pb
 
 from model_signing.signature import encoding
-from model_signing.signature.signing import Signer
-from model_signing.signature.verifying import Verifier
-from model_signing.signature.verifying import VerificationError
+from model_signing.signature import signature
 
 
 def load_ec_private_key(
@@ -43,67 +45,82 @@ def load_ec_private_key(
     return private_key
 
 
-class ECKeySigner(Signer):
+@dataclasses.dataclass(frozen=True)
+class ECVerificationMaterial(signature.SigstoreVerificationMaterial):
+    key: ec.EllipticCurvePublicKey
+    signature_algorithm: ec.EllipticCurveSignatureAlgorithm
+
+    @override
+    def to_sigstore_verification_material(
+            self) -> bundle_pb.VerificationMaterial:
+        key_size = self.key.key_size
+        if isinstance(self.signature_algorithm.algorithm, utils.PreHashed):
+            raise TypeError(
+                "PreHashed is not supported by the sigstore bundle")
+        hash_alg = self.signature_algorithm.algorithm.name
+        key_details = common_pb.PublicKeyDetails.from_string(
+            f"PKIX_ECDSA_P{key_size}_{hash_alg}"
+        )
+        return bundle_pb.VerificationMaterial(
+            public_key=common_pb.PublicKey(
+                raw_bytes=self.key.public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo,
+                ),
+                key_details=key_details,
+            )
+        )
+
+
+class ECKeySigner(signature.BytesSigner):
     """Provides a Signer using an elliptic curve private key for signing."""
 
-    def __init__(self, private_key: ec.EllipticCurvePrivateKey):
+    def __init__(
+            self,
+            private_key: ec.EllipticCurvePrivateKey,
+            signature_algorithm:
+            ec.EllipticCurveSignatureAlgorithm | None = None
+            ):
         self._private_key = private_key
+        self._signature_alg = signature_algorithm if signature_algorithm else \
+            ec.ECDS(SHA256())
 
     @classmethod
     def from_path(cls, private_key_path: str, password: Optional[str] = None):
         private_key = load_ec_private_key(private_key_path, password)
         return cls(private_key)
 
-    def sign(self, stmnt: statement.Statement) -> bundle_pb.Bundle:
-        pae = encoding.pae(stmnt.pb)
-        sig = self._private_key.sign(pae, ec.ECDSA(SHA256()))
-        env = intoto_pb.Envelope(
-            payload=json_format.MessageToJson(stmnt.pb).encode(),
-            payload_type=encoding.PAYLOAD_TYPE,
-            signatures=[intoto_pb.Signature(sig=sig, keyid=None)],
-        )
-        bdl = bundle_pb.Bundle(
-            media_type='application/vnd.dev.sigstore.bundle.v0.3+json',
-            verification_material=bundle_pb.VerificationMaterial(
-                public_key=common_pb.PublicKey(
-                    raw_bytes=self._private_key.public_key().public_bytes(
-                        encoding=serialization.Encoding.PEM,
-                        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-                    ),
-                    key_details=common_pb.
-                    PublicKeyDetails.PKIX_ECDSA_P256_SHA_256,
-                ),
-            ),
-            dsse_envelope=env,
-        )
+    @override
+    def sign(self, data: bytes) -> bytes:
+        return self._private_key.sign(data, self._signature_alg)
 
-        return bdl
+    @property
+    @override
+    def verification_material(self) -> ECVerificationMaterial:
+        return ECVerificationMaterial(
+            key=self._private_key.public_key,
+            signature_algorithm=self._signature_alg)
 
 
-class ECKeyVerifier(Verifier):
+class ECKeyVerifier(signature.BytesVerifier):
     """Provides a verifier using a public key."""
 
-    def __init__(self, public_key: ec.EllipticCurvePublicKey):
-        self._public_key = public_key
+    def __init__(self, material: ECVerificationMaterial):
+        self._verification_material = material
 
     @classmethod
     def from_path(cls, key_path: str):
         with open(key_path, 'rb') as fd:
             serialized_key = fd.read()
         public_key = serialization.load_pem_public_key(serialized_key)
-        return cls(public_key)
+        return cls(ECVerificationMaterial(public_key))
 
-    def verify(self, bundle: bundle_pb.Bundle) -> None:
-        statement = json_format.Parse(
-            bundle.dsse_envelope.payload,
-            statement_pb.Statement()  # pylint: disable=no-member
-        )
-        pae = encoding.pae(statement)
+    @override
+    def verify(self, signature: bytes, data: bytes):
         try:
-            self._public_key.verify(
-                bundle.dsse_envelope.signatures[0].sig,
-                pae, ec.ECDSA(SHA256()))
+            self._verification_material.key.verify(
+                signature,
+                data,
+                self._verification_material.signature_algorithm)
         except Exception as e:
-            raise VerificationError(
-                'signature verification failed ' + str(e)
-            ) from e
+            raise ValueError("signature verification failed" + str(e)) from e
