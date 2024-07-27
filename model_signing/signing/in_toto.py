@@ -24,6 +24,7 @@ from typing import Final, Self
 from in_toto_attestation.v1 import statement
 from typing_extensions import override
 
+from model_signing.hashing import memory
 from model_signing.manifest import manifest as manifest_module
 from model_signing.signing import signing
 
@@ -123,3 +124,133 @@ class SingleDigestIntotoPayload(IntotoPayload):
             digest_hex=digest.digest_hex,
             digest_algorithm=digest.algorithm,
         )
+
+
+def _convert_descriptors_to_hashed_statement(
+    manifest: manifest_module.Manifest,
+    *,
+    predicate_type: str,
+    predicate_top_level_name: str,
+):
+    """Converts manifest descriptors to an in-toto statement with payload.
+
+    Args:
+        manifest: The manifest to extract the descriptors from. Assumed valid.
+        predicate_type: The predicate_type to use in the in-toto statement.
+        predicate_top_level_name: Name to use in the payload for the array of
+          the subjects.
+    """
+    hasher = memory.SHA256()
+    subjects = []
+    for descriptor in manifest.resource_descriptors():
+        hasher.update(descriptor.digest.digest_value)
+        subjects.append({
+            "name": descriptor.identifier,
+            "digest": descriptor.digest.digest_hex,
+            "algorithm": descriptor.digest.algorithm,
+        })
+
+    digest = {"sha256": hasher.compute().digest_hex}
+    descriptor = statement.ResourceDescriptor(digest=digest).pb
+
+    return statement.Statement(
+        subjects=[descriptor],
+        predicate_type=predicate_type,
+        predicate={predicate_top_level_name: subjects},
+    )
+
+
+class DigestOfDigestsIntotoPayload(IntotoPayload):
+    """In-toto payload where the subject is a digest of digests of model files.
+
+    This payload is supposed to be used for manifests where every file in the
+    model is matched with a digest. Because existing tooling only supports
+    established hashing algorithms, we record every such digest in the predicate
+    part and compute a hash for the subject by using sha256 on the concatenation
+    of the file hashes. To ensure determinism, the hashes are sorted
+    alphabetically by filename.
+
+    Example:
+    ```json
+    {
+      "_type": "https://in-toto.io/Statement/v1",
+      "subject": [
+        {
+          "digest": {
+            "sha256": "18b5a4..."
+          }
+        }
+      ],
+      "predicateType": "https://model_signing/DigestOfDigests/v0.1",
+      "predicate": {
+        "files": [
+          {
+            "digest": "6efa14...",
+            "algorithm": "file-sha256",
+            "name": "d0/d1/d2/d3/d4/f0"
+          },
+          {
+            "digest": "a9bc14...",
+            "algorithm": "file-sha256",
+            "name": "d0/d1/d2/d3/d4/f1"
+          },
+          {
+            "digest": "5f597e...",
+            "algorithm": "file-sha256",
+            "name": "d0/d1/d2/d3/d4/f2"
+          },
+          {
+            "digest": "eaf677...",
+            "algorithm": "file-sha256",
+            "name": "d0/d1/d2/d3/d4/f3"
+          }
+        ]
+      }
+    }
+    ```
+
+    A missing predicate, or a predicate for which an entry does not have valid
+    name, digest, or algorithm should be considered invalid and fail integrity
+    verification.
+
+    See also https://github.com/sigstore/sigstore-python/issues/1018.
+    """
+
+    predicate_type: Final[str] = "https://model_signing/DigestOfDigests/v0.1"
+
+    def __init__(self, statement: statement.Statement):
+        """Builds an instance of this in-toto payload.
+
+        Don't call this directly in production. Use `from_manifest()` instead.
+
+        Args:
+            statement: The DSSE statement representing this in-toto payload.
+        """
+        self.statement = statement
+
+    @classmethod
+    @override
+    def from_manifest(cls, manifest: manifest_module.Manifest) -> Self:
+        """Converts a manifest to the signing payload used for signing.
+
+        The manifest must be one where every model file is paired with its own
+        digest. Currently, this is only `FileLevelManifest`.
+
+        Args:
+            manifest: the manifest to convert to signing payload.
+
+        Returns:
+            An instance of `DigestOfDigestsIntotoPayload`.
+
+        Raises:
+            TypeError: If the manifest is not `FileLevelManifest`.
+        """
+        if not isinstance(manifest, manifest_module.FileLevelManifest):
+            raise TypeError("Only FileLevelManifest is supported")
+
+        statement = _convert_descriptors_to_hashed_statement(
+            manifest,
+            predicate_type=cls.predicate_type,
+            predicate_top_level_name="files",
+        )
+        return cls(statement)
