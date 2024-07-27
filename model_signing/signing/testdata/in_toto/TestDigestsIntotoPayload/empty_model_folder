@@ -1,0 +1,7 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "predicateType": "https://model_signing/Digests/v0.1",
+  "predicate": {
+    "unused": "Unused, just passed due to API requirements"
+  }
+}
