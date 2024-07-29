@@ -49,7 +49,7 @@ class BytesPayload(signing.SigningPayload):
             manifest: the manifest to convert to signing payload.
 
         Returns:
-            An instance of `SingleDigestIntotoPayload`.
+            An instance of `BytesPayload`.
 
         Raises:
             TypeError: If the manifest is not `DigestManifest`.
