@@ -100,3 +100,16 @@ def extract_items_from_manifest(
         str(path): digest.digest_hex
         for path, digest in manifest._item_to_digest.items()
     }
+
+def count_files(path: pathlib.Path) -> int:
+    """Counts the number of files that are children of path.
+
+    If path is a file, the count returned is 1.
+    """
+    if path.is_file():
+        return 1
+    count = 0
+    for child_path in path.glob("**/*"):
+        if child_path.is_file():
+            count += 1
+    return count

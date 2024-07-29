@@ -285,6 +285,20 @@ class TestDigestSerializer:
         with pytest.raises(ValueError):
             _ = serializer.serialize(symlink_model_folder)
 
+    def test_ignore_list_respects_directories(self, sample_model_folder):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
+        serializer = serialize_by_file.DigestSerializer(
+            file_hasher, memory.SHA256
+        )
+        manifest1 = serializer.serialize(sample_model_folder)
+        ignore_path = test_support.get_first_directory(sample_model_folder)
+        manifest2 = serializer.serialize(
+            sample_model_folder, ignore_paths=[ignore_path]
+        )
+        assert manifest1 != manifest2
+
 
 class TestManifestSerializer:
 
@@ -552,6 +566,18 @@ class TestManifestSerializer:
         serializer = serialize_by_file.ManifestSerializer(self._hasher_factory)
         with pytest.raises(ValueError):
             _ = serializer.serialize(symlink_model_folder)
+
+    def test_ignore_list_respects_directories(self, sample_model_folder):
+        serializer = serialize_by_file.ManifestSerializer(self._hasher_factory)
+        manifest1 = serializer.serialize(sample_model_folder)
+        ignore_path = test_support.get_first_directory(sample_model_folder)
+        ignored_file_count = test_support.count_files(ignore_path)
+        manifest2 = serializer.serialize(
+            sample_model_folder, ignore_paths=[ignore_path]
+        )
+        assert manifest1 != manifest2
+        diff = len(manifest1._item_to_digest) - len(manifest2._item_to_digest)
+        assert diff == ignored_file_count
 
 
 class TestUtilities:

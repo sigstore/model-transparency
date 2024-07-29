@@ -19,7 +19,8 @@ import base64
 import concurrent.futures
 import itertools
 import pathlib
-from typing import Callable, Iterable, cast
+from collections.abc import Callable, Iterable
+from typing import cast
 from typing_extensions import override
 
 from model_signing.hashing import file
@@ -85,6 +86,20 @@ def _build_header(
     # Note: empty string at the end, to terminate header with a "."
     return b".".join([encoded_type, encoded_name, b""])
 
+def _ignored(path: pathlib.Path, ignore_paths: Iterable[pathlib.Path]) -> bool:
+    """Determines if the provided path should be ignored.
+
+    Args:
+        path: The path to check.
+        ignore_paths: The paths to ignore while serializing a model.
+
+    Returns:
+        Whether or not the provided path should be ignored.
+    """
+    for ignore_path in ignore_paths:
+        if path.is_relative_to(ignore_path):
+            return True
+    return False
 
 class FilesSerializer(serialization.Serializer):
     """Generic file serializer.
@@ -118,7 +133,10 @@ class FilesSerializer(serialization.Serializer):
         self._allow_symlinks = allow_symlinks
 
     @override
-    def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
+    def serialize(self,
+        model_path: pathlib.Path,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
+    ) -> manifest.Manifest:
         """Serializes the model given by the `model_path` argument.
 
         Raises:
@@ -134,7 +152,7 @@ class FilesSerializer(serialization.Serializer):
             check_file_or_directory(
                 path, allow_symlinks=self._allow_symlinks
             )
-            if path.is_file():
+            if path.is_file() and not _ignored(path, ignore_paths):
                 paths.append(path)
 
         manifest_items = []
@@ -183,7 +201,10 @@ class ManifestSerializer(FilesSerializer):
     """
 
     @override
-    def serialize(self, model_path: pathlib.Path) -> manifest.FileLevelManifest:
+    def serialize(self,
+        model_path: pathlib.Path,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
+    ) -> manifest.FileLevelManifest:
         """Serializes the model given by the `model_path` argument.
 
         The only reason for the override is to change the return type, to be
@@ -194,7 +215,8 @@ class ManifestSerializer(FilesSerializer):
             ValueError: The model contains a symbolic link, but the serializer
               was not initialized with `allow_symlinks=True`.
         """
-        return cast(manifest.FileLevelManifest, super().serialize(model_path))
+        return cast(manifest.FileLevelManifest,
+                    super().serialize(model_path, ignore_paths))
 
     @override
     def _build_manifest(
@@ -321,7 +343,10 @@ class DigestSerializer(FilesSerializer):
         self._merge_hasher_factory = merge_hasher_factory
 
     @override
-    def serialize(self, model_path: pathlib.Path) -> manifest.DigestManifest:
+    def serialize(self,
+        model_path: pathlib.Path,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
+    ) -> manifest.DigestManifest:
         """Serializes the model given by the `model_path` argument.
 
         The only reason for the override is to change the return type, to be
@@ -332,7 +357,8 @@ class DigestSerializer(FilesSerializer):
             ValueError: The model contains a symbolic link, but the serializer
               was not initialized with `allow_symlinks=True`.
         """
-        return cast(manifest.DigestManifest, super().serialize(model_path))
+        return cast(manifest.DigestManifest,
+                    super().serialize(model_path, ignore_paths))
 
     @override
     def _build_manifest(

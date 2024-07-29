@@ -308,6 +308,17 @@ class TestDigestSerializer:
         with pytest.raises(ValueError):
             _ = serializer.serialize(symlink_model_folder)
 
+    def test_ignore_list_respects_directories(self, sample_model_folder):
+        serializer = serialize_by_file_shard.DigestSerializer(
+            self._hasher_factory, memory.SHA256()
+        )
+        manifest1 = serializer.serialize(sample_model_folder)
+        ignore_path = test_support.get_first_directory(sample_model_folder)
+        manifest2 = serializer.serialize(
+            sample_model_folder, ignore_paths=[ignore_path]
+        )
+        assert manifest1 != manifest2
+
 
 def _extract_shard_items_from_manifest(
     manifest: manifest.ShardLevelManifest,
@@ -674,3 +685,16 @@ class TestManifestSerializer:
         """Ensure the shard's `__str__` method behaves as assumed."""
         shard = manifest.Shard(pathlib.PurePosixPath("a"), 0, 42)
         assert str(shard) == "a:0:42"
+
+    def test_ignore_list_respects_directories(self, sample_model_folder):
+        serializer = serialize_by_file_shard.ManifestSerializer(
+            self._hasher_factory
+        )
+        manifest1 = serializer.serialize(sample_model_folder)
+        ignore_path = test_support.get_first_directory(sample_model_folder)
+        ignored_file_count = test_support.count_files(ignore_path)
+        manifest2 = serializer.serialize(
+            sample_model_folder, ignore_paths=[ignore_path]
+        )
+        assert manifest1 != manifest2
+        assert len(manifest1._item_to_digest) > len(manifest2._item_to_digest)

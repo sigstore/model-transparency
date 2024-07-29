@@ -19,7 +19,8 @@ import base64
 import concurrent.futures
 import itertools
 import pathlib
-from typing import Callable, Iterable, cast
+from collections.abc import Callable, Iterable
+from typing import cast
 from typing_extensions import override
 
 from model_signing.hashing import file
@@ -120,7 +121,10 @@ class ShardedFilesSerializer(serialization.Serializer):
         self._shard_size = hasher.shard_size
 
     @override
-    def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
+    def serialize(self,
+        model_path: pathlib.Path,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
+    ) -> manifest.Manifest:
         """Serializes the model given by the `model_path` argument.
 
         Raises:
@@ -136,7 +140,10 @@ class ShardedFilesSerializer(serialization.Serializer):
             serialize_by_file.check_file_or_directory(
                 path, allow_symlinks=self._allow_symlinks
             )
-            if path.is_file():
+            if (
+                path.is_file()
+                and not serialize_by_file._ignored(path, ignore_paths)
+            ):
                 shards.extend(self._get_shards(path))
 
         manifest_items = []
@@ -207,7 +214,9 @@ class ManifestSerializer(ShardedFilesSerializer):
 
     @override
     def serialize(
-        self, model_path: pathlib.Path
+        self,
+        model_path: pathlib.Path,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ) -> manifest.ShardLevelManifest:
         """Serializes the model given by the `model_path` argument.
 
@@ -219,7 +228,8 @@ class ManifestSerializer(ShardedFilesSerializer):
             ValueError: The model contains a symbolic link, but the serializer
               was not initialized with `allow_symlinks=True`.
         """
-        return cast(manifest.ShardLevelManifest, super().serialize(model_path))
+        return cast(manifest.ShardLevelManifest,
+                    super().serialize(model_path, ignore_paths))
 
     @override
     def _build_manifest(
@@ -263,7 +273,10 @@ class DigestSerializer(ShardedFilesSerializer):
         self._merge_hasher = merge_hasher
 
     @override
-    def serialize(self, model_path: pathlib.Path) -> manifest.DigestManifest:
+    def serialize(self,
+        model_path: pathlib.Path,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
+    ) -> manifest.DigestManifest:
         """Serializes the model given by the `model_path` argument.
 
         The only reason for the override is to change the return type, to be
@@ -274,7 +287,8 @@ class DigestSerializer(ShardedFilesSerializer):
             ValueError: The model contains a symbolic link, but the serializer
               was not initialized with `allow_symlinks=True`.
         """
-        return cast(manifest.DigestManifest, super().serialize(model_path))
+        return cast(manifest.DigestManifest,
+                    super().serialize(model_path, ignore_paths))
 
     @override
     def _build_manifest(

@@ -21,6 +21,8 @@ directory, but more serializers are coming soon.
 import abc
 import pathlib
 
+from collections.abc import Iterable
+
 from model_signing.manifest import manifest
 
 
@@ -28,6 +30,10 @@ class Serializer(metaclass=abc.ABCMeta):
     """Generic ML model format serializer."""
 
     @abc.abstractmethod
-    def serialize(self, model_path: pathlib.Path) -> manifest.Manifest:
+    def serialize(
+        self,
+        model_path: pathlib.Path,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
+    ) -> manifest.Manifest:
         """Serializes the model given by the `model_path` argument."""
         pass
