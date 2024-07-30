@@ -32,7 +32,18 @@ class Serializer(metaclass=abc.ABCMeta):
     def serialize(
         self,
         model_path: pathlib.Path,
+        *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ) -> manifest.Manifest:
-        """Serializes the model given by the `model_path` argument."""
+        """Serializes the model given by the `model_path` argument.
+
+        Args:
+            model_path: The path to the model.
+            ignore_paths: The paths to ignore during serialization. If a
+              provided path is a directory, all children of the directory are
+              ignored.
+
+        Returns:
+            The model's serialized `manifest.Manifest`
+        """
         pass

@@ -124,9 +124,19 @@ class ShardedFilesSerializer(serialization.Serializer):
     @override
     def serialize(self,
         model_path: pathlib.Path,
+        *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ) -> manifest.Manifest:
         """Serializes the model given by the `model_path` argument.
+
+        Args:
+            model_path: The path to the model.
+            ignore_paths: The paths to ignore during serialization. If a
+              provided path is a directory, all children of the directory are
+              ignored.
+
+        Returns:
+            The model's serialized `manifest.Manifest`
 
         Raises:
             ValueError: The model contains a symbolic link, but the serializer
@@ -217,13 +227,23 @@ class ManifestSerializer(ShardedFilesSerializer):
     def serialize(
         self,
         model_path: pathlib.Path,
+        *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ) -> manifest.ShardLevelManifest:
         """Serializes the model given by the `model_path` argument.
 
         The only reason for the override is to change the return type, to be
         more restrictive. This is to signal that the only manifests that can be
-        returned are `manifest.FileLevelManifest` instances.
+        returned are `manifest.ShardLevelManifest` instances.
+
+        Args:
+            model_path: The path to the model.
+            ignore_paths: The paths to ignore during serialization. If a
+              provided path is a directory, all children of the directory are
+              ignored.
+
+        Returns:
+            The model's serialized `manifest.ShardLevelManifest`
 
         Raises:
             ValueError: The model contains a symbolic link, but the serializer
@@ -231,7 +251,7 @@ class ManifestSerializer(ShardedFilesSerializer):
         """
         return cast(
             manifest.ShardLevelManifest,
-            super().serialize(model_path, ignore_paths),
+            super().serialize(model_path, ignore_paths=ignore_paths),
         )
 
     @override
@@ -278,20 +298,31 @@ class DigestSerializer(ShardedFilesSerializer):
     @override
     def serialize(self,
         model_path: pathlib.Path,
+        *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ) -> manifest.DigestManifest:
         """Serializes the model given by the `model_path` argument.
 
         The only reason for the override is to change the return type, to be
         more restrictive. This is to signal that the only manifests that can be
-        returned are `manifest.FileLevelManifest` instances.
+        returned are `manifest.DigestManifest` instances.
+
+        Args:
+            model_path: The path to the model.
+            ignore_paths: The paths to ignore during serialization. If a
+              provided path is a directory, all children of the directory are
+              ignored.
+
+        Returns:
+            The model's serialized `manifest.DigestManifest`
 
         Raises:
             ValueError: The model contains a symbolic link, but the serializer
               was not initialized with `allow_symlinks=True`.
         """
         return cast(
-            manifest.DigestManifest, super().serialize(model_path, ignore_paths)
+            manifest.DigestManifest,
+            super().serialize(model_path, ignore_paths=ignore_paths),
         )
 
     @override
