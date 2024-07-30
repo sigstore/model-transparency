@@ -229,8 +229,10 @@ class ManifestSerializer(ShardedFilesSerializer):
             ValueError: The model contains a symbolic link, but the serializer
               was not initialized with `allow_symlinks=True`.
         """
-        return cast(manifest.ShardLevelManifest,
-                    super().serialize(model_path, ignore_paths))
+        return cast(
+            manifest.ShardLevelManifest,
+            super().serialize(model_path, ignore_paths),
+        )
 
     @override
     def _build_manifest(
@@ -288,8 +290,9 @@ class DigestSerializer(ShardedFilesSerializer):
             ValueError: The model contains a symbolic link, but the serializer
               was not initialized with `allow_symlinks=True`.
         """
-        return cast(manifest.DigestManifest,
-                    super().serialize(model_path, ignore_paths))
+        return cast(
+            manifest.DigestManifest, super().serialize(model_path, ignore_paths)
+        )
 
     @override
     def _build_manifest(
