@@ -19,9 +19,8 @@ directory, but more serializers are coming soon.
 """
 
 import abc
-import pathlib
-
 from collections.abc import Iterable
+import pathlib
 
 from model_signing.manifest import manifest
 

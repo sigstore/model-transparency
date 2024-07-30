@@ -21,6 +21,7 @@ models. If the golden tests are failing, regenerate the golden files with
 """
 
 import pathlib
+
 import pytest
 
 from model_signing import test_support

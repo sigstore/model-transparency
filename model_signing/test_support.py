@@ -18,7 +18,6 @@ import pathlib
 
 from model_signing.manifest import manifest
 
-
 # Model contents
 KNOWN_MODEL_TEXT: bytes = b"This is a simple model"
 ANOTHER_MODEL_TEXT: bytes = b"This is another simple model"

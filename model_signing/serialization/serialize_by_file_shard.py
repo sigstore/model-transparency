@@ -16,11 +16,12 @@
 
 import abc
 import base64
+from collections.abc import Callable, Iterable
 import concurrent.futures
 import itertools
 import pathlib
-from collections.abc import Callable, Iterable
 from typing import cast
+
 from typing_extensions import override
 
 from model_signing.hashing import file
