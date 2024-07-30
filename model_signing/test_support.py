@@ -14,10 +14,10 @@
 
 """Helpers and constants used in fixtures and tests. Not in the public API."""
 
+import itertools
 import pathlib
 
 from model_signing.manifest import manifest
-
 
 # Model contents
 KNOWN_MODEL_TEXT: bytes = b"This is a simple model"
@@ -100,3 +100,14 @@ def extract_items_from_manifest(
         str(path): digest.digest_hex
         for path, digest in manifest._item_to_digest.items()
     }
+
+def count_files(path: pathlib.Path) -> int:
+    """Counts the number of files that are children of path.
+
+    If path is a file, the count returned is 1.
+    """
+    count = 0
+    for child_path in itertools.chain((path,), path.glob("**/*")):
+        if child_path.is_file():
+            count += 1
+    return count
