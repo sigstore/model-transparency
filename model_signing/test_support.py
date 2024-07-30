@@ -14,6 +14,7 @@
 
 """Helpers and constants used in fixtures and tests. Not in the public API."""
 
+import itertools
 import pathlib
 
 from model_signing.manifest import manifest
@@ -105,10 +106,8 @@ def count_files(path: pathlib.Path) -> int:
 
     If path is a file, the count returned is 1.
     """
-    if path.is_file():
-        return 1
     count = 0
-    for child_path in path.glob("**/*"):
+    for child_path in itertools.chain((path,), path.glob("**/*")):
         if child_path.is_file():
             count += 1
     return count
