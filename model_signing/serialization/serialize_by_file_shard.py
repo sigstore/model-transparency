@@ -95,6 +95,7 @@ class ShardedFilesSerializer(serialization.Serializer):
         sharded_hasher_factory: Callable[
             [pathlib.Path, int, int], file.ShardedFileHasher
         ],
+        *,
         max_workers: int | None = None,
         allow_symlinks: bool = False,
     ):
@@ -273,6 +274,7 @@ class DigestSerializer(ShardedFilesSerializer):
             [pathlib.Path, int, int], file.ShardedFileHasher
         ],
         merge_hasher: hashing.StreamingHashEngine,
+        *,
         max_workers: int | None = None,
         allow_symlinks: bool = False,
     ):
@@ -292,7 +294,11 @@ class DigestSerializer(ShardedFilesSerializer):
               symlink is present but the flag is `False` (default) the
               serialization would raise an error.
         """
-        super().__init__(file_hasher_factory, max_workers, allow_symlinks)
+        super().__init__(
+            file_hasher_factory,
+            max_workers=max_workers,
+            allow_symlinks=allow_symlinks,
+        )
         self._merge_hasher = merge_hasher
 
     @override

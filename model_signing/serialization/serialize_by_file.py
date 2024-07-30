@@ -32,6 +32,7 @@ from model_signing.serialization import serialization
 
 def check_file_or_directory(
     path: pathlib.Path,
+    *,
     allow_symlinks: bool = False,
 ) -> None:
     """Checks that the given path is either a file or a directory.
@@ -115,6 +116,7 @@ class FilesSerializer(serialization.Serializer):
     def __init__(
         self,
         file_hasher_factory: Callable[[pathlib.Path], file.FileHasher],
+        *,
         max_workers: int | None = None,
         allow_symlinks: bool = False,
     ):
@@ -344,6 +346,7 @@ class DigestSerializer(FilesSerializer):
         self,
         file_hasher: file.SimpleFileHasher,
         merge_hasher_factory: Callable[[], hashing.StreamingHashEngine],
+        *,
         allow_symlinks: bool = False,
     ):
         """Initializes an instance to serialize a model with this serializer.
