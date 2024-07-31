@@ -693,7 +693,6 @@ class TestManifestSerializer:
         )
         manifest1 = serializer.serialize(sample_model_folder)
         ignore_path = test_support.get_first_directory(sample_model_folder)
-        ignored_file_count = test_support.count_files(ignore_path)
         manifest2 = serializer.serialize(
             sample_model_folder, ignore_paths=[ignore_path]
         )
