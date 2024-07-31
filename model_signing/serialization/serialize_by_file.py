@@ -98,10 +98,7 @@ def _ignored(path: pathlib.Path, ignore_paths: Iterable[pathlib.Path]) -> bool:
     Returns:
         Whether or not the provided path should be ignored.
     """
-    for ignore_path in ignore_paths:
-        if path.is_relative_to(ignore_path):
-            return True
-    return False
+    return any(path.is_relative_to(ignore_path) for ignore_path in ignore_paths)
 
 class FilesSerializer(serialization.Serializer):
     """Generic file serializer.

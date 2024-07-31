@@ -18,16 +18,16 @@ from typing import Optional
 from absl import logging as log
 from in_toto_attestation.v1 import statement
 from sigstore import dsse
+from sigstore import models as sig_models
 from sigstore import oidc
 from sigstore import sign
-from sigstore import models as sig_models
-from sigstore.verify import verifier as sig_verifier
 from sigstore.verify import policy as sig_policy
+from sigstore.verify import verifier as sig_verifier
 from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 
 from model_signing.signature.signing import Signer
-from model_signing.signature.verifying import Verifier
 from model_signing.signature.verifying import VerificationError
+from model_signing.signature.verifying import Verifier
 
 
 class SigstoreSigner(Signer):

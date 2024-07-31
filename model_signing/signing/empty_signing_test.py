@@ -14,6 +14,7 @@
 
 import pathlib
 from typing import Self
+
 import pytest
 from typing_extensions import override
 

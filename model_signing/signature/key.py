@@ -27,8 +27,8 @@ from sigstore_protobuf_specs.io import intoto as intoto_pb
 
 from model_signing.signature import encoding
 from model_signing.signature.signing import Signer
-from model_signing.signature.verifying import Verifier
 from model_signing.signature.verifying import VerificationError
+from model_signing.signature.verifying import Verifier
 
 
 def load_ec_private_key(
