@@ -49,6 +49,7 @@ Example usage for `OpenedFileHasher`:
 import hashlib
 import pathlib
 from typing import BinaryIO
+
 from typing_extensions import override
 
 from model_signing.hashing import hashing

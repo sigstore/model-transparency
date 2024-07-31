@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pathlib
+
 import pytest
 
 from model_signing.hashing import hashing

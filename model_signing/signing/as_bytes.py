@@ -19,6 +19,7 @@ the hash computed from somewhere else and want to avoid the in-toto types.
 """
 
 from typing import Self
+
 from typing_extensions import override
 
 from model_signing.manifest import manifest as manifest_module

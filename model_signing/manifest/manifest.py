@@ -56,6 +56,7 @@ from collections.abc import Iterable, Iterator
 import dataclasses
 import pathlib
 from typing import Self
+
 from typing_extensions import override
 
 from model_signing.hashing import hashing

@@ -13,11 +13,9 @@
 # limitations under the License.
 """This package provides the functionality to sign and verify models
 with certificates."""
-from typing import Optional
-from typing import Self
+from typing import Optional, Self
 
 import certifi
-
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -31,8 +29,8 @@ from model_signing.signature.key import ECKeySigner
 from model_signing.signature.key import ECKeyVerifier
 from model_signing.signature.key import load_ec_private_key
 from model_signing.signature.signing import Signer
-from model_signing.signature.verifying import Verifier
 from model_signing.signature.verifying import VerificationError
+from model_signing.signature.verifying import Verifier
 
 
 def _load_single_cert(path: str) -> x509.Certificate:

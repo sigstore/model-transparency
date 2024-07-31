@@ -22,6 +22,7 @@ done from outside the library).
 
 import pathlib
 from typing import Self
+
 from typing_extensions import override
 
 from model_signing.manifest import manifest
