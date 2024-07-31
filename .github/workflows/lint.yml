@@ -68,7 +68,7 @@ jobs:
           # TODO: https://github.com/sigstore/model-transparency/issues/231 - Support all repo
           pytype --keep-going model_signing/{hashing,manifest,serialization,signature,signing}
 
-  pylint-lint:
+  ruff-lint:
     runs-on: ubuntu-latest
     name: Python lint
     steps:
@@ -78,7 +78,7 @@ jobs:
         uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
         with:
           python-version: "3.11"
-      - name: run pylint
+      - name: run ruff
         run: |
           python -m venv venv
           .github/workflows/scripts/venv_activate.sh
@@ -86,8 +86,4 @@ jobs:
           pip install -r model_signing/install/requirements_test_Linux.txt
           pip install -r model_signing/install/requirements_dev_Linux.txt
           # TODO: https://github.com/sigstore/model-transparency/issues/231 - Support all repo
-          # We should actually migrate to ruff, but that's configured via pyproject.toml which we use when we release the wheel
-          pylint \
-            --max-line-length 80 \
-            --disable C0114,C0115,C0116,R0801,R0903,R0904,R0913,R0914,R1721,R1737,W0107,W0212,W0223,W0231,W0511,W0621 \
-            model_signing/{hashing,manifest,serialization,signature,signing}
+          ruff check model_signing/{hashing,manifest,serialization,signature,signing}
