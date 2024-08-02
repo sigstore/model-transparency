@@ -1,0 +1,45 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "d0/d1/d2/d3/d4/f0:0:16",
+      "digest": {
+        "sha256": "6efa14bb03544fcb76045c55f25b9315b6eb5be2d8a85f703193a76b7874c6ff"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    },
+    {
+      "name": "d0/d1/d2/d3/d4/f1:0:16",
+      "digest": {
+        "sha256": "a9bc149b70b9d325cd68d275d582cfdb98c0347d3ce54590aa6533368daed3d2"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    },
+    {
+      "name": "d0/d1/d2/d3/d4/f2:0:16",
+      "digest": {
+        "sha256": "5f597e6a92d1324d9adbed43d527926d11d0131487baf315e65ae1ef3b1ca3c0"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    },
+    {
+      "name": "d0/d1/d2/d3/d4/f3:0:16",
+      "digest": {
+        "sha256": "eaf677c35fec6b87889d9e4563d8bb65dcb9869ca0225697c9cc44cf49dca008"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    }
+  ],
+  "predicateType": "https://model_signing/ShardDigests/v0.1",
+  "predicate": {
+    "unused": "Unused, just passed due to API requirements"
+  }
+}
