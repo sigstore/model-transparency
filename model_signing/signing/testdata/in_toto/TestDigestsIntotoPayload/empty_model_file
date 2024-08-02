@@ -1,0 +1,18 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": ".",
+      "digest": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256"
+      }
+    }
+  ],
+  "predicateType": "https://model_signing/Digests/v0.1",
+  "predicate": {
+    "unused": "Unused, just passed due to API requirements"
+  }
+}
