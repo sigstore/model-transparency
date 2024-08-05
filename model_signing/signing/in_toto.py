@@ -46,7 +46,7 @@ class SingleDigestIntotoPayload(IntotoPayload):
     """In-toto payload where the model is serialized to just one digest.
 
     In this case, we encode the model as the only subject of the statement. We
-    don't set the name field, and use the digest as the one resulting from the
+    set the name field to ".", and use the digest as the one resulting from the
     model serialization.
 
     However, since we use custom hashing algorithms, but these are not supported
@@ -59,6 +59,7 @@ class SingleDigestIntotoPayload(IntotoPayload):
       "_type": "https://in-toto.io/Statement/v1",
       "subject": [
         {
+          "name": ".",
           "digest": {
             "sha256": "3aab065c...."
           }
@@ -90,7 +91,7 @@ class SingleDigestIntotoPayload(IntotoPayload):
             digest_algorithm: the algorithm used to compute the digest.
         """
         digest = {"sha256": digest_hex}
-        descriptor = statement.ResourceDescriptor(digest=digest).pb
+        descriptor = statement.ResourceDescriptor(name=".", digest=digest).pb
 
         self.statement = statement.Statement(
             subjects=[descriptor],
@@ -151,7 +152,7 @@ def _convert_descriptors_to_hashed_statement(
         })
 
     digest = {"sha256": hasher.compute().digest_hex}
-    descriptor = statement.ResourceDescriptor(digest=digest).pb
+    descriptor = statement.ResourceDescriptor(name=".", digest=digest).pb
 
     return statement.Statement(
         subjects=[descriptor],
@@ -176,6 +177,7 @@ class DigestOfDigestsIntotoPayload(IntotoPayload):
       "_type": "https://in-toto.io/Statement/v1",
       "subject": [
         {
+          "name": ".",
           "digest": {
             "sha256": "18b5a4..."
           }
@@ -272,6 +274,7 @@ class DigestOfShardDigestsIntotoPayload(IntotoPayload):
       "_type": "https://in-toto.io/Statement/v1",
       "subject": [
         {
+          "name": ".",
           "digest": {
             "sha256": "18b5a4..."
           }

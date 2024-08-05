@@ -2,6 +2,7 @@
   "_type": "https://in-toto.io/Statement/v1",
   "subject": [
     {
+      "name": ".",
       "digest": {
         "sha256": "18b5a45fe7983f7194e8ffd96c80f5f0ec53191bf4a32b6aff293f043e816d7a"
       }
