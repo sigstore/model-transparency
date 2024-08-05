@@ -28,6 +28,7 @@ from model_signing.signature import key
 from model_signing.signature import pki
 from model_signing.signature import sigstore
 from model_signing.signature import fake
+from model_signing.signing import in_toto
 
 log = logging.getLogger(__name__)
 
@@ -131,8 +132,7 @@ def main():
 
     log.info(f'Verifying model signature from {args.sig_path}')
 
-    bundle = bundle_pb.Bundle().from_json(
-        value=args.sig_path.read_text())
+    sig = in_toto.IntotoSignature.read(args.sig_path)
 
     def hasher_factory(file_path: pathlib.Path) -> file.FileHasher:
         return file.SimpleFileHasher(
@@ -140,16 +140,18 @@ def main():
             content_hasher=memory.SHA256(),
         )
 
-    serializer = serialize_by_file.FilesSerializer(
+    serializer = serialize_by_file.ManifestSerializer(
         file_hasher_factory=hasher_factory)
+
+    intoto_verifier = in_toto.IntotoVerifier(verifier)
 
     try:
         model.verify(
-            bundle=bundle,
-            verifier=verifier,
+            sig=sig,
+            verifier=intoto_verifier,
             model_path=args.model_path,
             serializer=serializer,
-            ignore_paths=[args.sig_path.name])
+            ignore_paths=[args.sig_path])
     except verifying.VerificationError as err:
         log.error(f'verification failed: {err}')
 

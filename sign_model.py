@@ -26,6 +26,7 @@ from model_signing.signature import pki
 from model_signing.signature import signing
 from model_signing.signature import sigstore
 from model_signing.signature import fake
+from model_signing.signing import in_toto
 
 log = logging.getLogger(__name__)
 
@@ -53,7 +54,8 @@ def __arguments() -> argparse.Namespace:
     pki = method_cmd.add_parser('pki')
     pki.add_argument(
         '--cert_chain',
-        help='paths to pem encoded certificate files or a single file containing a chain',
+        help=('paths to pem encoded certificate files or a single',
+              'file containing a chain'),
         required=False,
         type=list[str],
         default=[],
@@ -143,18 +145,20 @@ def main():
             file=file_path,
             content_hasher=memory.SHA256())
 
-    serializer = serialize_by_file.FilesSerializer(
+    serializer = serialize_by_file.ManifestSerializer(
         file_hasher_factory=hasher_factory)
 
-    bundle = model.sign(
+    intoto_signer = in_toto.IntotoSigner(payload_signer)
+    sig = model.sign(
         model_path=args.model_path,
-        signer=payload_signer,
+        signer=intoto_signer,
+        payload_generator=in_toto.DigestsIntotoPayload.from_manifest,
         serializer=serializer,
-        ignore_paths=[args.sig_out.name]
+        ignore_paths=[args.sig_out]
     )
 
     log.info(f'Storing signature at "{args.sig_out}"')
-    args.sig_out.write_text(bundle.to_json())
+    sig.write(args.sig_out)
 
 
 if __name__ == '__main__':

@@ -12,64 +12,65 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Callable
 import pathlib
 
-from google.protobuf import json_format
-from in_toto_attestation.v1 import statement
-from in_toto_attestation.v1 import statement_pb2 as statement_pb
-from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
-
-from model_signing.manifest import in_toto
-from model_signing.signature import signing
+from model_signing.manifest import manifest
+from model_signing.signing import signing
 from model_signing.signature import verifying
 from model_signing.serialization import serialization
+
+payload_generator_func = Callable[[manifest.Manifest], signing.SigningPayload]
 
 
 def sign(model_path: pathlib.Path,
          signer: signing.Signer,
+         payload_generator: payload_generator_func,
          serializer: serialization.Serializer,
-         ignore_paths: list[str] = [],
-         ) -> bundle_pb.Bundle:
-    """Signs a model and returns a sigstore bundle.
+         ignore_paths: list[pathlib.Path] = [],
+         ) -> signing.Signature:
+    """sign provides a wrapper function for the steps necessary to sign a model
 
     Args:
-        model_path (pathlib.Path): Path to the model
-        signer (signing.Signer): Signer to sign the statement
-        serializer (serialization.Serializer): Serializer used to serialize the model
-        ignore_paths (list[str], optional): Filenames that should be ignored during serialization. Defaults to [].
+        model_path (pathlib.Path): the model to be signed
+        signer (signing.Signer): the signer to be used
+        payload_generator (payload_generator_func): funtion to generate the
+            manifest
+        serializer (serialization.Serializer): the serializer to be used for
+            the model
+        ignore_paths (list[pathlib.Path], optional): paths that should be
+            ignored during serialization Defaults to [].
 
     Returns:
-        bundle_pb.Bundle: Sigstore bundle containing a signed DSSE envelope
+        signing.Signature: the model's signature
     """
-    manifest = serializer.serialize(model_path, ignore_paths)
-    stmnt = in_toto.manifest_to_statement(manifest)
-    bundle = signer.sign(stmnt)
-    return bundle
+    manifest = serializer.serialize(model_path, ignore_paths=ignore_paths)
+    payload = payload_generator(manifest)
+    sig = signer.sign(payload)
+    return sig
 
 
-def verify(bundle: bundle_pb.Bundle,
-           verifier: verifying.Verifier,
+def verify(sig: signing.Signature,
+           verifier: signing.Verifier,
            model_path: pathlib.Path,
            serializer: serialization.Serializer,
-           ignore_paths: list[str] = []):
-    """Verifies the bundle information in comparison with the local model.
+           ignore_paths: list[pathlib.Path] = []):
+    """verify is a simple wrapper to verify models
 
     Args:
-        bundle (bundle_pb.Bundle): Sigstore bundle describing the model
-        verifier (verifying.Verifier): Verifier to verify the signature
-        model_path (pathlib.Path): Path to the local model.
-        serializer (serialization.Serializer): Serializer to be used for the local model.
-        ignore_paths (list[str], optional): Filenames to ignore during serialization. Defaults to [].
+        sig (signing.Signature): the signature to be verified
+        verifier (signing.Verifier): the verifier
+        model_path (pathlib.Path): the path to the model to compare manifests
+        serializer (serialization.Serializer): the serializer used to generate
+            the local manifest
+        ignore_paths (list[pathlib.Path], optional): paths that should be
+            ignored during serialization. Defaults to [].
 
     Raises:
-        verifying.VerificationError: on verification failures.
+        verifying.VerificationError: on any verifiacation error.
     """
-    verifier.verify(bundle)
-    local_manifest = serializer.serialize(model_path, ignore_paths)
-    payload = bundle.dsse_envelope.payload
-    peer_statment_pb = json_format.Parse(payload, statement_pb.Statement())
-    peer_statment = statement.Statement.copy_from_pb(peer_statment_pb)
-    peer_manifest = in_toto.statement_to_manifest(peer_statment)
-
+    peer_manifest = verifier.verify(sig)
+    local_manifest = serializer.serialize(
+        model_path, ignore_paths=ignore_paths)
     if peer_manifest != local_manifest:
-        raise verifying.VerificationError('the manifest do not match')
+        raise verifying.VerificationError('the manifests do not match')

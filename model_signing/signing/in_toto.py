@@ -1,4 +1,5 @@
 # Copyright 2024 The Sigstore Authors
+# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,14 +20,22 @@ as described by https://github.com/in-toto/attestation/tree/main/spec/v1. The
 envelope format is DSSE, see https://github.com/secure-systems-lab/dsse.
 """
 
+from pathlib import Path
 from typing import Final, Self
 
+from google.protobuf import json_format
 from in_toto_attestation.v1 import statement
+from in_toto_attestation.v1 import statement_pb2
+from in_toto_attestation.v1 import resource_descriptor_pb2
 from typing_extensions import override
+from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 
+from model_signing.hashing import hashing
 from model_signing.hashing import memory
 from model_signing.manifest import manifest as manifest_module
 from model_signing.signing import signing
+from model_signing.signature import signing as signature_signing
+from model_signing.signature import verifying as signature_verifying
 
 
 class IntotoPayload(signing.SigningPayload):
@@ -40,6 +49,7 @@ class IntotoPayload(signing.SigningPayload):
     """
 
     predicate_type: Final[str]
+    statement: statement.Statement
 
 
 class SingleDigestIntotoPayload(IntotoPayload):
@@ -131,7 +141,7 @@ def _convert_descriptors_to_hashed_statement(
     *,
     predicate_type: str,
     predicate_top_level_name: str,
-):
+) -> statement.Statement:
     """Converts manifest descriptors to an in-toto statement with payload.
 
     Args:
@@ -356,7 +366,7 @@ class DigestOfShardDigestsIntotoPayload(IntotoPayload):
 
 def _convert_descriptors_to_direct_statement(
     manifest: manifest_module.Manifest, predicate_type: str
-):
+) -> statement.Statement:
     """Converts manifest descriptors to an in-toto statement, as subjects.
 
     Args:
@@ -586,3 +596,118 @@ class ShardDigestsIntotoPayload(IntotoPayload):
             manifest, predicate_type=cls.predicate_type
         )
         return cls(statement)
+
+
+def _convert_shard_subject(
+        res_desc: resource_descriptor_pb2.ResourceDescriptor
+        ) -> manifest_module.ShardedFileManifestItem:
+    name, start, end = res_desc.name.split(":")
+    digest = hashing.Digest(
+        algorithm=res_desc.annotations["actual_hash_algorithm"],
+        digest_value=bytearray.fromhex(res_desc.digest["sha256"])
+    )
+    return manifest_module.ShardedFileManifestItem(
+        path=Path(name),
+        start=int(start),
+        end=int(end),
+        digest=digest
+    )
+
+
+def _convert_shard_predicate(
+        shard: dict[str, str]) -> manifest_module.ShardedFileManifestItem:
+    name, start, end = shard["name"].split(":")
+    digest = hashing.Digest(
+        algorithm=shard["algorithm"],
+        digest_value=bytearray.fromhex(shard["digest"])
+    )
+    return manifest_module.ShardedFileManifestItem(
+        path=Path(name),
+        start=int(start),
+        end=int(end),
+        digest=digest
+    )
+
+
+class IntotoSignature(signing.Signature):
+
+    def __init__(self, bundle: bundle_pb.Bundle):
+        self._bundle = bundle
+
+    @override
+    def write(self, path: Path) -> None:
+        path.write_text(self._bundle.to_json())
+
+    @classmethod
+    @override
+    def read(cls, path: Path) -> Self:
+        bundle = bundle_pb.Bundle().from_json(path.read_text())
+        return cls(bundle)
+
+    def to_manifest(self) -> manifest_module.Manifest:
+        payload = self._bundle.dsse_envelope.payload
+        stmnt_pb = json_format.Parse(payload, statement_pb2.Statement())
+        if stmnt_pb.predicate_type == ShardDigestsIntotoPayload.predicate_type:
+            return manifest_module.ShardLevelManifest(
+                items=[_convert_shard_subject(f) for f in stmnt_pb.subject]
+            )
+        elif stmnt_pb.predicate_type == DigestsIntotoPayload.predicate_type:
+            return manifest_module.FileLevelManifest(
+                items=[manifest_module.FileManifestItem(
+                    path=Path(s.name),
+                    digest=hashing.Digest(
+                        algorithm=s.annotations["actual_hash_algorithm"],
+                        digest_value=bytearray.fromhex(s.digest["sha256"])
+                    )
+                ) for s in stmnt_pb.subject]
+            )
+        elif stmnt_pb.predicate_type == DigestOfShardDigestsIntotoPayload.predicate_type:
+            return manifest_module.ShardLevelManifest(
+                items=[_convert_shard_predicate(f)
+                       for f in stmnt_pb.predicate["shards"]]
+            )
+        elif stmnt_pb.predicate_type == DigestOfDigestsIntotoPayload.predicate_type:
+            return manifest_module.FileLevelManifest(
+                items=[manifest_module.FileManifestItem(
+                    path=Path(f["name"]),
+                    digest=hashing.Digest(
+                        algorithm=f["algorithm"],
+                        digest_value=bytearray.fromhex(f["digest"])
+                    )
+                ) for f in stmnt_pb.predicate["files"]]
+            )
+        elif stmnt_pb.predicate_type == SingleDigestIntotoPayload.predicate_type:
+            return manifest_module.DigestManifest(
+                digest=hashing.Digest(
+                    algorithm=stmnt_pb.predicate["actual_hash_algorithm"],
+                    digest_value=bytearray.fromhex(
+                        stmnt_pb.subject[0].digest["sha256"])
+                ))
+        else:
+            raise TypeError(f"{stmnt_pb.type} is not supported")
+
+
+class IntotoSigner(signing.Signer):
+
+    def __init__(self, sig_signer: signature_signing.Signer):
+        self._sig_signer = sig_signer
+
+    @override
+    def sign(self, payload: signing.SigningPayload) -> signing.Signature:
+        if not isinstance(payload, IntotoPayload):
+            raise TypeError("only IntotoPayloads are supported")
+        bundle = self._sig_signer.sign(payload.statement)
+        return IntotoSignature(bundle)
+
+
+class IntotoVerifier(signing.Verifier):
+
+    def __init__(self, sig_verifier: signature_verifying.Verifier):
+        self._sig_verifier = sig_verifier
+
+    @override
+    def verify(self, signature: signing.Signature) -> manifest_module.Manifest:
+        if not isinstance(signature, IntotoSignature):
+            raise TypeError("only IntotoSignature is supported")
+        self._sig_verifier.verify(signature._bundle)
+        return signature.to_manifest()
