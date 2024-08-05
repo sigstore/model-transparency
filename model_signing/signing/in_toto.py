@@ -132,7 +132,7 @@ def _convert_descriptors_to_hashed_statement(
     *,
     predicate_type: str,
     predicate_top_level_name: str,
-):
+) -> statement.Statement:
     """Converts manifest descriptors to an in-toto statement with payload.
 
     Args:
@@ -359,7 +359,7 @@ class DigestOfShardDigestsIntotoPayload(IntotoPayload):
 
 def _convert_descriptors_to_direct_statement(
     manifest: manifest_module.Manifest, predicate_type: str
-):
+) -> statement.Statement:
     """Converts manifest descriptors to an in-toto statement, as subjects.
 
     Args:
