@@ -19,11 +19,13 @@ as described by https://github.com/in-toto/attestation/tree/main/spec/v1. The
 envelope format is DSSE, see https://github.com/secure-systems-lab/dsse.
 """
 
-from typing import Final, Self
+import pathlib
+from typing import Any, Final, Self
 
 from in_toto_attestation.v1 import statement
 from typing_extensions import override
 
+from model_signing.hashing import hashing
 from model_signing.hashing import memory
 from model_signing.manifest import manifest as manifest_module
 from model_signing.signing import signing
@@ -41,6 +43,39 @@ class IntotoPayload(signing.SigningPayload):
 
     predicate_type: Final[str]
     statement: Final[statement.Statement]
+
+    @classmethod
+    def manifest_from_payload(
+        cls, payload: dict[str, Any]
+    ) -> manifest_module.Manifest:
+        """Builds a manifest from an in-memory in-toto payload.
+
+        Delegates to all known subclasses until one matches the provided
+        `predicateType` (matching `predicate_type` class attribute).
+
+        Args:
+            payload: the in memory in-toto payload to build a manifest from.
+
+        Returns:
+            A manifest that can be converted back to the same payload.
+
+        Raises:
+            ValueError: If the payload cannot be converted.
+        """
+        predicate_type = payload["predicateType"]
+        subclasses = [
+            SingleDigestIntotoPayload,
+            DigestOfDigestsIntotoPayload,
+            DigestOfShardDigestsIntotoPayload,
+            DigestsIntotoPayload,
+            ShardDigestsIntotoPayload,
+        ]
+
+        for subcls in subclasses:
+            if predicate_type == subcls.predicate_type:
+                return subcls.manifest_from_payload(payload)
+
+        raise ValueError("Unknown in-toto predicate type {predicate_type}")
 
 
 class SingleDigestIntotoPayload(IntotoPayload):
@@ -126,6 +161,34 @@ class SingleDigestIntotoPayload(IntotoPayload):
             digest_hex=digest.digest_hex,
             digest_algorithm=digest.algorithm,
         )
+
+    @classmethod
+    @override
+    def manifest_from_payload(
+        cls, payload: dict[str, Any]
+    ) -> manifest_module.DigestManifest:
+        """Builds a manifest from an in-memory in-toto payload.
+
+        Args:
+            payload: the in memory in-toto payload to build a manifest from.
+
+        Returns:
+            A manifest that can be converted back to the same payload.
+
+        Raises:
+            ValueError: If the payload does not match the expected payload
+              format for this class. See `from_manifest`.
+        """
+        subjects = payload["subject"]
+        predicate = payload["predicate"]
+
+        if len(subjects) != 1:
+            raise ValueError("Expected one single subject, got {subjects}")
+
+        algorithm = predicate["actual_hash_algorithm"]
+        digest_value = subjects[0]["digest"]["sha256"]
+        digest = hashing.Digest(algorithm, digest_value)
+        return manifest_module.DigestManifest(digest)
 
 
 def _convert_descriptors_to_hashed_statement(
@@ -258,6 +321,50 @@ class DigestOfDigestsIntotoPayload(IntotoPayload):
         )
         return cls(statement)
 
+    @classmethod
+    @override
+    def manifest_from_payload(
+        cls, payload: dict[str, Any]
+    ) -> manifest_module.FileLevelManifest:
+        """Builds a manifest from an in-memory in-toto payload.
+
+        Args:
+            payload: the in memory in-toto payload to build a manifest from.
+
+        Returns:
+            A manifest that can be converted back to the same payload.
+
+        Raises:
+            ValueError: If the payload does not match the expected payload
+              format for this class. See `from_manifest`.
+        """
+        subjects = payload["subject"]
+        predicate = payload["predicate"]
+
+        if len(subjects) != 1:
+            raise ValueError("Expected one single subject, got {subjects}")
+
+        hasher = memory.SHA256()
+        items = []
+        for file in predicate["files"]:
+            path = pathlib.PurePosixPath(file["name"])
+            digest = hashing.Digest(
+                file["algorithm"], bytes.fromhex(file["digest"])
+            )
+            item = manifest_module.FileManifestItem(path=path, digest=digest)
+            items.append(item)
+            hasher.update(digest.digest_value)
+
+        expected_digest = subjects[0]["digest"]["sha256"]
+        obtained_digest = hasher.compute().digest_hex
+        if obtained_digest != expected_digest:
+            raise ValueError(
+                f"Verification failed. "
+                f"Expected {expected_digest}, got {obtained_digest}"
+            )
+
+        return manifest_module.FileLevelManifest(items)
+
 
 class DigestOfShardDigestsIntotoPayload(IntotoPayload):
     """In-toto payload where the subject is a digest of digests of file shards.
@@ -356,6 +463,52 @@ class DigestOfShardDigestsIntotoPayload(IntotoPayload):
             predicate_top_level_name="shards",
         )
         return cls(statement)
+
+    @classmethod
+    @override
+    def manifest_from_payload(
+        cls, payload: dict[str, Any]
+    ) -> manifest_module.ShardLevelManifest:
+        """Builds a manifest from an in-memory in-toto payload.
+
+        Args:
+            payload: the in memory in-toto payload to build a manifest from.
+
+        Returns:
+            A manifest that can be converted back to the same payload.
+
+        Raises:
+            ValueError: If the payload does not match the expected payload
+              format for this class. See `from_manifest`.
+        """
+        subjects = payload["subject"]
+        predicate = payload["predicate"]
+
+        if len(subjects) != 1:
+            raise ValueError("Expected one single subject, got {subjects}")
+
+        hasher = memory.SHA256()
+        items = []
+        for entry in predicate["shards"]:
+            shard = manifest_module.Shard.from_str(entry["name"])
+            digest = hashing.Digest(
+                entry["algorithm"], bytes.fromhex(entry["digest"])
+            )
+            item = manifest_module.ShardedFileManifestItem(
+                path=shard.path, start=shard.start, end=shard.end, digest=digest
+            )
+            items.append(item)
+            hasher.update(digest.digest_value)
+
+        expected_digest = subjects[0]["digest"]["sha256"]
+        obtained_digest = hasher.compute().digest_hex
+        if obtained_digest != expected_digest:
+            raise ValueError(
+                f"Verification failed. "
+                f"Expected {expected_digest}, got {obtained_digest}"
+            )
+
+        return manifest_module.ShardLevelManifest(items)
 
 
 def _convert_descriptors_to_direct_statement(
@@ -486,6 +639,36 @@ class DigestsIntotoPayload(IntotoPayload):
         )
         return cls(statement)
 
+    @classmethod
+    @override
+    def manifest_from_payload(
+        cls, payload: dict[str, Any]
+    ) -> manifest_module.FileLevelManifest:
+        """Builds a manifest from an in-memory in-toto payload.
+
+        Args:
+            payload: the in memory in-toto payload to build a manifest from.
+
+        Returns:
+            A manifest that can be converted back to the same payload.
+
+        Raises:
+            ValueError: If the payload does not match the expected payload
+              format for this class. See `from_manifest`.
+        """
+        subjects = payload["subject"]
+
+        items = []
+        for subject in subjects:
+            path = pathlib.PurePosixPath(subject["name"])
+            algorithm = subject["annotations"]["actual_hash_algorithm"]
+            digest_value = subject["digest"]["sha256"]
+            digest = hashing.Digest(algorithm, bytes.fromhex(digest_value))
+            item = manifest_module.FileManifestItem(path=path, digest=digest)
+            items.append(item)
+
+        return manifest_module.FileLevelManifest(items)
+
 
 class ShardDigestsIntotoPayload(IntotoPayload):
     """In-toto payload where the subjects are the model shards themselves.
@@ -590,3 +773,35 @@ class ShardDigestsIntotoPayload(IntotoPayload):
             manifest, predicate_type=cls.predicate_type
         )
         return cls(statement)
+
+    @classmethod
+    @override
+    def manifest_from_payload(
+        cls, payload: dict[str, Any]
+    ) -> manifest_module.ShardLevelManifest:
+        """Builds a manifest from an in-memory in-toto payload.
+
+        Args:
+            payload: the in memory in-toto payload to build a manifest from.
+
+        Returns:
+            A manifest that can be converted back to the same payload.
+
+        Raises:
+            ValueError: If the payload does not match the expected payload
+              format for this class. See `from_manifest`.
+        """
+        subjects = payload["subject"]
+
+        items = []
+        for subject in subjects:
+            shard = manifest_module.Shard.from_str(subject["name"])
+            algorithm = subject["annotations"]["actual_hash_algorithm"]
+            digest_value = subject["digest"]["sha256"]
+            digest = hashing.Digest(algorithm, bytes.fromhex(digest_value))
+            item = manifest_module.ShardedFileManifestItem(
+                path=shard.path, start=shard.start, end=shard.end, digest=digest
+            )
+            items.append(item)
+
+        return manifest_module.ShardLevelManifest(items)
