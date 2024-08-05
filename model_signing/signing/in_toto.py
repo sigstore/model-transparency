@@ -40,6 +40,7 @@ class IntotoPayload(signing.SigningPayload):
     """
 
     predicate_type: Final[str]
+    statement: Final[statement.Statement]
 
 
 class SingleDigestIntotoPayload(IntotoPayload):
