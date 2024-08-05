@@ -14,10 +14,10 @@
 
 """Helpers and constants used in fixtures and tests. Not in the public API."""
 
+import itertools
 import pathlib
 
 from model_signing.manifest import manifest
-
 
 # Model contents
 KNOWN_MODEL_TEXT: bytes = b"This is a simple model"
@@ -38,6 +38,25 @@ all_test_models = [
     "deep_model_folder",
     "empty_model_file",
     "empty_model_folder",
+    "model_folder_with_empty_file",
+    "symlink_model_folder",
+]
+
+
+# All directory models to use in testing, where only non empty directory models
+# are supported. See also `all_test_models` comments.
+all_non_empty_directory_test_models = [
+    "sample_model_folder",
+    "deep_model_folder",
+    "model_folder_with_empty_file",
+    "symlink_model_folder",
+]
+
+
+# All files models to use in testing, where only file models are supported.
+all_file_test_models = [
+    "sample_model_file",
+    "empty_model_file",
     "model_folder_with_empty_file",
 ]
 
@@ -81,3 +100,14 @@ def extract_items_from_manifest(
         str(path): digest.digest_hex
         for path, digest in manifest._item_to_digest.items()
     }
+
+def count_files(path: pathlib.Path) -> int:
+    """Counts the number of files that are children of path.
+
+    If path is a file, the count returned is 1.
+    """
+    count = 0
+    for child_path in itertools.chain((path,), path.glob("**/*")):
+        if child_path.is_file():
+            count += 1
+    return count

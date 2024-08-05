@@ -1,0 +1,99 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "d0/f00:0:23",
+      "digest": {
+        "sha256": "fdd8925354242a7fd1515e79534317b800015607a609cd306e0b4dcfe6c92249"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    },
+    {
+      "name": "d0/f01:0:23",
+      "digest": {
+        "sha256": "e16940b5e44ce981150bda37c4ba95881a749a521b4a297c5cdf97bdcfe965e6"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    },
+    {
+      "name": "d0/f02:0:23",
+      "digest": {
+        "sha256": "407822246ea8f9e26380842c3f4cd10d7b23e78f1fe7c74c293608682886a426"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    },
+    {
+      "name": "d1/f10:0:23",
+      "digest": {
+        "sha256": "6a3b08b5df77c4d418ceee1ac136a9ad49fc7c41358b5e82c1176daccb21ff3f"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    },
+    {
+      "name": "d1/f11:0:23",
+      "digest": {
+        "sha256": "a484b3d8ea5e99b75f9f123f9a42c882388693edc7d85d82ccba54834712cadf"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    },
+    {
+      "name": "d1/f12:0:23",
+      "digest": {
+        "sha256": "8f577930f5f40c2c2133cb299d36f9527fde98c1608569017cae6b5bcd01abb3"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    },
+    {
+      "name": "f0:0:24",
+      "digest": {
+        "sha256": "997b37cc51f1ca1c7a270466607e26847429cd7264c30148c1b9352e224083fc"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    },
+    {
+      "name": "f1:0:24",
+      "digest": {
+        "sha256": "c88a04d48353133fb065ba2c8ab369abab21395b9526aa20373ad828915fa7ae"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    },
+    {
+      "name": "f2:0:24",
+      "digest": {
+        "sha256": "700e3ba5065d8dd47e41fd928ea086670d628f891ba363be0ca3c31d20d7d719"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    },
+    {
+      "name": "f3:0:24",
+      "digest": {
+        "sha256": "912bcf5ebdf44dc7b4085b07940e0a81d157fba24b276e73fd911121d4544c4a"
+      },
+      "annotations": {
+        "actual_hash_algorithm": "file-sha256-1000000"
+      }
+    }
+  ],
+  "predicateType": "https://model_signing/ShardDigests/v0.1",
+  "predicate": {
+    "unused": "Unused, just passed due to API requirements"
+  }
+}

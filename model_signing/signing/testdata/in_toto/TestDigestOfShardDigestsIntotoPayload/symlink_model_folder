@@ -1,0 +1,20 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "digest": {
+        "sha256": "002d162f867c5eee944e5080d25829b6625be0e3f081f6fbafc7dd655ca2e178"
+      }
+    }
+  ],
+  "predicateType": "https://model_signing/DigestOfShardDigests/v0.1",
+  "predicate": {
+    "shards": [
+      {
+        "digest": "3aab065c7181a173b5dd9e9d32a9f79923440b413be1e1ffcdba26a7365f719b",
+        "algorithm": "file-sha256-1000000",
+        "name": "symlink_file:0:22"
+      }
+    ]
+  }
+}

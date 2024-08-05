@@ -13,10 +13,9 @@
 # limitations under the License.
 """This package provides the functionality to sign and verify models
 with certificates."""
-from typing import Optional
+from typing import Optional, Self
 
 import certifi
-
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -30,8 +29,8 @@ from model_signing.signature.key import ECKeySigner
 from model_signing.signature.key import ECKeyVerifier
 from model_signing.signature.key import load_ec_private_key
 from model_signing.signature.signing import Signer
-from model_signing.signature.verifying import Verifier
 from model_signing.signature.verifying import VerificationError
+from model_signing.signature.verifying import Verifier
 
 
 def _load_single_cert(path: str) -> x509.Certificate:
@@ -73,7 +72,7 @@ class PKISigner(Signer):
     def from_path(cls,
                   private_key_path: str,
                   signing_cert_path: str,
-                  cert_chain_paths: list[str]) -> None:
+                  cert_chain_paths: list[str]) -> Self:
         private_key = load_ec_private_key(private_key_path)
         signing_cert = _load_single_cert(signing_cert_path)
         cert_chain = _load_multiple_certs(cert_chain_paths)
@@ -116,13 +115,14 @@ class PKIVerifier(Verifier):
     """Provides a verifier based on root certificates."""
 
     def __init__(self,
-                 root_certs: list[x509.Certificate] = None) -> None:
+                 root_certs: list[x509.Certificate] | None = None) -> None:
         self._store = ssl_crypto.X509Store()
         for c in root_certs:
             self._store.add_cert(ssl_crypto.X509.from_cryptography(c))
 
     @classmethod
-    def from_paths(cls, root_cert_paths: Optional[list[str]] = None) -> None:
+    def from_paths(
+            cls, root_cert_paths: Optional[list[str]] | None = None) -> Self:
         crypto_trust_roots: list[x509.Certificate] = []
         if root_cert_paths:
             crypto_trust_roots = _load_multiple_certs(root_cert_paths)
@@ -152,7 +152,8 @@ class PKIVerifier(Verifier):
             store_ctx.verify_certificate()
         except ssl_crypto.X509StoreContextError as err:
             raise VerificationError(
-                f'signing certificate verification failed: {err}')
+                f'signing certificate verification failed: {err}'
+            ) from err
         usage = signing_cert_crypto.extensions.get_extension_for_class(
             x509.KeyUsage)
         if not usage.value.digital_signature:

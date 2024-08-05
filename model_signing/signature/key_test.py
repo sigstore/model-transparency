@@ -13,10 +13,10 @@
 # limitations under the License.
 # flake8: noqa: E712
 import pathlib
-import pytest
 
-from in_toto_attestation.v1 import statement
 from in_toto_attestation.v1 import resource_descriptor as res_desc
+from in_toto_attestation.v1 import statement
+import pytest
 
 from model_signing.signature.key import ECKeySigner
 from model_signing.signature.key import ECKeyVerifier

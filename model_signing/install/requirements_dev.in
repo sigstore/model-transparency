@@ -1,2 +1,2 @@
-pylint
 pytype
+ruff

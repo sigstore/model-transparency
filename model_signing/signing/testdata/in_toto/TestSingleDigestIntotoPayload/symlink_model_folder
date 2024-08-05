@@ -1,0 +1,14 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "digest": {
+        "sha256": "8372365be7578241d18db47ec83b735bb450a10a1b4298d9b7b0d8bf543b7271"
+      }
+    }
+  ],
+  "predicateType": "https://model_signing/Digest/v0.1",
+  "predicate": {
+    "actual_hash_algorithm": "sha256"
+  }
+}

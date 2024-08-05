@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import pathlib
+
 import pytest
 
 from model_signing.hashing import file
 from model_signing.hashing import memory
-
 
 # some constants used throughout testing
 _HEADER: str = "Some "

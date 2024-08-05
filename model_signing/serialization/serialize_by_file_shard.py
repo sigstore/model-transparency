@@ -16,9 +16,12 @@
 
 import abc
 import base64
+from collections.abc import Callable, Iterable
 import concurrent.futures
+import itertools
 import pathlib
-from typing import Callable, Iterable, cast
+from typing import cast
+
 from typing_extensions import override
 
 from model_signing.hashing import file
@@ -92,7 +95,9 @@ class ShardedFilesSerializer(serialization.Serializer):
         sharded_hasher_factory: Callable[
             [pathlib.Path, int, int], file.ShardedFileHasher
         ],
+        *,
         max_workers: int | None = None,
+        allow_symlinks: bool = False,
     ):
         """Initializes an instance to serialize a model with this serializer.
 
@@ -104,9 +109,13 @@ class ShardedFilesSerializer(serialization.Serializer):
               the shard.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurrent.futures` library.
+            allow_symlinks: Controls whether symbolic links are included. If a
+              symlink is present but the flag is `False` (default) the
+              serialization would raise an error.
         """
         self._hasher_factory = sharded_hasher_factory
         self._max_workers = max_workers
+        self._allow_symlinks = allow_symlinks
 
         # Precompute some private values only once by using a mock file hasher.
         # None of the arguments used to build the hasher are used.
@@ -114,28 +123,40 @@ class ShardedFilesSerializer(serialization.Serializer):
         self._shard_size = hasher.shard_size
 
     @override
-    def serialize(
-        self, model_path: pathlib.Path,
-        ignore_paths: list[str] = []
-    ) -> manifest.ShardLevelManifest:
-        # TODO: github.com/sigstore/model-transparency/issues/196 - Add checks
-        # to exclude symlinks if desired.
-        serialize_by_file.check_file_or_directory(model_path)
+    def serialize(self,
+        model_path: pathlib.Path,
+        *,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
+    ) -> manifest.Manifest:
+        """Serializes the model given by the `model_path` argument.
 
+        Args:
+            model_path: The path to the model.
+            ignore_paths: The paths to ignore during serialization. If a
+              provided path is a directory, all children of the directory are
+              ignored.
+
+        Returns:
+            The model's serialized `manifest.Manifest`
+
+        Raises:
+            ValueError: The model contains a symbolic link, but the serializer
+              was not initialized with `allow_symlinks=True`.
+        """
         shards = []
-        if model_path.is_file():
-            shards.extend(self._get_shards(model_path))
-        else:
-            # TODO: github.com/sigstore/model-transparency/issues/200 - When
-            # Python3.12 is the minimum supported version, this can be replaced
-            # with `pathlib.Path.walk` for a clearer interface, and some speed
-            # improvement.
-            for path in model_path.glob("**/*"):
-                if path.name in ignore_paths:
-                    continue
-                serialize_by_file.check_file_or_directory(path)
-                if path.is_file():
-                    shards.extend(self._get_shards(path))
+        # TODO: github.com/sigstore/model-transparency/issues/200 - When
+        # Python3.12 is the minimum supported version, the glob can be replaced
+        # with `pathlib.Path.walk` for a clearer interface, and some speed
+        # improvement.
+        for path in itertools.chain((model_path,), model_path.glob("**/*")):
+            serialize_by_file.check_file_or_directory(
+                path, allow_symlinks=self._allow_symlinks
+            )
+            if (
+                path.is_file()
+                and not serialize_by_file._ignored(path, ignore_paths)
+            ):
+                shards.extend(self._get_shards(path))
 
         manifest_items = []
         with concurrent.futures.ThreadPoolExecutor(
@@ -205,16 +226,34 @@ class ManifestSerializer(ShardedFilesSerializer):
 
     @override
     def serialize(
-        self, model_path: pathlib.Path, ignore_paths: list[str] = []
+        self,
+        model_path: pathlib.Path,
+        *,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ) -> manifest.ShardLevelManifest:
         """Serializes the model given by the `model_path` argument.
 
         The only reason for the override is to change the return type, to be
         more restrictive. This is to signal that the only manifests that can be
-        returned are `manifest.FileLevelManifest` instances.
+        returned are `manifest.ShardLevelManifest` instances.
+
+        Args:
+            model_path: The path to the model.
+            ignore_paths: The paths to ignore during serialization. If a
+              provided path is a directory, all children of the directory are
+              ignored.
+
+        Returns:
+            The model's serialized `manifest.ShardLevelManifest`
+
+        Raises:
+            ValueError: The model contains a symbolic link, but the serializer
+              was not initialized with `allow_symlinks=True`.
         """
-        return cast(manifest.ShardLevelManifest,
-                    super().serialize(model_path, ignore_paths=ignore_paths))
+        return cast(
+            manifest.ShardLevelManifest,
+            super().serialize(model_path, ignore_paths=ignore_paths),
+        )
 
     @override
     def _build_manifest(
@@ -235,7 +274,9 @@ class DigestSerializer(ShardedFilesSerializer):
             [pathlib.Path, int, int], file.ShardedFileHasher
         ],
         merge_hasher: hashing.StreamingHashEngine,
+        *,
         max_workers: int | None = None,
+        allow_symlinks: bool = False,
     ):
         """Initializes an instance to serialize a model with this serializer.
 
@@ -249,21 +290,46 @@ class DigestSerializer(ShardedFilesSerializer):
               individual file shard digests to compute an aggregate digest.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurent.futures` library.
+            allow_symlinks: Controls whether symbolic links are included. If a
+              symlink is present but the flag is `False` (default) the
+              serialization would raise an error.
         """
-        super().__init__(file_hasher_factory, max_workers)
+        super().__init__(
+            file_hasher_factory,
+            max_workers=max_workers,
+            allow_symlinks=allow_symlinks,
+        )
         self._merge_hasher = merge_hasher
 
     @override
-    def serialize(self, model_path: pathlib.Path, ignore_paths: list[str] = []
-                  ) -> manifest.DigestManifest:
+    def serialize(self,
+        model_path: pathlib.Path,
+        *,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
+    ) -> manifest.DigestManifest:
         """Serializes the model given by the `model_path` argument.
 
         The only reason for the override is to change the return type, to be
         more restrictive. This is to signal that the only manifests that can be
-        returned are `manifest.FileLevelManifest` instances.
+        returned are `manifest.DigestManifest` instances.
+
+        Args:
+            model_path: The path to the model.
+            ignore_paths: The paths to ignore during serialization. If a
+              provided path is a directory, all children of the directory are
+              ignored.
+
+        Returns:
+            The model's serialized `manifest.DigestManifest`
+
+        Raises:
+            ValueError: The model contains a symbolic link, but the serializer
+              was not initialized with `allow_symlinks=True`.
         """
-        return cast(manifest.DigestManifest,
-                    super().serialize(model_path, ignore_paths=ignore_paths))
+        return cast(
+            manifest.DigestManifest,
+            super().serialize(model_path, ignore_paths=ignore_paths),
+        )
 
     @override
     def _build_manifest(

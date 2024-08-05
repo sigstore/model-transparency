@@ -36,6 +36,7 @@ Or, passing the data directly in the constructor:
 """
 
 import hashlib
+
 from typing_extensions import override
 
 from model_signing.hashing import hashing

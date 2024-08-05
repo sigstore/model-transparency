@@ -12,21 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Tests for file serializers.
+
+NOTE: This test uses a goldens setup to compute digest of several test
+models. If the golden tests are failing, regenerate the golden files with
+
+  pytest model_signing/ --update_goldens
+"""
+
 import os
 import pathlib
+
 import pytest
 
+from model_signing import test_support
 from model_signing.hashing import file
 from model_signing.hashing import memory
 from model_signing.manifest import manifest
 from model_signing.serialization import serialize_by_file
-from model_signing.serialization import test_support
-
-
-# NOTE: This test uses a goldens setup to compute digest of several test
-# models. If the golden tests are failing, regenerate the golden files with
-#
-#   pytest model_signing/serialization/ --update_goldens
 
 
 class TestDigestSerializer:
@@ -46,7 +49,7 @@ class TestDigestSerializer:
             test_support.UNUSED_PATH, memory.SHA256()
         )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            file_hasher, memory.SHA256, allow_symlinks=True
         )
         manifest = serializer.serialize(model)
 
@@ -273,6 +276,30 @@ class TestDigestSerializer:
 
         assert folder_manifest != file_manifest
 
+    def test_symlinks_disallowed_by_default(self, symlink_model_folder):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
+        serializer = serialize_by_file.DigestSerializer(
+            file_hasher, memory.SHA256
+        )
+        with pytest.raises(ValueError):
+            _ = serializer.serialize(symlink_model_folder)
+
+    def test_ignore_list_respects_directories(self, sample_model_folder):
+        file_hasher = file.SimpleFileHasher(
+            test_support.UNUSED_PATH, memory.SHA256()
+        )
+        serializer = serialize_by_file.DigestSerializer(
+            file_hasher, memory.SHA256
+        )
+        manifest1 = serializer.serialize(sample_model_folder)
+        ignore_path = test_support.get_first_directory(sample_model_folder)
+        manifest2 = serializer.serialize(
+            sample_model_folder, ignore_paths=[ignore_path]
+        )
+        assert manifest1 != manifest2
+
 
 class TestManifestSerializer:
 
@@ -290,7 +317,9 @@ class TestManifestSerializer:
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute model manifest (act)
-        serializer = serialize_by_file.ManifestSerializer(self._hasher_factory)
+        serializer = serialize_by_file.ManifestSerializer(
+            self._hasher_factory, allow_symlinks=True
+        )
         manifest = serializer.serialize(model)
         items = test_support.extract_items_from_manifest(manifest)
 
@@ -533,6 +562,23 @@ class TestManifestSerializer:
 
         assert manifest1 == manifest2
         assert manifest1 == manifest3
+
+    def test_symlinks_disallowed_by_default(self, symlink_model_folder):
+        serializer = serialize_by_file.ManifestSerializer(self._hasher_factory)
+        with pytest.raises(ValueError):
+            _ = serializer.serialize(symlink_model_folder)
+
+    def test_ignore_list_respects_directories(self, sample_model_folder):
+        serializer = serialize_by_file.ManifestSerializer(self._hasher_factory)
+        manifest1 = serializer.serialize(sample_model_folder)
+        ignore_path = test_support.get_first_directory(sample_model_folder)
+        ignored_file_count = test_support.count_files(ignore_path)
+        manifest2 = serializer.serialize(
+            sample_model_folder, ignore_paths=[ignore_path]
+        )
+        assert manifest1 != manifest2
+        diff = len(manifest1._item_to_digest) - len(manifest2._item_to_digest)
+        assert diff == ignored_file_count
 
 
 class TestUtilities:
