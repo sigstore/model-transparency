@@ -15,7 +15,6 @@
 with sigstore."""
 from typing import Optional
 
-from absl import logging as log
 from in_toto_attestation.v1 import statement
 from sigstore import dsse
 from sigstore import models as sig_models
@@ -43,13 +42,21 @@ class SigstoreSigner(Signer):
         token = self.__get_identity_token(disable_ambient, id_provider)
         if not token:
             raise ValueError("No identity token supplied or detected!")
-        log.info(
-            f"Signing identity provider: {token.expected_certificate_subject}")
-        log.info(f"Signing identity: {token.identity}")
+        self._id_provider = token.expected_certificate_subject
+        self._signing_id = token.identity
+
         self._signer = sign.Signer(
             identity_token=token,
             signing_ctx=sign.SigningContext.production(),
         )
+
+    @property
+    def id_provider(self) -> str:
+        return self._id_provider
+
+    @property
+    def signing_id(self) -> str:
+        return self._signing_id
 
     @staticmethod
     def __convert_stmnt(stmnt: statement.Statement) -> dsse.Statement:

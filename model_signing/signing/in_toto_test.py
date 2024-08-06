@@ -33,6 +33,7 @@ from model_signing.hashing import memory
 from model_signing.manifest import manifest as manifest_module
 from model_signing.serialization import serialize_by_file
 from model_signing.serialization import serialize_by_file_shard
+from model_signing.signature import fake
 from model_signing.signing import in_toto
 
 
@@ -326,3 +327,48 @@ class TestShardDigestsIntotoPayload:
             match="Only ShardLevelManifest is supported",
         ):
             in_toto.ShardDigestsIntotoPayload.from_manifest(manifest)
+
+
+class TestIntotoSignature:
+
+    def _shard_hasher_factory(
+        self, path: pathlib.Path, start: int, end: int
+    ) -> file.ShardedFileHasher:
+        return file.ShardedFileHasher(
+            path, memory.SHA256(), start=start, end=end
+        )
+
+    def _hasher_factory(
+        self, path: pathlib.Path,
+    ) -> file.FileHasher:
+        return file.SimpleFileHasher(
+            path, memory.SHA256()
+            )
+
+    def test_to_manifest(self, sample_model_folder):
+        signer = in_toto.IntotoSigner(fake.FakeSigner())
+        shard_serializer = serialize_by_file_shard.ManifestSerializer(
+            self._shard_hasher_factory, allow_symlinks=True,
+        )
+        shard_manifest = shard_serializer.serialize(sample_model_folder)
+
+        for payload_type in [
+                in_toto.ShardDigestsIntotoPayload,
+                in_toto.DigestOfShardDigestsIntotoPayload]:
+            payload = payload_type.from_manifest(shard_manifest)
+            print(payload.statement.pb.predicate_type)
+            sig = signer.sign(payload)
+            manifest = sig.to_manifest()
+            assert shard_manifest == manifest
+
+        file_serializer = serialize_by_file.ManifestSerializer(
+            self._hasher_factory, allow_symlinks=True,
+        )
+        file_manifest = file_serializer.serialize(sample_model_folder)
+        for payload_type in [
+                in_toto.DigestOfDigestsIntotoPayload,
+                in_toto.DigestsIntotoPayload]:
+            payload = payload_type.from_manifest(file_manifest)
+            sig = signer.sign(payload)
+            manifest = sig.to_manifest()
+            assert file_manifest == manifest
