@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from typing import Callable
 import pathlib
 
@@ -23,13 +24,14 @@ from model_signing.serialization import serialization
 payload_generator_func = Callable[[manifest.Manifest], signing.SigningPayload]
 
 
-def sign(model_path: pathlib.Path,
-         signer: signing.Signer,
-         payload_generator: payload_generator_func,
-         serializer: serialization.Serializer,
-         ignore_paths: list[pathlib.Path] = [],
-         ) -> signing.Signature:
-    """sign provides a wrapper function for the steps necessary to sign a model
+def sign(
+    model_path: pathlib.Path,
+    signer: signing.Signer,
+    payload_generator: payload_generator_func,
+    serializer: serialization.Serializer,
+    ignore_paths: list[pathlib.Path] = [],
+) -> signing.Signature:
+    """Provides a wrapper function for the steps necessary to sign a model.
 
     Args:
         model_path (pathlib.Path): the model to be signed
@@ -42,7 +44,7 @@ def sign(model_path: pathlib.Path,
             ignored during serialization Defaults to [].
 
     Returns:
-        signing.Signature: the model's signature
+        The model's signature.
     """
     manifest = serializer.serialize(model_path, ignore_paths=ignore_paths)
     payload = payload_generator(manifest)
