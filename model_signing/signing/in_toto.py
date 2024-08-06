@@ -20,10 +20,10 @@ as described by https://github.com/in-toto/attestation/tree/main/spec/v1. The
 envelope format is DSSE, see https://github.com/secure-systems-lab/dsse.
 """
 
+import json
 import pathlib
 from typing import Any, Final, Self
 
-from google.protobuf import json_format
 from in_toto_attestation.v1 import statement
 from in_toto_attestation.v1 import statement_pb2
 from in_toto_attestation.v1 import resource_descriptor_pb2
@@ -814,37 +814,6 @@ class ShardDigestsIntotoPayload(IntotoPayload):
         return manifest_module.ShardLevelManifest(items)
 
 
-def _convert_shard_subject(
-        res_desc: resource_descriptor_pb2.ResourceDescriptor
-        ) -> manifest_module.ShardedFileManifestItem:
-    name, start, end = res_desc.name.split(":")
-    digest = hashing.Digest(
-        algorithm=res_desc.annotations["actual_hash_algorithm"],
-        digest_value=bytearray.fromhex(res_desc.digest["sha256"])
-    )
-    return manifest_module.ShardedFileManifestItem(
-        path=pathlib.Path(name),
-        start=int(start),
-        end=int(end),
-        digest=digest
-    )
-
-
-def _convert_shard_predicate(
-        shard: dict[str, str]) -> manifest_module.ShardedFileManifestItem:
-    name, start, end = shard["name"].split(":")
-    digest = hashing.Digest(
-        algorithm=shard["algorithm"],
-        digest_value=bytearray.fromhex(shard["digest"])
-    )
-    return manifest_module.ShardedFileManifestItem(
-        path=pathlib.Path(name),
-        start=int(start),
-        end=int(end),
-        digest=digest
-    )
-
-
 class IntotoSignature(signing.Signature):
 
     def __init__(self, bundle: bundle_pb.Bundle):
@@ -861,46 +830,8 @@ class IntotoSignature(signing.Signature):
         return cls(bundle)
 
     def to_manifest(self) -> manifest_module.Manifest:
-        payload = self._bundle.dsse_envelope.payload
-        stmnt_pb = json_format.Parse(payload, statement_pb2.Statement())
-        if stmnt_pb.predicate_type == ShardDigestsIntotoPayload.predicate_type:
-            return manifest_module.ShardLevelManifest(
-                items=[_convert_shard_subject(f) for f in stmnt_pb.subject]
-            )
-        elif stmnt_pb.predicate_type == DigestsIntotoPayload.predicate_type:
-            return manifest_module.FileLevelManifest(
-                items=[manifest_module.FileManifestItem(
-                    path=pathlib.Path(s.name),
-                    digest=hashing.Digest(
-                        algorithm=s.annotations["actual_hash_algorithm"],
-                        digest_value=bytearray.fromhex(s.digest["sha256"])
-                    )
-                ) for s in stmnt_pb.subject]
-            )
-        elif stmnt_pb.predicate_type == DigestOfShardDigestsIntotoPayload.predicate_type:
-            return manifest_module.ShardLevelManifest(
-                items=[_convert_shard_predicate(f)
-                       for f in stmnt_pb.predicate["shards"]]
-            )
-        elif stmnt_pb.predicate_type == DigestOfDigestsIntotoPayload.predicate_type:
-            return manifest_module.FileLevelManifest(
-                items=[manifest_module.FileManifestItem(
-                    path=pathlib.Path(f["name"]),
-                    digest=hashing.Digest(
-                        algorithm=f["algorithm"],
-                        digest_value=bytearray.fromhex(f["digest"])
-                    )
-                ) for f in stmnt_pb.predicate["files"]]
-            )
-        elif stmnt_pb.predicate_type == SingleDigestIntotoPayload.predicate_type:
-            return manifest_module.DigestManifest(
-                digest=hashing.Digest(
-                    algorithm=stmnt_pb.predicate["actual_hash_algorithm"],
-                    digest_value=bytearray.fromhex(
-                        stmnt_pb.subject[0].digest["sha256"])
-                ))
-        else:
-            raise TypeError(f"{stmnt_pb.type} is not supported")
+        payload = json.loads(self._bundle.dsse_envelope.payload)
+        return IntotoPayload.manifest_from_payload(payload)
 
 
 class IntotoSigner(signing.Signer):
