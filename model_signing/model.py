@@ -35,13 +35,11 @@ def sign(
     """Provides a wrapper function for the steps necessary to sign a model.
 
     Args:
-        model_path: the model to be signed
-        signer: the signer to be used
-        payload_generator: funtion to generate the
-            manifest
-        serializer: the serializer to be used for
-            the model
-        ignore_paths: paths that should be ignored during serialization Defaults to [].
+        model_path: the model to be signed.
+        signer: the signer to be used.
+        payload_generator: funtion to generate the manifest.
+        serializer: the serializer to be used for the model.
+        ignore_paths: paths that should be ignored during serialization. Defaults to [].
 
     Returns:
         The model's signature.
@@ -57,13 +55,13 @@ def verify(sig: signing.Signature,
            model_path: pathlib.Path,
            serializer: serialization.Serializer,
            ignore_paths: list[pathlib.Path] = []):
-    """verify is a simple wrapper to verify models
+    """Provides a simple wrapper to verify models
 
     Args:
-        sig: the signature to be verified
-        verifier: the verifier
-        model_path: the path to the model to compare manifests
-        serializer: the serializer used to generate the local manifest
+        sig: the signature to be verified.
+        verifier: the verifier to verify the signature.
+        model_path: the path to the model to compare manifests.
+        serializer: the serializer used to generate the local manifest.
         ignore_paths: paths that should be ignored during serialization. Defaults to [].
 
     Raises:

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This script can be used to verify model signatures."""
+
 import argparse
 import logging
 import pathlib
