@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable
+from typing import Callable, TypeAlias
 import pathlib
 
 from model_signing.manifest import manifest
@@ -21,27 +21,27 @@ from model_signing.signing import signing
 from model_signing.signature import verifying
 from model_signing.serialization import serialization
 
-payload_generator_func = Callable[[manifest.Manifest], signing.SigningPayload]
+PayloadGeneratorFunc: TypeAlias = \
+      Callable[[manifest.Manifest], signing.SigningPayload]
 
 
 def sign(
     model_path: pathlib.Path,
     signer: signing.Signer,
-    payload_generator: payload_generator_func,
+    payload_generator: PayloadGeneratorFunc,
     serializer: serialization.Serializer,
     ignore_paths: list[pathlib.Path] = [],
 ) -> signing.Signature:
     """Provides a wrapper function for the steps necessary to sign a model.
 
     Args:
-        model_path (pathlib.Path): the model to be signed
-        signer (signing.Signer): the signer to be used
-        payload_generator (payload_generator_func): funtion to generate the
+        model_path: the model to be signed
+        signer: the signer to be used
+        payload_generator: funtion to generate the
             manifest
-        serializer (serialization.Serializer): the serializer to be used for
+        serializer: the serializer to be used for
             the model
-        ignore_paths (list[pathlib.Path], optional): paths that should be
-            ignored during serialization Defaults to [].
+        ignore_paths: paths that should be ignored during serialization Defaults to [].
 
     Returns:
         The model's signature.
@@ -60,16 +60,14 @@ def verify(sig: signing.Signature,
     """verify is a simple wrapper to verify models
 
     Args:
-        sig (signing.Signature): the signature to be verified
-        verifier (signing.Verifier): the verifier
-        model_path (pathlib.Path): the path to the model to compare manifests
-        serializer (serialization.Serializer): the serializer used to generate
-            the local manifest
-        ignore_paths (list[pathlib.Path], optional): paths that should be
-            ignored during serialization. Defaults to [].
+        sig: the signature to be verified
+        verifier: the verifier
+        model_path: the path to the model to compare manifests
+        serializer: the serializer used to generate the local manifest
+        ignore_paths: paths that should be ignored during serialization. Defaults to [].
 
     Raises:
-        verifying.VerificationError: on any verifiacation error.
+        verifying.VerificationError: on any verification error.
     """
     peer_manifest = verifier.verify(sig)
     local_manifest = serializer.serialize(

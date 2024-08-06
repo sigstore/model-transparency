@@ -21,7 +21,6 @@ from model_signing import model
 from model_signing.hashing import file
 from model_signing.hashing import memory
 from model_signing.serialization import serialize_by_file
-from model_signing.signature import SUPPORTED_METHODS
 from model_signing.signature import key
 from model_signing.signature import pki
 from model_signing.signature import signing
@@ -32,7 +31,7 @@ from model_signing.signing import in_toto
 log = logging.getLogger(__name__)
 
 
-def __arguments() -> argparse.Namespace:
+def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser('Script to sign models')
     parser.add_argument(
         '--model_path',
@@ -89,18 +88,18 @@ def __arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def __get_payload_signer(args: argparse.Namespace) -> signing.Signer:
+def _get_payload_signer(args: argparse.Namespace) -> signing.Signer:
     if args.method == 'sigstore':
         signer = sigstore.SigstoreSigner()
         log.info(f'Signing ID provider: {signer.id_provider}')
         log.info(f'Signing ID: {signer.signing_id}')
         return sigstore.SigstoreSigner()
     elif args.method == 'private-key':
-        __check_private_key_options(args)
+        _check_private_key_options(args)
         return key.ECKeySigner.from_path(
             private_key_path=args.key_path)
     elif args.method == 'pki':
-        __check_pki_options(args)
+        _check_pki_options(args)
         return pki.PKISigner.from_path(
             args.key_path,
             args.signing_cert_path,
@@ -109,11 +108,12 @@ def __get_payload_signer(args: argparse.Namespace) -> signing.Signer:
         return fake.FakeSigner()
     else:
         log.error(f'unsupported signing method {args.method}')
-        log.error(f'supported methods: {SUPPORTED_METHODS}')
+        log.error(('supported methods: ["sigstore",', 
+                   '"pki", "private-key", "skip"]'))
         exit()
 
 
-def __check_private_key_options(args: argparse.Namespace):
+def _check_private_key_options(args: argparse.Namespace):
     if args.key_path == '':
         log.error(
             '--private_key must be set to a valid private key PEM file'
@@ -121,8 +121,8 @@ def __check_private_key_options(args: argparse.Namespace):
         exit()
 
 
-def __check_pki_options(args: argparse.Namespace):
-    __check_private_key_options(args)
+def _check_pki_options(args: argparse.Namespace):
+    _check_private_key_options(args)
     if args.signing_cert_path == '':
         log.error(
             ('--signing_cert must be set to a valid ',
@@ -135,10 +135,10 @@ def __check_pki_options(args: argparse.Namespace):
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    args = __arguments()
+    args = _arguments()
 
     log.info(f'Creating signer for {args.method}')
-    payload_signer = __get_payload_signer(args)
+    payload_signer = _get_payload_signer(args)
     log.info(f'Signing model at {args.model_path}')
 
     def hasher_factory(file_path: pathlib.Path) -> file.FileHasher:

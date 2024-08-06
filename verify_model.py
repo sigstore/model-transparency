@@ -20,7 +20,6 @@ from model_signing import model
 from model_signing.hashing import file
 from model_signing.hashing import memory
 from model_signing.serialization import serialize_by_file
-from model_signing.signature import SUPPORTED_METHODS
 from model_signing.signature import verifying
 from model_signing.signature import key
 from model_signing.signature import pki
@@ -31,7 +30,7 @@ from model_signing.signing import in_toto
 log = logging.getLogger(__name__)
 
 
-def __arguments() -> argparse.Namespace:
+def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser('Script to verify models')
     parser.add_argument(
         '--sig_path',
@@ -85,47 +84,48 @@ def __arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def __check_sigstore_flags(args: argparse.Namespace):
+def _check_sigstore_flags(args: argparse.Namespace):
     if args.id == '' or args.id_provider == '':
         log.error(
             '--id_provider and --id are required for sigstore verification')
         exit()
 
 
-def __check_private_key_flags(args: argparse.Namespace):
+def _check_private_key_flags(args: argparse.Namespace):
     if args.key == '':
         log.error('--public_key must be defined')
         exit()
 
 
-def __check_pki_flags(args: argparse.Namespace):
+def _check_pki_flags(args: argparse.Namespace):
     if not args.root_certs:
         log.warning('no root of trust is set using system default')
 
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    args = __arguments()
+    args = _arguments()
 
     verifier: verifying.Verifier
     log.info(f'Creating verifier for {args.method}')
     if args.method == 'sigstore':
-        __check_sigstore_flags(args)
+        _check_sigstore_flags(args)
         verifier = sigstore.SigstoreVerifier(
             args.id_provider, args.id)
     elif args.method == 'private-key':
-        __check_private_key_flags(args)
+        _check_private_key_flags(args)
         verifier = key.ECKeyVerifier.from_path(
             args.key)
     elif args.method == 'pki':
-        __check_pki_flags(args)
+        _check_pki_flags(args)
         verifier = pki.PKIVerifier.from_paths(
             args.root_certs)
     elif args.method == 'skip':
         verifier = fake.FakeVerifier()
     else:
         log.error(f'unsupported verification method {args.method}')
-        log.error(f'supported methods: {SUPPORTED_METHODS}')
+        log.error(('supported methods: ["sigstore",', 
+                   '"pki", "private-key", "skip"]'))
         exit()
 
     log.info(f'Verifying model signature from {args.sig_path}')
