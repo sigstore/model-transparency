@@ -34,7 +34,7 @@ from sigstore._internal.fulcio.client import (
 import io
 from pathlib import Path
 from typing import Optional
-from serialize import Serializer
+from model_signing.serialize import Serializer
 import psutil
 import sys
 
