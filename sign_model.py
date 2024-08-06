@@ -108,7 +108,7 @@ def _get_payload_signer(args: argparse.Namespace) -> signing.Signer:
         return fake.FakeSigner()
     else:
         log.error(f'unsupported signing method {args.method}')
-        log.error(('supported methods: ["sigstore",', 
+        log.error(('supported methods: ["sigstore",',
                    '"pki", "private-key", "skip"]'))
         exit()
 

@@ -124,7 +124,7 @@ def main():
         verifier = fake.FakeVerifier()
     else:
         log.error(f'unsupported verification method {args.method}')
-        log.error(('supported methods: ["sigstore",', 
+        log.error(('supported methods: ["sigstore",',
                    '"pki", "private-key", "skip"]'))
         exit()
 
