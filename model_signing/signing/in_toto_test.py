@@ -33,8 +33,8 @@ from model_signing.hashing import memory
 from model_signing.manifest import manifest as manifest_module
 from model_signing.serialization import serialize_by_file
 from model_signing.serialization import serialize_by_file_shard
-from model_signing.signing import in_toto
 from model_signing.signature import fake
+from model_signing.signing import in_toto
 
 
 class TestSingleDigestIntotoPayload:
@@ -340,7 +340,7 @@ class TestIntotoSignature:
 
     def _hasher_factory(
         self, path: pathlib.Path,
-    ) -> file.BinaryIO:
+    ) -> file.FileHasher:
         return file.SimpleFileHasher(
             path, memory.SHA256()
             )

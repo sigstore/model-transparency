@@ -25,15 +25,15 @@ import pathlib
 from typing import Any, Final, Self
 
 from in_toto_attestation.v1 import statement
-from typing_extensions import override
 from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
+from typing_extensions import override
 
 from model_signing.hashing import hashing
 from model_signing.hashing import memory
 from model_signing.manifest import manifest as manifest_module
-from model_signing.signing import signing
 from model_signing.signature import signing as signature_signing
 from model_signing.signature import verifying as signature_verifying
+from model_signing.signing import signing
 
 
 class IntotoPayload(signing.SigningPayload):
@@ -838,7 +838,7 @@ class IntotoSigner(signing.Signer):
         self._sig_signer = sig_signer
 
     @override
-    def sign(self, payload: signing.SigningPayload) -> signing.Signature:
+    def sign(self, payload: signing.SigningPayload) -> IntotoSignature:
         if not isinstance(payload, IntotoPayload):
             raise TypeError("only IntotoPayloads are supported")
         bundle = self._sig_signer.sign(payload.statement)
