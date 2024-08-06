@@ -118,7 +118,7 @@ class SigstoreSigner(signing.Signer):
         else:
           self._signing_context = sigstore_signer.SigningContext.production()
           if oidc_issuer is not None:
-              self._issuer = sigstore_oidc.Issuer.production(oidc_issuer)
+              self._issuer = sigstore_oidc.Issuer(oidc_issuer)
           else:
               self._issuer = sigstore_oidc.Issuer.production()
 
