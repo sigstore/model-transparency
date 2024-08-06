@@ -25,8 +25,6 @@ import pathlib
 from typing import Any, Final, Self
 
 from in_toto_attestation.v1 import statement
-from in_toto_attestation.v1 import statement_pb2
-from in_toto_attestation.v1 import resource_descriptor_pb2
 from typing_extensions import override
 from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 

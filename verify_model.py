@@ -16,8 +16,6 @@ import argparse
 import logging
 import pathlib
 
-from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
-
 from model_signing import model
 from model_signing.hashing import file
 from model_signing.hashing import memory
