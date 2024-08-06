@@ -208,6 +208,32 @@ class Shard:
         """
         return f"{str(self.path)}:{self.start}:{self.end}"
 
+    @classmethod
+    def from_str(cls, s: str) -> Self:
+        """Builds a file shard from the string representation.
+
+        It is guaranteed that for a shard `shard` and a (valid) string `s` the
+        following two round-trip properties hold:
+
+        ```
+        str(Shard.from_str(s)) == s
+        Shard.from_str(str(shard)) == shard
+        ```
+
+        Raises:
+            ValueError: if the string argument does not represent a valid shard
+            serialization (is not in the format `path:start:end`).
+        """
+        parts = s.split(":")
+        if len(parts) != 3:
+            raise ValueError(f"Expected 3 components separated by `:`, got {s}")
+
+        path = pathlib.PurePosixPath(parts[0])
+        start = int(parts[1])
+        end = int(parts[2])
+
+        return cls(path, start, end)
+
 
 @dataclasses.dataclass
 class ShardedFileManifestItem(ManifestItem):
