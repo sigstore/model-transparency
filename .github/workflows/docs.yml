@@ -1,0 +1,65 @@
+name: Documentation
+
+on:
+# TODO: remove the PR trigger after testing
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+  push:
+    branches: [main]
+    # TODO: determine if we only want to build for tags.
+    # tags:
+    #   - '*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
+        with:
+          python-version: 3.11
+          cache: pip
+          cache-dependency-path: |
+            model_signing/install/requirements_Linux.txt
+            model_signing/install/requirements_test_Linux.txt
+            model_signing/install/requirements_dev_Linux.txt
+      - name: build docs
+        run: |
+          python -m venv venv
+          .github/workflows/scripts/venv_activate.sh
+          pip install -r model_signing/install/requirements_Linux.txt
+          pip install -r model_signing/install/requirements_test_Linux.txt
+          pip install -r model_signing/install/requirements_dev_Linux.txt
+
+          # exclude test modules from documentation
+          pdoc model_signing '!model_signing.(conftest|test_support)' '!.+_test$' \
+            --docformat google \
+            --no-show-source \
+            --output-directory html
+      - name: upload docs artifact
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        with:
+          path: ./html/
+
+  # This is copied from the official `pdoc` example:
+  #   https://github.com/mitmproxy/pdoc/blob/main/.github/workflows/docs.yml
+  #
+  # Deploy the artifact to GitHub pages.
+  # This is a separate job so that only actions/deploy-pages has the necessary permissions.
+  deploy:
+    if: github.event_name != 'pull_request' # TODO: remove this
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write # to deploy to Pages
+      id-token: write # to verify the deployment originates from an appropriate source
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

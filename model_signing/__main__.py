@@ -15,8 +15,8 @@
 import argparse
 import sys
 from pathlib import Path
-import model
 
+from model_signing import model
 
 # https://github.com/sigstore/sigstore-python/issues/661
 # contains the logic to start the web browser.
