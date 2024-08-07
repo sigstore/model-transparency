@@ -1,6 +1,10 @@
 name: Documentation
 
 on:
+# TODO: remove the PR trigger after testing
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
   push:
     branches: [main]
     # TODO: determine if we only want to build for tags.
@@ -47,6 +51,7 @@ jobs:
   # Deploy the artifact to GitHub pages.
   # This is a separate job so that only actions/deploy-pages has the necessary permissions.
   deploy:
+    if: github.event_name != 'pull_request' # TODO: remove this
     needs: build
     runs-on: ubuntu-latest
     permissions:
