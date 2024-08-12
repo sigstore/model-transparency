@@ -283,7 +283,9 @@ class TestDigestSerializer:
         serializer = serialize_by_file.DigestSerializer(
             file_hasher, memory.SHA256
         )
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError, match="Cannot use '.+' because it is a symlink."
+        ):
             _ = serializer.serialize(symlink_model_folder)
 
     def test_ignore_list_respects_directories(self, sample_model_folder):
@@ -565,7 +567,9 @@ class TestManifestSerializer:
 
     def test_symlinks_disallowed_by_default(self, symlink_model_folder):
         serializer = serialize_by_file.ManifestSerializer(self._hasher_factory)
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError, match="Cannot use '.+' because it is a symlink."
+        ):
             _ = serializer.serialize(symlink_model_folder)
 
     def test_ignore_list_respects_directories(self, sample_model_folder):
