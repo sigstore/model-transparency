@@ -306,7 +306,9 @@ class TestDigestSerializer:
         serializer = serialize_by_file_shard.DigestSerializer(
             self._hasher_factory, memory.SHA256()
         )
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError, match="Cannot use '.+' because it is a symlink."
+        ):
             _ = serializer.serialize(symlink_model_folder)
 
     def test_ignore_list_respects_directories(self, sample_model_folder):
@@ -679,7 +681,9 @@ class TestManifestSerializer:
         serializer = serialize_by_file_shard.ManifestSerializer(
             self._hasher_factory
         )
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError, match="Cannot use '.+' because it is a symlink."
+        ):
             _ = serializer.serialize(symlink_model_folder)
 
     def test_shard_to_string(self):
