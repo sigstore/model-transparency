@@ -3,8 +3,11 @@ line-length = 80
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["B", "E", "F", "I", "N", "PLC", "PLE", "SIM", "W"]
+select = ["B", "E", "F", "I", "N", "PLC", "PLE", "PT", "SIM", "W"]
 ignore = ["B024"]
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
 
 [tool.ruff.lint.isort]
 force-single-line = true

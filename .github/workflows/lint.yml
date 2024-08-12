@@ -66,7 +66,7 @@ jobs:
           pip install -r model_signing/install/requirements_test_Linux.txt
           pip install -r model_signing/install/requirements_dev_Linux.txt
           # TODO: https://github.com/sigstore/model-transparency/issues/231 - Support all repo
-          pytype --keep-going model_signing/{hashing,manifest,serialization,signature,signing}
+          pytype --keep-going model_signing/{conftest.py,hashing,manifest,serialization,signature,signing}
 
   ruff-lint:
     runs-on: ubuntu-latest
@@ -86,4 +86,4 @@ jobs:
           pip install -r model_signing/install/requirements_test_Linux.txt
           pip install -r model_signing/install/requirements_dev_Linux.txt
           # TODO: https://github.com/sigstore/model-transparency/issues/231 - Support all repo
-          ruff check model_signing/{hashing,manifest,serialization,signature,signing}
+          ruff check model_signing/{conftest.py,hashing,manifest,serialization,signature,signing}
