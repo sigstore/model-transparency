@@ -63,7 +63,7 @@ table shows:
 | bert-base-uncased  | 3.3G  | 1.6s       | 1.1s        |
 | tiiuae/falcon-7b   | 14GB  | 2.1s       | 1.8s        |
 
-See [model_signing/README.md](model_signing/README.md) for more information.
+See [README.model_signing.md](README.model_signing.md) for more information.
 
 ### SLSA for ML
 
