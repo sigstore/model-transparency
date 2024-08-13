@@ -298,9 +298,9 @@ jinja2==3.1.4 \
     --hash=sha256:4a3aee7acbbe7303aede8e9648d13b8bf88a429282aa6122a993f0ac800cb369 \
     --hash=sha256:bc5dd2abb727a5319567b7a813e6a2e7318c39f4f487cfe6c89c6f9c7d25197d
     # via torch
-keras==3.4.1 \
-    --hash=sha256:15599c51e2090c12f39de6db6489a0cf265ddf6653f0731b82db5af2bfa19105 \
-    --hash=sha256:34cd9aeaa008914715149234c215657ca758e1b473bd2aab2e211ac967d1f8fe
+keras==3.5.0 \
+    --hash=sha256:53ae4f9472ec9d9c6941c82a3fda86969724ace3b7630a94ba0a1f17ba1065c3 \
+    --hash=sha256:d37a3c623935713473ceb25241b52bce9d1e0ff5b36e5d0f6f47ed55f8500c9a
     # via tensorflow-intel
 libclang==18.1.1 \
     --hash=sha256:0b2e143f0fac830156feb56f9231ff8338c20aecfe72b4ffe96f19e5a1dbb69a \
@@ -738,9 +738,9 @@ six==1.16.0 \
     #   promise
     #   tensorboard
     #   tensorflow-intel
-sympy==1.13.1 \
-    --hash=sha256:9cebf7e04ff162015ce31c9c6c9144daa34a93bd082f54fd8f12deca4f47515f \
-    --hash=sha256:db36cdc64bf61b9b24578b6f7bab1ecdd2452cf008f34faa33776680c26d66f8
+sympy==1.13.2 \
+    --hash=sha256:401449d84d07be9d0c7a46a64bd54fe097667d5e7181bfe67ec777be9e01cb13 \
+    --hash=sha256:c51d75517712f1aed280d4ce58506a4a88d635d6b5dd48b39102a7ae1f3fcfe9
     # via torch
 tensorboard==2.17.0 \
     --hash=sha256:859a499a9b1fb68a058858964486627100b71fcb21646861c61d31846a6478fb
@@ -964,9 +964,9 @@ wrapt==1.16.0 \
     # via
     #   tensorflow-datasets
     #   tensorflow-intel
-zipp==3.19.2 \
-    --hash=sha256:bf1dcf6450f873a13e952a29504887c89e6de7506209e5b1bcc3460135d4de19 \
-    --hash=sha256:f091755f667055f2d02b32c53771a7a6c8b47e1fdbc4b72a8b9072b3eef8015c
+zipp==3.20.0 \
+    --hash=sha256:0145e43d89664cfe1a2e533adc75adafed82fe2da404b4bbb6b026c0157bdb31 \
+    --hash=sha256:58da6168be89f0be59beb194da1250516fdaa062ccebd30127ac65d30045e10d
     # via etils
 
 # WARNING: The following packages were not pinned, but pip requires them to be
