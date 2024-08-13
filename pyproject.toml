@@ -60,6 +60,9 @@ installer = "pip"
 parallel = true
 randomize = true
 
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.11", "3.12"]
+
 [tool.hatch.envs.type]
 description = """Custom environment for pytype.
 Use `hatch run type:check` to check types.
