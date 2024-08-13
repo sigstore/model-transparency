@@ -158,8 +158,7 @@ class SingleDigestIntotoPayload(IntotoPayload):
         subject = list(manifest.resource_descriptors())[0]
         digest = subject.digest
         return cls(
-            digest_hex=digest.digest_hex,
-            digest_algorithm=digest.algorithm,
+            digest_hex=digest.digest_hex, digest_algorithm=digest.algorithm
         )
 
     @classmethod
@@ -209,11 +208,13 @@ def _convert_descriptors_to_hashed_statement(
     subjects = []
     for descriptor in manifest.resource_descriptors():
         hasher.update(descriptor.digest.digest_value)
-        subjects.append({
-            "name": descriptor.identifier,
-            "digest": descriptor.digest.digest_hex,
-            "algorithm": descriptor.digest.algorithm,
-        })
+        subjects.append(
+            {
+                "name": descriptor.identifier,
+                "digest": descriptor.digest.digest_hex,
+                "algorithm": descriptor.digest.algorithm,
+            }
+        )
 
     digest = {"sha256": hasher.compute().digest_hex}
     descriptor = statement.ResourceDescriptor(name=".", digest=digest).pb
@@ -533,7 +534,7 @@ def _convert_descriptors_to_direct_statement(
         subjects=subjects,
         predicate_type=predicate_type,
         # https://github.com/in-toto/attestation/issues/374
-        predicate={"unused":"Unused, just passed due to API requirements"},
+        predicate={"unused": "Unused, just passed due to API requirements"},
     )
 
 
@@ -735,9 +736,7 @@ class ShardDigestsIntotoPayload(IntotoPayload):
     See also https://github.com/sigstore/sigstore-python/issues/1018.
     """
 
-    predicate_type: Final[str] = (
-        "https://model_signing/ShardDigests/v0.1"
-    )
+    predicate_type: Final[str] = "https://model_signing/ShardDigests/v0.1"
 
     def __init__(self, statement: statement.Statement):
         """Builds an instance of this in-toto payload.

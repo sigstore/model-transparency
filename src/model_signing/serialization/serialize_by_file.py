@@ -31,9 +31,7 @@ from model_signing.serialization import serialization
 
 
 def check_file_or_directory(
-    path: pathlib.Path,
-    *,
-    allow_symlinks: bool = False,
+    path: pathlib.Path, *, allow_symlinks: bool = False
 ) -> None:
     """Checks that the given path is either a file or a directory.
 
@@ -66,11 +64,7 @@ def check_file_or_directory(
         )
 
 
-def _build_header(
-    *,
-    entry_name: str,
-    entry_type: str,
-) -> bytes:
+def _build_header(*, entry_name: str, entry_type: str) -> bytes:
     """Builds a header to encode a path with given name and type.
 
     Args:
@@ -88,6 +82,7 @@ def _build_header(
     # Note: empty string at the end, to terminate header with a "."
     return b".".join([encoded_type, encoded_name, b""])
 
+
 def _ignored(path: pathlib.Path, ignore_paths: Iterable[pathlib.Path]) -> bool:
     """Determines if the provided path should be ignored.
 
@@ -99,6 +94,7 @@ def _ignored(path: pathlib.Path, ignore_paths: Iterable[pathlib.Path]) -> bool:
         Whether or not the provided path should be ignored.
     """
     return any(path.is_relative_to(ignore_path) for ignore_path in ignore_paths)
+
 
 class FilesSerializer(serialization.Serializer):
     """Generic file serializer.
@@ -133,7 +129,8 @@ class FilesSerializer(serialization.Serializer):
         self._allow_symlinks = allow_symlinks
 
     @override
-    def serialize(self,
+    def serialize(
+        self,
         model_path: pathlib.Path,
         *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
@@ -159,9 +156,7 @@ class FilesSerializer(serialization.Serializer):
         # with `pathlib.Path.walk` for a clearer interface, and some speed
         # improvement.
         for path in itertools.chain((model_path,), model_path.glob("**/*")):
-            check_file_or_directory(
-                path, allow_symlinks=self._allow_symlinks
-            )
+            check_file_or_directory(path, allow_symlinks=self._allow_symlinks)
             if path.is_file() and not _ignored(path, ignore_paths):
                 paths.append(path)
 
@@ -211,7 +206,8 @@ class ManifestSerializer(FilesSerializer):
     """
 
     @override
-    def serialize(self,
+    def serialize(
+        self,
         model_path: pathlib.Path,
         *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
@@ -299,8 +295,7 @@ class _FileDigestTree:
         return path_to_node[pathlib.PurePosixPath()]
 
     def get_digest(
-        self,
-        hasher_factory: Callable[[], hashing.StreamingHashEngine],
+        self, hasher_factory: Callable[[], hashing.StreamingHashEngine]
     ) -> hashing.Digest:
         """Returns the digest of this tree of files.
 
@@ -366,7 +361,8 @@ class DigestSerializer(FilesSerializer):
         self._merge_hasher_factory = merge_hasher_factory
 
     @override
-    def serialize(self,
+    def serialize(
+        self,
         model_path: pathlib.Path,
         *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),

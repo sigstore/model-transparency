@@ -14,11 +14,12 @@
 from google.protobuf import json_format
 from in_toto_attestation.v1 import statement_pb2 as statement_pb
 
+
 PAYLOAD_TYPE = "application/vnd.in-toto+json"
 
 
 def pae(
-    statement: statement_pb.Statement  # pylint: disable=no-member
+    statement: statement_pb.Statement,  # pylint: disable=no-member
 ) -> bytes:
     """Generates the PAE encoding of the statement.
 
@@ -33,8 +34,10 @@ def pae(
     """
     enc_payload = json_format.MessageToJson(statement).encode()
     payload_len = len(enc_payload)
-    pae = ('DSSEV1'
-           f' {len(PAYLOAD_TYPE)} {PAYLOAD_TYPE}'
-           f' {payload_len} {enc_payload}')
+    pae = (
+        "DSSEV1"
+        f" {len(PAYLOAD_TYPE)} {PAYLOAD_TYPE}"
+        f" {payload_len} {enc_payload}"
+    )
     pae = pae.encode()
     return pae

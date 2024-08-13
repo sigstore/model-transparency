@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""This package provides the functionality to generate and verify
-bundles without invoking signing."""
+"""Functionality to generate and verify bundles without signing."""
 
 from google.protobuf import json_format
 from in_toto_attestation.v1 import statement
@@ -27,20 +26,20 @@ from model_signing.signature.verifying import Verifier
 
 class FakeSigner(Signer):
     """Provides a Signer that just returns the bundle."""
+
     def sign(self, stmnt: statement.Statement) -> bundle_pb.Bundle:
         env = intoto_pb.Envelope(
             payload=json_format.MessageToJson(stmnt.pb).encode(),
             payload_type=PAYLOAD_TYPE,
-            signatures=[intoto_pb.Signature(sig=b'', keyid=None)],
+            signatures=[intoto_pb.Signature(sig=b"", keyid=None)],
         )
         bdl = bundle_pb.Bundle(
-            media_type='application/vnd.dev.sigstore.bundle.v0.3+json',
+            media_type="application/vnd.dev.sigstore.bundle.v0.3+json",
             verification_material=bundle_pb.VerificationMaterial(
                 public_key=common_pb.PublicKey(
                     raw_bytes=None,
-                    key_details=common_pb.
-                    PublicKeyDetails.PKIX_ECDSA_P256_SHA_256,
-                ),
+                    key_details=common_pb.PublicKeyDetails.PKIX_ECDSA_P256_SHA_256,
+                )
             ),
             dsse_envelope=env,
         )
@@ -49,5 +48,6 @@ class FakeSigner(Signer):
 
 class FakeVerifier(Verifier):
     """Provides a fake verifier that always passes."""
+
     def verify(self, bundle: bundle_pb.Bundle) -> None:
         pass

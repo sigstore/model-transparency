@@ -26,7 +26,6 @@ from google.protobuf import json_format
 from in_toto_attestation.v1 import statement_pb2
 import pytest
 
-from tests import test_support
 from model_signing.hashing import file
 from model_signing.hashing import hashing
 from model_signing.hashing import memory
@@ -34,10 +33,10 @@ from model_signing.manifest import manifest as manifest_module
 from model_signing.serialization import serialize_by_file
 from model_signing.serialization import serialize_by_file_shard
 from model_signing.signing import in_toto
+from tests import test_support
 
 
 class TestSingleDigestIntotoPayload:
-
     @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
     def test_known_models(self, request, model_fixture_name):
         # Set up variables (arrange)
@@ -91,7 +90,6 @@ class TestSingleDigestIntotoPayload:
 
 
 class TestDigestOfDigestsIntotoPayload:
-
     def _hasher_factory(self, path: pathlib.Path) -> file.FileHasher:
         return file.SimpleFileHasher(path, memory.SHA256())
 
@@ -140,14 +138,12 @@ class TestDigestOfDigestsIntotoPayload:
         manifest = manifest_module.DigestManifest(digest)
 
         with pytest.raises(
-            TypeError,
-            match="Only FileLevelManifest is supported",
+            TypeError, match="Only FileLevelManifest is supported"
         ):
             in_toto.DigestOfDigestsIntotoPayload.from_manifest(manifest)
 
 
 class TestDigestOfShardDigestsIntotoPayload:
-
     def _hasher_factory(
         self, path: pathlib.Path, start: int, end: int
     ) -> file.ShardedFileHasher:
@@ -204,14 +200,12 @@ class TestDigestOfShardDigestsIntotoPayload:
         manifest = manifest_module.DigestManifest(digest)
 
         with pytest.raises(
-            TypeError,
-            match="Only ShardLevelManifest is supported",
+            TypeError, match="Only ShardLevelManifest is supported"
         ):
             in_toto.DigestOfShardDigestsIntotoPayload.from_manifest(manifest)
 
 
 class TestDigestsIntotoPayload:
-
     def _hasher_factory(self, path: pathlib.Path) -> file.FileHasher:
         return file.SimpleFileHasher(path, memory.SHA256())
 
@@ -260,14 +254,12 @@ class TestDigestsIntotoPayload:
         manifest = manifest_module.DigestManifest(digest)
 
         with pytest.raises(
-            TypeError,
-            match="Only FileLevelManifest is supported",
+            TypeError, match="Only FileLevelManifest is supported"
         ):
             in_toto.DigestsIntotoPayload.from_manifest(manifest)
 
 
 class TestShardDigestsIntotoPayload:
-
     def _hasher_factory(
         self, path: pathlib.Path, start: int, end: int
     ) -> file.ShardedFileHasher:
@@ -311,9 +303,7 @@ class TestShardDigestsIntotoPayload:
         )
         manifest = serializer.serialize(sample_model_folder)
 
-        payload = in_toto.ShardDigestsIntotoPayload.from_manifest(
-            manifest
-        )
+        payload = in_toto.ShardDigestsIntotoPayload.from_manifest(manifest)
 
         payload.statement.validate()
 
@@ -322,7 +312,6 @@ class TestShardDigestsIntotoPayload:
         manifest = manifest_module.DigestManifest(digest)
 
         with pytest.raises(
-            TypeError,
-            match="Only ShardLevelManifest is supported",
+            TypeError, match="Only ShardLevelManifest is supported"
         ):
             in_toto.ShardDigestsIntotoPayload.from_manifest(manifest)

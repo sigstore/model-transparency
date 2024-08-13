@@ -22,15 +22,14 @@ files. If the golden tests are failing, regenerate the golden files with
 
 import pytest
 
-from tests import test_support
 from model_signing.hashing import file
 from model_signing.hashing import memory
 from model_signing.serialization import serialize_by_file
 from model_signing.signing import as_bytes
+from tests import test_support
 
 
 class TestBytesPayload:
-
     @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
     def test_known_models(self, request, model_fixture_name):
         # Set up variables (arrange)

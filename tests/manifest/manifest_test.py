@@ -21,7 +21,6 @@ from model_signing.manifest import manifest
 
 
 class TestDigestManifest:
-
     def test_manifest_has_just_one_resource_descriptor(self):
         digest = hashing.Digest("test", b"test_digest")
         manifest_file = manifest.DigestManifest(digest)
@@ -40,7 +39,6 @@ class TestDigestManifest:
 
 
 class TestFileLevelManifest:
-
     def test_insert_order_does_not_matter(self):
         path1 = pathlib.PurePath("file1")
         digest1 = hashing.Digest("test", b"abcd")
@@ -90,7 +88,6 @@ class TestFileLevelManifest:
 
 
 class TestShard:
-
     def test_round_trip_from_shard(self):
         shard = manifest.Shard(pathlib.PurePosixPath("file"), 0, 42)
         shard_str = str(shard)
@@ -127,7 +124,6 @@ class TestShard:
 
 
 class TestShardLevelManifest:
-
     def test_insert_order_does_not_matter(self):
         path1 = pathlib.PurePath("file1")
         digest1 = hashing.Digest("test", b"abcd")

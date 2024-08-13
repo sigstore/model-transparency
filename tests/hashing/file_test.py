@@ -19,6 +19,7 @@ import pytest
 from model_signing.hashing import file
 from model_signing.hashing import memory
 
+
 # some constants used throughout testing
 _HEADER: str = "Some "
 _CONTENT: str = "text."  # note that these have the same length
@@ -65,7 +66,6 @@ def expected_content_digest():
 
 
 class TestSimpleFileHasher:
-
     def test_fails_with_negative_chunk_size(self):
         with pytest.raises(ValueError, match="Chunk size must be non-negative"):
             file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256(), chunk_size=-2)
@@ -151,7 +151,6 @@ class TestSimpleFileHasher:
 
 
 class TestShardedFileHasher:
-
     def test_fails_with_negative_shard_size(self):
         with pytest.raises(
             ValueError, match="Shard size must be strictly positive"
@@ -415,7 +414,6 @@ class TestShardedFileHasher:
 
 
 class TestOpenedFileHasher:
-
     def test_hash_of_known_file(self, sample_file, expected_digest):
         with open(sample_file, "rb") as f:
             hasher = file.OpenedFileHasher(f)

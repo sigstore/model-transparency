@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This package provides the functionality to verify signed models."""
+
 import abc
 
 from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 
 
 class VerificationError(Exception):
-    """Typed verification error to provide error handling information"""
+    """Typed verification error to provide error handling information."""
+
     def __init__(self, message: str) -> None:
         super().__init__(message)
 

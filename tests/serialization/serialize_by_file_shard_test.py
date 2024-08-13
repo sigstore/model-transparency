@@ -24,15 +24,14 @@ import pathlib
 
 import pytest
 
-from tests import test_support
 from model_signing.hashing import file
 from model_signing.hashing import memory
 from model_signing.manifest import manifest
 from model_signing.serialization import serialize_by_file_shard
+from tests import test_support
 
 
 class TestDigestSerializer:
-
     def _hasher_factory(
         self, path: pathlib.Path, start: int, end: int
     ) -> file.ShardedFileHasher:
@@ -353,7 +352,6 @@ def _parse_shard_and_digest(line: str) -> tuple[manifest.Shard, str]:
 
 
 class TestManifestSerializer:
-
     def _hasher_factory(
         self, path: pathlib.Path, start: int, end: int
     ) -> file.ShardedFileHasher:

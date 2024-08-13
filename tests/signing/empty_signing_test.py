@@ -18,15 +18,14 @@ from typing import Self
 import pytest
 from typing_extensions import override
 
-from tests import test_support
 from model_signing.hashing import hashing
 from model_signing.manifest import manifest
 from model_signing.signing import empty_signing
 from model_signing.signing import signing
+from tests import test_support
 
 
 class TestEmptySigningPayload:
-
     def test_build_from_digest_manifest(self):
         digest = hashing.Digest("test", b"test_digest")
         manifest_file = manifest.DigestManifest(digest)
@@ -51,7 +50,6 @@ class TestEmptySigningPayload:
 
 
 class TestEmptySignature:
-
     def test_write_and_read(self):
         signature = empty_signing.EmptySignature()
         signature.write(test_support.UNUSED_PATH)
@@ -64,7 +62,6 @@ class TestEmptySignature:
 
 
 class TestEmptySigner:
-
     def test_sign_gives_empty_signature(self):
         payload = empty_signing.EmptySigningPayload()
         signer = empty_signing.EmptySigner()
@@ -89,14 +86,12 @@ class _FakeSignature(signing.Signature):
 
 
 class TestEmptyVerifier:
-
     def test_only_empty_signatures_allowed(self):
         signature = _FakeSignature()
         verifier = empty_signing.EmptyVerifier()
 
         with pytest.raises(
-            TypeError,
-            match="Only `EmptySignature` instances are supported",
+            TypeError, match="Only `EmptySignature` instances are supported"
         ):
             verifier.verify(signature)
 
@@ -104,8 +99,5 @@ class TestEmptyVerifier:
         signature = empty_signing.EmptySignature()
         verifier = empty_signing.EmptyVerifier()
 
-        with pytest.raises(
-            ValueError,
-            match="Signature verification failed",
-        ):
+        with pytest.raises(ValueError, match="Signature verification failed"):
             verifier.verify(signature)

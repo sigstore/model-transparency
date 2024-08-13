@@ -25,15 +25,14 @@ import pathlib
 
 import pytest
 
-from tests import test_support
 from model_signing.hashing import file
 from model_signing.hashing import memory
 from model_signing.manifest import manifest
 from model_signing.serialization import serialize_by_file
+from tests import test_support
 
 
 class TestDigestSerializer:
-
     @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
     def test_known_models(self, request, model_fixture_name):
         # Set up variables (arrange)
@@ -304,7 +303,6 @@ class TestDigestSerializer:
 
 
 class TestManifestSerializer:
-
     def _hasher_factory(self, path: pathlib.Path) -> file.FileHasher:
         return file.SimpleFileHasher(path, memory.SHA256())
 
@@ -586,7 +584,6 @@ class TestManifestSerializer:
 
 
 class TestUtilities:
-
     def test_check_file_or_directory_raises_on_pipes(self, sample_model_file):
         pipe = sample_model_file.with_name("pipe")
 

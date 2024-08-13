@@ -16,7 +16,6 @@ from model_signing.hashing import memory
 
 
 class TestSHA256:
-
     def test_hash_known_value(self):
         hasher = memory.SHA256(b"Test string")
         digest = hasher.compute()
@@ -72,7 +71,6 @@ class TestSHA256:
 
 
 class TestBLAKE2:
-
     def test_hash_known_value(self):
         hasher = memory.BLAKE2(b"Test string")
         digest = hasher.compute()

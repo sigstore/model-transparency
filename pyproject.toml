@@ -62,11 +62,19 @@ randomize = true
 
 [tool.ruff]
 line-length = 80
-target-version = "py311"
+
+[tool.ruff.format]
+docstring-code-format = true
+line-ending = "lf"
+skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
-select = ["B", "E", "F", "I", "N", "PLC", "PLE", "PT", "SIM", "W"]
-ignore = ["B024"]
+select = ["B", "D", "E", "F", "I", "N", "PLC", "PLE", "PT", "SIM", "W"]
+# TODO: selectively enable back most of these in subsequent PRs
+ignore = ["B024", "D100", "D101", "D102", "D103", "D104", "D105", "D107", "D417"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
@@ -74,4 +82,8 @@ fixture-parentheses = false
 [tool.ruff.lint.isort]
 force-single-line = true
 force-sort-within-sections = true
+lines-after-imports = 2
 single-line-exclusions = ["collections.abc", "typing"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

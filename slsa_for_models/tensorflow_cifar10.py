@@ -30,6 +30,7 @@ def pretraining():
     global tfds
     import tensorflow as tf
     import tensorflow_datasets as tfds
+
     # Also compile model using XLA for ~20% performance gain
     tf.config.optimizer.set_jit(True)
 
@@ -46,15 +47,15 @@ def load_data():
     Returns train and test pairs. Each pair consists of features and labels
     vectors of similar size.
     """
-    result = tfds.load('cifar10', batch_size=-1)
-    x_train = result['train']['image']
-    y_train = result['train']['label']
-    x_test = result['test']['image']
-    y_test = result['test']['label']
+    result = tfds.load("cifar10", batch_size=-1)
+    x_train = result["train"]["image"]
+    y_train = result["train"]["label"]
+    x_test = result["test"]["image"]
+    y_test = result["test"]["label"]
 
     # transform input
-    x_train = x_train.numpy().astype('float32') / 256
-    x_test = x_test.numpy().astype('float32') / 256
+    x_train = x_train.numpy().astype("float32") / 256
+    x_test = x_test.numpy().astype("float32") / 256
     y_train = tf.keras.utils.to_categorical(y_train, num_classes=10)
     y_test = tf.keras.utils.to_categorical(y_test, num_classes=10)
 
@@ -72,35 +73,38 @@ def create_model(in_shape):
     Returns the model.
     """
     x, _, c = in_shape
-    return tf.keras.models.Sequential([
-        tf.keras.layers.Conv2D(x, (c, c), padding='same',
-                               input_shape=in_shape),
-        tf.keras.layers.Activation('relu'),
-        tf.keras.layers.Conv2D(x, (c, c)),
-        tf.keras.layers.Activation('relu'),
-        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-        tf.keras.layers.Dropout(0.25),
-        tf.keras.layers.Conv2D(2*x, (c, c), padding='same'),
-        tf.keras.layers.Activation('relu'),
-        tf.keras.layers.Conv2D(2*x, (c, c)),
-        tf.keras.layers.Activation('relu'),
-        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-        tf.keras.layers.Dropout(0.25),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(512),
-        tf.keras.layers.Activation('relu'),
-        tf.keras.layers.Dropout(0.5),
-        tf.keras.layers.Dense(10),
-        tf.keras.layers.Activation('softmax'),
-    ])
+    return tf.keras.models.Sequential(
+        [
+            tf.keras.layers.Conv2D(
+                x, (c, c), padding="same", input_shape=in_shape
+            ),
+            tf.keras.layers.Activation("relu"),
+            tf.keras.layers.Conv2D(x, (c, c)),
+            tf.keras.layers.Activation("relu"),
+            tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+            tf.keras.layers.Dropout(0.25),
+            tf.keras.layers.Conv2D(2 * x, (c, c), padding="same"),
+            tf.keras.layers.Activation("relu"),
+            tf.keras.layers.Conv2D(2 * x, (c, c)),
+            tf.keras.layers.Activation("relu"),
+            tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+            tf.keras.layers.Dropout(0.25),
+            tf.keras.layers.Flatten(),
+            tf.keras.layers.Dense(512),
+            tf.keras.layers.Activation("relu"),
+            tf.keras.layers.Dropout(0.5),
+            tf.keras.layers.Dense(10),
+            tf.keras.layers.Activation("softmax"),
+        ]
+    )
 
 
 def prepare_model(model):
     """Prepare model for training with loss and optimizer."""
     opt = tf.keras.optimizers.RMSprop(learning_rate=0.0001)
-    model.compile(loss='categorical_crossentropy',
-                  optimizer=opt,
-                  metrics=['accuracy'])
+    model.compile(
+        loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+    )
     return model
 
 
@@ -110,30 +114,31 @@ def train_model(model, train, test):
     The test set is used for cross validation.
     """
     x, y = train
-    model.fit(x, y, batch_size=256, epochs=16,
-              validation_data=test, shuffle=True)
+    model.fit(
+        x, y, batch_size=256, epochs=16, validation_data=test, shuffle=True
+    )
 
 
 def score_model(model, test):
     """Score a trained model on the test set."""
     x, y = test
     scores = model.evaluate(x, y, verbose=1)
-    print(f'Test loss: {scores[0]}')
-    print(f'Test accuracy: {scores[1]}')
+    print(f"Test loss: {scores[0]}")
+    print(f"Test accuracy: {scores[1]}")
 
 
 def supported_models():
     """Returns supported model types paired with method to save them."""
     return {
         # New Keras format
-        'tensorflow_model.keras': lambda m, p: m.save(p, save_format='keras'),
+        "tensorflow_model.keras": lambda m, p: m.save(p, save_format="keras"),
         # TF SavedModel formats, full model and weights only
         # TODO: Re-enable support for these when SLSA supports directories
         # 'tensorflow_saved_model': lambda m, p: m.save(p, save_format='tf'),
         # 'tensorflow_exported_model': lambda m, p: m.export(p),
         # Legacy HDFS format, full model and weights only
-        'tensorflow_hdf5_model.h5': lambda m, p: m.save(p, save_format='h5'),
-        'tensorflow_hdf5.weights.h5': lambda m, p: m.save_weights(p),
+        "tensorflow_hdf5_model.h5": lambda m, p: m.save(p, save_format="h5"),
+        "tensorflow_hdf5.weights.h5": lambda m, p: m.save_weights(p),
     }
 
 
@@ -144,9 +149,8 @@ def save_model(model, model_format):
     """
     saver = supported_models().get(model_format, None)
     if not saver:
-        raise ValueError(
-            'Requested a model format not supported by TensorFlow')
-    saver(model, './' + model_format)
+        raise ValueError("Requested a model format not supported by TensorFlow")
+    saver(model, "./" + model_format)
 
 
 def model_pipeline(model_format):

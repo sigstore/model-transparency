@@ -106,9 +106,10 @@ def deep_model_folder(tmp_path_factory):
 
     return model_root
 
+
 @pytest.fixture
 def symlink_model_folder(
-    tmp_path_factory: pytest.TempPathFactory
+    tmp_path_factory: pytest.TempPathFactory,
 ) -> pathlib.Path:
     """A model folder with a symlink to an external file."""
     external_file = tmp_path_factory.mktemp("external") / "file"

@@ -31,12 +31,7 @@ from model_signing.serialization import serialization
 from model_signing.serialization import serialize_by_file
 
 
-def _build_header(
-    *,
-    name: str,
-    start: int,
-    end: int,
-) -> bytes:
+def _build_header(*, name: str, start: int, end: int) -> bytes:
     """Builds a header to encode a path with given name and shard range.
 
     Args:
@@ -123,7 +118,8 @@ class ShardedFilesSerializer(serialization.Serializer):
         self._shard_size = hasher.shard_size
 
     @override
-    def serialize(self,
+    def serialize(
+        self,
         model_path: pathlib.Path,
         *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
@@ -152,9 +148,8 @@ class ShardedFilesSerializer(serialization.Serializer):
             serialize_by_file.check_file_or_directory(
                 path, allow_symlinks=self._allow_symlinks
             )
-            if (
-                path.is_file()
-                and not serialize_by_file._ignored(path, ignore_paths)
+            if path.is_file() and not serialize_by_file._ignored(
+                path, ignore_paths
             ):
                 shards.extend(self._get_shards(path))
 
@@ -302,7 +297,8 @@ class DigestSerializer(ShardedFilesSerializer):
         self._merge_hasher = merge_hasher
 
     @override
-    def serialize(self,
+    def serialize(
+        self,
         model_path: pathlib.Path,
         *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),

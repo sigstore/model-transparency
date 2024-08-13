@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""This package provides the functionality to sign and verify models
-with sigstore."""
+"""Functionality to sign and verify models with sigstore."""
+
 import logging as log
 from typing import Optional
 
@@ -36,19 +36,17 @@ class SigstoreSigner(Signer):
     CLIENT_ID = "sigstore"
 
     def __init__(
-            self,
-            disable_ambient: bool = True,
-            id_provider: str | None = None
-        ):
+        self, disable_ambient: bool = True, id_provider: str | None = None
+    ):
         token = self.__get_identity_token(disable_ambient, id_provider)
         if not token:
             raise ValueError("No identity token supplied or detected!")
         log.info(
-            f"Signing identity provider: {token.expected_certificate_subject}")
+            f"Signing identity provider: {token.expected_certificate_subject}"
+        )
         log.info(f"Signing identity: {token.identity}")
         self._signer = sign.Signer(
-            identity_token=token,
-            signing_ctx=sign.SigningContext.production(),
+            identity_token=token, signing_ctx=sign.SigningContext.production()
         )
 
     @staticmethod
@@ -58,8 +56,7 @@ class SigstoreSigner(Signer):
         for s in subjects:
             sigstore_subjects.append(
                 dsse._Subject(
-                    name=s.name,
-                    digest={"sha256": s.digest["sha256"]},
+                    name=s.name, digest={"sha256": s.digest["sha256"]}
                 )
             )
         return dsse._StatementBuilder(
@@ -70,15 +67,17 @@ class SigstoreSigner(Signer):
 
     @staticmethod
     def __get_identity_token(
-        disable_ambient: bool = True,
-        id_provider: Optional[str] = None,
+        disable_ambient: bool = True, id_provider: Optional[str] = None
     ) -> Optional[oidc.IdentityToken]:
         token: oidc.IdentityToken
         if not disable_ambient:
             return oidc.detect_credential()
 
-        issuer = oidc.Issuer(id_provider) if id_provider \
+        issuer = (
+            oidc.Issuer(id_provider)
+            if id_provider
             else oidc.Issuer.production()
+        )
         token = issuer.identity_token(
             client_id=SigstoreSigner.CLIENT_ID, force_oob=True
         )
@@ -94,8 +93,7 @@ class SigstoreVerifier(Verifier):
     def __init__(self, oidc_provider: str, identity: str):
         self._verifier = sig_verifier.Verifier.production()
         self._policy = sig_policy.Identity(
-            identity=identity,
-            issuer=oidc_provider,
+            identity=identity, issuer=oidc_provider
         )
 
     def verify(self, bundle: bundle_pb.Bundle) -> None:

@@ -32,8 +32,9 @@ from model_signing.signing import as_bytes
 from model_signing.signing import in_toto
 from model_signing.signing import signing
 
-_IN_TOTO_JSON_PAYLOAD_TYPE : str = "application/vnd.in-toto+json"
-_IN_TOTO_STATEMENT_TYPE : str = "https://in-toto.io/Statement/v1"
+
+_IN_TOTO_JSON_PAYLOAD_TYPE: str = "application/vnd.in-toto+json"
+_IN_TOTO_STATEMENT_TYPE: str = "https://in-toto.io/Statement/v1"
 
 
 class SigstoreSignature(signing.Signature):
@@ -113,14 +114,14 @@ class SigstoreSigner(signing.Signer):
               is supposed to be set to True only when testing. Default is False.
         """
         if use_staging:
-          self._signing_context = sigstore_signer.SigningContext.staging()
-          self._issuer = sigstore_oidc.Issuer.staging()
+            self._signing_context = sigstore_signer.SigningContext.staging()
+            self._issuer = sigstore_oidc.Issuer.staging()
         else:
-          self._signing_context = sigstore_signer.SigningContext.production()
-          if oidc_issuer is not None:
-              self._issuer = sigstore_oidc.Issuer(oidc_issuer)
-          else:
-              self._issuer = sigstore_oidc.Issuer.production()
+            self._signing_context = sigstore_signer.SigningContext.production()
+            if oidc_issuer is not None:
+                self._issuer = sigstore_oidc.Issuer(oidc_issuer)
+            else:
+                self._issuer = sigstore_oidc.Issuer.production()
 
         self._use_ambient_credentials = use_ambient_credentials
 
@@ -212,11 +213,7 @@ class SigstoreVerifier(signing.Verifier):
     """
 
     def __init__(
-        self,
-        *,
-        identity: str,
-        oidc_issuer: str,
-        use_staging: bool = False,
+        self, *, identity: str, oidc_issuer: str, use_staging: bool = False
     ):
         """Initializes Sigstore verifiers.
 
@@ -232,9 +229,9 @@ class SigstoreVerifier(signing.Verifier):
               is supposed to be set to True only when testing. Default is False.
         """
         if use_staging:
-          self._verifier = sigstore_verifier.Verifier.staging()
+            self._verifier = sigstore_verifier.Verifier.staging()
         else:
-          self._verifier = sigstore_verifier.Verifier.production()
+            self._verifier = sigstore_verifier.Verifier.production()
 
         # TODO: https://github.com/sigstore/model-transparency/issues/271 -
         # Support additional verification policies
@@ -303,7 +300,7 @@ class SigstoreArtifactVerifier(SigstoreVerifier):
         self._verifier.verify_artifact(
             input_=self._expected_digest,
             bundle=signature.bundle,
-            policy=self._policy
+            policy=self._policy,
         )
 
         digest = hashing.Digest("sha256", self._expected_digest)
@@ -335,8 +332,7 @@ class SigstoreDSSEVerifier(SigstoreVerifier):
             raise TypeError("Only `SigstoreSignature` signatures are supported")
 
         payload_type, payload = self._verifier.verify_dsse(
-            bundle=signature.bundle,
-            policy=self._policy
+            bundle=signature.bundle, policy=self._policy
         )
 
         if payload_type != _IN_TOTO_JSON_PAYLOAD_TYPE:

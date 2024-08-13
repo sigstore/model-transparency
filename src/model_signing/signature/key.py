@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""This package provides the functionality to sign and verify models
-with keys."""
+"""Functionality to sign and verify models with keys."""
+
 from typing import Optional
 
 from cryptography.hazmat.primitives import serialization
@@ -32,8 +32,8 @@ from model_signing.signature.verifying import Verifier
 
 
 def load_ec_private_key(
-        path: str, password: Optional[str] = None
-        ) -> ec.EllipticCurvePrivateKey:
+    path: str, password: Optional[str] = None
+) -> ec.EllipticCurvePrivateKey:
     private_key: ec.EllipticCurvePrivateKey
     with open(path, "rb") as fd:
         serialized_key = fd.read()
@@ -63,16 +63,15 @@ class ECKeySigner(Signer):
             signatures=[intoto_pb.Signature(sig=sig, keyid=None)],
         )
         bdl = bundle_pb.Bundle(
-            media_type='application/vnd.dev.sigstore.bundle.v0.3+json',
+            media_type="application/vnd.dev.sigstore.bundle.v0.3+json",
             verification_material=bundle_pb.VerificationMaterial(
                 public_key=common_pb.PublicKey(
                     raw_bytes=self._private_key.public_key().public_bytes(
                         encoding=serialization.Encoding.PEM,
                         format=serialization.PublicFormat.SubjectPublicKeyInfo,
                     ),
-                    key_details=common_pb.
-                    PublicKeyDetails.PKIX_ECDSA_P256_SHA_256,
-                ),
+                    key_details=common_pb.PublicKeyDetails.PKIX_ECDSA_P256_SHA_256,
+                )
             ),
             dsse_envelope=env,
         )
@@ -88,7 +87,7 @@ class ECKeyVerifier(Verifier):
 
     @classmethod
     def from_path(cls, key_path: str):
-        with open(key_path, 'rb') as fd:
+        with open(key_path, "rb") as fd:
             serialized_key = fd.read()
         public_key = serialization.load_pem_public_key(serialized_key)
         return cls(public_key)
@@ -96,14 +95,14 @@ class ECKeyVerifier(Verifier):
     def verify(self, bundle: bundle_pb.Bundle) -> None:
         statement = json_format.Parse(
             bundle.dsse_envelope.payload,
-            statement_pb.Statement()  # pylint: disable=no-member
+            statement_pb.Statement(),  # pylint: disable=no-member
         )
         pae = encoding.pae(statement)
         try:
             self._public_key.verify(
-                bundle.dsse_envelope.signatures[0].sig,
-                pae, ec.ECDSA(SHA256()))
+                bundle.dsse_envelope.signatures[0].sig, pae, ec.ECDSA(SHA256())
+            )
         except Exception as e:
             raise VerificationError(
-                'signature verification failed ' + str(e)
+                "signature verification failed " + str(e)
             ) from e
