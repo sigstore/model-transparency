@@ -13,9 +13,9 @@
 # limitations under the License.
 """This package provides the functionality to sign and verify models
 with sigstore."""
+import logging as log
 from typing import Optional
 
-from absl import logging as log
 from in_toto_attestation.v1 import statement
 from sigstore import dsse
 from sigstore import models as sig_models
