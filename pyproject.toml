@@ -55,6 +55,11 @@ path = "src/model_signing/__init__.py"
 [tool.hatch.build]
 packages = ["src/model_signing"]
 
+[tool.hatch.envs.hatch-test]
+installer = "pip"
+parallel = true
+randomize = true
+
 [tool.ruff]
 line-length = 80
 target-version = "py311"

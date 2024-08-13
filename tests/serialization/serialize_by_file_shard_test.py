@@ -24,7 +24,7 @@ import pathlib
 
 import pytest
 
-from model_signing import test_support
+from tests import test_support
 from model_signing.hashing import file
 from model_signing.hashing import memory
 from model_signing.manifest import manifest

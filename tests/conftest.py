@@ -19,7 +19,7 @@ import pathlib
 
 import pytest
 
-from model_signing import test_support
+from tests import test_support
 
 
 def pytest_addoption(parser):

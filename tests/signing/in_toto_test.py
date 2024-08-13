@@ -26,7 +26,7 @@ from google.protobuf import json_format
 from in_toto_attestation.v1 import statement_pb2
 import pytest
 
-from model_signing import test_support
+from tests import test_support
 from model_signing.hashing import file
 from model_signing.hashing import hashing
 from model_signing.hashing import memory
