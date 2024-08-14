@@ -77,6 +77,18 @@ python = "3.11"
 [tool.hatch.envs.type.scripts]
 check = "pytype -k -j auto src tests"
 
+[tool.hatch.envs.docs]
+description = """Custom environment for pdoc.
+Use `hatch run docs:serve` to view documentation.
+"""
+extra-dependencies = [
+  "pdoc"
+]
+
+[tool.hatch.envs.docs.scripts]
+serve = "pdoc src/model_signing --docformat google --no-show-source"
+build = "serve --output-directory html"
+
 # Add support for testing via the old `pytest .` way, too.
 [tool.pytest.ini_options]
 pythonpath = "src"

@@ -1,0 +1,43 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    # TODO: determine if we only want to build for tags.
+    # tags:
+    #   - '*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Set up Hatch
+        uses: pypa/hatch@a3c83ab3d481fbc2dc91dd0088628817488dd1d5
+      - name: build docs
+        run: hatch run docs:build
+      - name: upload docs artifact
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        with:
+          path: ./html/
+
+  # This is copied from the official `pdoc` example:
+  #   https://github.com/mitmproxy/pdoc/blob/main/.github/workflows/docs.yml
+  #
+  # Deploy the artifact to GitHub pages.
+  # This is a separate job so that only actions/deploy-pages has the necessary permissions.
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write # to deploy to Pages
+      id-token: write # to verify the deployment originates from an appropriate source
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
