@@ -1,4 +1,6 @@
-__pycache__/
-.venv/
 .pytest_cache/
-test_material/
+.pytype/
+.ruff_cache/
+.venv/
+__pycache__/
+dist/
