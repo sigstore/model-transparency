@@ -18,7 +18,7 @@
 # libraries only if we want to train a PyTorch model.
 torch = None
 nn = None
-F = None
+functional = None
 optim = None
 torchvision = None
 transforms = None
@@ -32,13 +32,13 @@ def pretraining():
     """
     global torch
     global nn
-    global F
+    global functional
     global optim
     global torchvision
     global transforms
     import torch
     import torch.nn as nn
-    import torch.nn.functional as F
+    import torch.nn.functional as functional
     import torch.optim as optim
     import torchvision
     import torchvision.transforms as transforms
@@ -55,24 +55,28 @@ def load_data():
 
     Returns iterators to train and test sets.
     """
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
+    transform = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+        ]
+    )
 
     batch_size = 4
     num_workers = 2
 
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                            download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
-                                              shuffle=True,
-                                              num_workers=num_workers)
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                           download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
-                                             shuffle=True,
-                                             num_workers=num_workers)
+    trainset = torchvision.datasets.CIFAR10(
+        root="./data", train=True, download=True, transform=transform
+    )
+    trainloader = torch.utils.data.DataLoader(
+        trainset, batch_size=batch_size, shuffle=True, num_workers=num_workers
+    )
+    testset = torchvision.datasets.CIFAR10(
+        root="./data", train=False, download=True, transform=transform
+    )
+    testloader = torch.utils.data.DataLoader(
+        testset, batch_size=batch_size, shuffle=True, num_workers=num_workers
+    )
 
     return trainloader, testloader
 
@@ -85,6 +89,7 @@ def create_model():
 
     Returns the model.
     """
+
     # Train a model based on tutorial from
     # https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html.
     # We inline the class to be able to use lazy loading of PyTorch modules.
@@ -99,11 +104,11 @@ def create_model():
             self.fc3 = nn.Linear(84, 10)
 
         def forward(self, x):
-            x = self.pool(F.relu(self.conv1(x)))
-            x = self.pool(F.relu(self.conv2(x)))
+            x = self.pool(functional.relu(self.conv1(x)))
+            x = self.pool(functional.relu(self.conv2(x)))
             x = torch.flatten(x, 1)
-            x = F.relu(self.fc1(x))
-            x = F.relu(self.fc2(x))
+            x = functional.relu(self.fc1(x))
+            x = functional.relu(self.fc2(x))
             x = self.fc3(x)
             return x
 
@@ -133,8 +138,10 @@ def train_model(model, loss, optimizer, train):
             optimizer.step()
             running_loss += loss_score.item()
             if i % batch_size == 0:
-                print(f'[{epoch}, {i:5d}], '
-                      f'loss: {running_loss / batch_size :.3f}')
+                print(
+                    f"[{epoch}, {i:5d}], "
+                    f"loss: {running_loss / batch_size :.3f}"
+                )
                 running_loss = 0.0
 
 
@@ -149,15 +156,15 @@ def score_model(model, test):
             _, predicted = torch.max(outputs.data, 1)
             total += y.size(0)
             correct += (predicted == y).sum().item()
-    print(f'Test accuracy: {correct / total}')
+    print(f"Test accuracy: {correct / total}")
 
 
 def supported_models():
     """Returns supported model types paired with method to save them."""
     return {
-        'pytorch_model.pth': lambda m, p: torch.save(m.state_dict(), p),
-        'pytorch_full_model.pth': lambda m, p: torch.save(m, p),
-        'pytorch_jitted_model.pt': lambda m, p: torch.jit.script(m).save(p),
+        "pytorch_model.pth": lambda m, p: torch.save(m.state_dict(), p),
+        "pytorch_full_model.pth": lambda m, p: torch.save(m, p),
+        "pytorch_jitted_model.pt": lambda m, p: torch.jit.script(m).save(p),
     }
 
 
@@ -168,8 +175,8 @@ def save_model(model, model_format):
     """
     saver = supported_models().get(model_format, None)
     if not saver:
-        raise ValueError('Requested a model format not supported by PyTorch')
-    saver(model, './' + model_format)
+        raise ValueError("Requested a model format not supported by PyTorch")
+    saver(model, "./" + model_format)
 
 
 def model_pipeline(model_format):

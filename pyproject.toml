@@ -1,0 +1,110 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "model-signing"
+dynamic = ["version"]
+description = "A tool for signing and verifying ML models"
+readme = "README.model_signing.md"  # TODO: Merge READMEs and update
+license = { file = "LICENSE" }
+authors = [
+  { name = "Sigstore Authors", email = "sigstore-dev@googlegroups.com" }
+]
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Topic :: Security",
+  "Topic :: Security :: Cryptography",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Typing :: Typed",
+]
+dependencies = [
+  "cryptography",  # TODO: make pki a feature
+  "in-toto-attestation",
+  "sigstore",
+  "typing_extensions",
+]
+requires-python = ">=3.11"
+keywords = [
+  "machine learning",
+  "artificial intelligence",
+  "model signing",
+  "AI security",
+  "ML security",
+  "AI supply chain security",
+  "ML supply chain security",
+]
+
+[project.urls]
+Homepage = "https://pypi.org/project/model-signing/"
+Changelog = "https://github.com/sigstore/model-transparency/blob/main/CHANGELOG.md"
+# TODO: https://github.com/sigstore/model-transparency/pull/279 - Documentation = "...."
+Source = "https://github.com/sigstore/model-transparency"
+Issues = "https://github.com/sigstore/model-transparency/issues"
+PyPI = "https://pypi.org/project/model-signing/"
+
+[tool.hatch.version]
+path = "src/model_signing/__init__.py"
+
+[tool.hatch.build]
+packages = ["src/model_signing"]
+
+[tool.hatch.envs.hatch-test]
+installer = "pip"
+parallel = true
+randomize = true
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.11", "3.12"]
+
+[tool.hatch.envs.type]
+description = """Custom environment for pytype.
+Use `hatch run type:check` to check types.
+"""
+extra-dependencies = [
+  "pytest",
+  "pytype",
+]
+installer = "pip"
+python = "3.11"
+
+[tool.hatch.envs.type.scripts]
+check = "pytype -k -j auto src tests"
+
+# Add support for testing via the old `pytest .` way, too.
+[tool.pytest.ini_options]
+pythonpath = "src"
+
+[tool.ruff]
+line-length = 80
+
+[tool.ruff.format]
+docstring-code-format = true
+line-ending = "lf"
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint]
+select = ["B", "D", "E", "F", "I", "N", "PLC", "PLE", "PT", "SIM", "W"]
+# TODO: selectively enable back most of these in subsequent PRs
+ignore = ["B024", "D100", "D101", "D102", "D103", "D104", "D105", "D107", "D417"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+
+[tool.ruff.lint.isort]
+force-single-line = true
+force-sort-within-sections = true
+lines-after-imports = 2
+single-line-exclusions = ["collections.abc", "typing"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

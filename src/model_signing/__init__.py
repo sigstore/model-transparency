@@ -12,16 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Dependency Review'
-on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize]
-
-permissions:
-  contents: read
-
-jobs:
-  dependency-review:
-    name: License and Vulnerability Scan
-    uses: sigstore/community/.github/workflows/reusable-dependency-review.yml@8cc8d600fbf3012b9d9d84a499423fa96afa3765
+__version__ = "0.0.1-alpha"

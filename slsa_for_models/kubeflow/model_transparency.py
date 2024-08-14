@@ -1,10 +1,10 @@
-import kfp_tekton
-from kfp import dsl, components
-from kubernetes.client.models import (
-    V1PersistentVolumeClaimSpec,
-    V1ResourceRequirements,
-)
 import json
+
+from kfp import components
+from kfp import dsl
+import kfp_tekton
+from kubernetes.client.models import V1PersistentVolumeClaimSpec
+from kubernetes.client.models import V1ResourceRequirements
 
 
 def git_clone(url: str, target: str):
@@ -36,7 +36,7 @@ def git_clone(url: str, target: str):
     )(url=url, target=target)
 
 
-def build_model(requirements: str, source: str, model: str, workDir: str):
+def build_model(requirements: str, source: str, model: str, work_dir: str):
     return components.load_component_from_text(
         """
     name: build-model
@@ -65,10 +65,10 @@ def build_model(requirements: str, source: str, model: str, workDir: str):
           - -d
           - {outputPath: digest}
     """
-    )(requirements=requirements, source=source, model=model, work=workDir)
+    )(requirements=requirements, source=source, model=model, work=work_dir)
 
 
-def upload_model(location: str, source: str, workDir: str):
+def upload_model(location: str, source: str, work_dir: str):
     return components.load_component_from_text(
         """
     name: upload-model
@@ -97,7 +97,7 @@ def upload_model(location: str, source: str, workDir: str):
           - -l
           - {inputValue: location}
     """
-    )(location=location, source=source, work=workDir)
+    )(location=location, source=source, work=work_dir)
 
 
 @dsl.pipeline(
@@ -110,7 +110,6 @@ def clone_build_push(
     model: str = "pytorch_model.pth",
 ):
     """A three-step pipeline with the first two steps running in parallel."""
-
     source_code = "$(workspaces.shared-ws.path)/source"
     relative_main_path = "slsa_for_models/main.py"
     relative_requirements = "slsa_for_models/install/requirements_Linux.txt"
@@ -122,7 +121,7 @@ def clone_build_push(
 
     build_task = build_model(
         requirements=relative_requirements,
-        workDir=source_code,
+        work_dir=source_code,
         source=relative_main_path,
         model=model,
     )

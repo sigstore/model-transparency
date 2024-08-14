@@ -1,3 +1,17 @@
+# Copyright 2024 The Sigstore Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 name: Lint
 
 on:
@@ -16,8 +30,9 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - name: Detect empty lines at end of file and trailing whitespace
         run: |
-          set -euxo pipefail  # No -x here!
+          set -euxo pipefail
           failed=0
+
           # First, check for empty files at end
           for file in $(for f in $(git ls-files --eol | grep 'i/[cr]*lf' | awk '{print $4}'); do egrep -l "^$" $file; done); do
             line=$(wc -l "$file" | cut -d ' ' -f1)
@@ -54,19 +69,10 @@ jobs:
     steps:
       - name: Check out source repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - name: Set up Python environment
-        uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
-        with:
-          python-version: "3.11"
-      - name: run pytype
-        run: |
-          python -m venv venv
-          .github/workflows/scripts/venv_activate.sh
-          pip install -r model_signing/install/requirements_Linux.txt
-          pip install -r model_signing/install/requirements_test_Linux.txt
-          pip install -r model_signing/install/requirements_dev_Linux.txt
-          # TODO: https://github.com/sigstore/model-transparency/issues/231 - Support all repo
-          pytype --keep-going model_signing/{conftest.py,hashing,manifest,serialization,signature,signing}
+      - name: Set up Hatch
+        uses: pypa/hatch@a3c83ab3d481fbc2dc91dd0088628817488dd1d5
+      - name: Run type check
+        run: hatch run type:check
 
   ruff-lint:
     runs-on: ubuntu-latest
@@ -74,16 +80,7 @@ jobs:
     steps:
       - name: Check out source repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - name: Set up Python environment
-        uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
-        with:
-          python-version: "3.11"
-      - name: run ruff
-        run: |
-          python -m venv venv
-          .github/workflows/scripts/venv_activate.sh
-          pip install -r model_signing/install/requirements_Linux.txt
-          pip install -r model_signing/install/requirements_test_Linux.txt
-          pip install -r model_signing/install/requirements_dev_Linux.txt
-          # TODO: https://github.com/sigstore/model-transparency/issues/231 - Support all repo
-          ruff check model_signing/{conftest.py,hashing,manifest,serialization,signature,signing}
+      - name: Set up Hatch
+        uses: pypa/hatch@a3c83ab3d481fbc2dc91dd0088628817488dd1d5
+      - name: Run python linting
+        run: hatch fmt --check

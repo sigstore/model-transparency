@@ -14,16 +14,19 @@
 
 import argparse
 
-import tensorflow_cifar10 as tf
 import pytorch_cifar10 as pt
+import tensorflow_cifar10 as tf
 
 
-def readOptions():
-    parser = argparse.ArgumentParser('Train CIFAR10 models with TF/PT')
+def read_options():
+    parser = argparse.ArgumentParser("Train CIFAR10 models with TF/PT")
     model_formats = list(tf.supported_models().keys())
     model_formats += list(pt.supported_models().keys())
-    parser.add_argument('model', choices=model_formats,
-                        help='Model to generate (name implies framework)')
+    parser.add_argument(
+        "model",
+        choices=model_formats,
+        help="Model to generate (name implies framework)",
+    )
     return parser.parse_args()
 
 
@@ -42,6 +45,6 @@ def main(args):
     raise ValueError("Model format not supported")
 
 
-if __name__ == '__main__':
-    args = readOptions()
+if __name__ == "__main__":
+    args = read_options()
     main(args)

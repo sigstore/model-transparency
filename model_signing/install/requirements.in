@@ -1,9 +1,0 @@
-absl-py
-betterproto
-cryptography
-in-toto-attestation
-pyOpenSSL
-protobuf
-psutil
-sigstore
-sigstore-protobuf-specs
