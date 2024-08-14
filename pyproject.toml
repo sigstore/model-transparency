@@ -60,6 +60,20 @@ installer = "pip"
 parallel = true
 randomize = true
 
+[tool.hatch.envs.type]
+description = """Custom environment for pytype.
+Use `hatch run type:check` to check types.
+"""
+extra-dependencies = [
+  "pytest",
+  "pytype",
+]
+installer = "pip"
+python = "3.11"
+
+[tool.hatch.envs.type.scripts]
+check = "pytype -k -j auto src tests"
+
 [tool.ruff]
 line-length = 80
 
