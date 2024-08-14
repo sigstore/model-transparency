@@ -171,14 +171,14 @@ class PKIVerifier(Verifier):
         )
         if not usage.value.digital_signature:
             raise VerificationError(
-                ("the certificate is not valid for digital" " signature usage")
+                ("the certificate is not valid for digital signature usage")
             )
         ext_usage = signing_cert_crypto.extensions.get_extension_for_class(
             x509.ExtendedKeyUsage
         )
         if crypto_oid.ExtendedKeyUsageOID.CODE_SIGNING not in ext_usage.value:
             raise VerificationError(
-                ("the certificate is not valid for code" " signing usage")
+                ("the certificate is not valid for code signing usage")
             )
 
         # Verify the contents with a key verifier

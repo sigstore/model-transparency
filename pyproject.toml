@@ -3,7 +3,7 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "model_signing"
+name = "model-signing"
 dynamic = ["version"]
 description = "A tool for signing and verifying ML models"
 readme = "README.model_signing.md"  # TODO: Merge READMEs and update
@@ -76,6 +76,10 @@ python = "3.11"
 
 [tool.hatch.envs.type.scripts]
 check = "pytype -k -j auto src tests"
+
+# Add support for testing via the old `pytest .` way, too.
+[tool.pytest.ini_options]
+pythonpath = "src"
 
 [tool.ruff]
 line-length = 80
