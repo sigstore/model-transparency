@@ -44,7 +44,7 @@ keywords = [
 [project.urls]
 Homepage = "https://pypi.org/project/model-signing/"
 Changelog = "https://github.com/sigstore/model-transparency/blob/main/CHANGELOG.md"
-# TODO: https://github.com/sigstore/model-transparency/pull/279 - Documentation = "...."
+Documentation = "https://sigstore.github.io/model-transparency/model_signing.html"
 Source = "https://github.com/sigstore/model-transparency"
 Issues = "https://github.com/sigstore/model-transparency/issues"
 PyPI = "https://pypi.org/project/model-signing/"
