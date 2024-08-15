@@ -17,7 +17,7 @@
 NOTE: This test uses a goldens setup to compare expected results with data from
 files. If the golden tests are failing, regenerate the golden files with
 
-  pytest model_signing/ --update_goldens
+  hatch test --update_goldens
 """
 
 import pytest

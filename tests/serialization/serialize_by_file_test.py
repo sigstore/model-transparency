@@ -17,7 +17,7 @@
 NOTE: This test uses a goldens setup to compute digest of several test
 models. If the golden tests are failing, regenerate the golden files with
 
-  pytest model_signing/ --update_goldens
+  hatch test --update_goldens
 """
 
 import os
