@@ -337,8 +337,8 @@ class SigstoreDSSEVerifier(SigstoreVerifier):
 
         if payload_type != _IN_TOTO_JSON_PAYLOAD_TYPE:
             raise ValueError(
-                f"Only {_IN_TOTO_JSON_PAYLOAD_TYPE} DSSE payload acceped, "
-                f"got {payload_type}"
+                f"Expected DSSE payload {_IN_TOTO_JSON_PAYLOAD_TYPE}, "
+                f"but got {payload_type}"
             )
 
         payload = json.loads(payload)

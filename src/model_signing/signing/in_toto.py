@@ -75,7 +75,7 @@ class IntotoPayload(signing.SigningPayload):
             if predicate_type == subcls.predicate_type:
                 return subcls.manifest_from_payload(payload)
 
-        raise ValueError("Unknown in-toto predicate type {predicate_type}")
+        raise ValueError(f"Unknown in-toto predicate type {predicate_type}")
 
 
 class SingleDigestIntotoPayload(IntotoPayload):
@@ -182,10 +182,10 @@ class SingleDigestIntotoPayload(IntotoPayload):
         predicate = payload["predicate"]
 
         if len(subjects) != 1:
-            raise ValueError("Expected one single subject, got {subjects}")
+            raise ValueError(f"Expected one single subject, got {subjects}")
 
         algorithm = predicate["actual_hash_algorithm"]
-        digest_value = subjects[0]["digest"]["sha256"]
+        digest_value = bytes.fromhex(subjects[0]["digest"]["sha256"])
         digest = hashing.Digest(algorithm, digest_value)
         return manifest_module.DigestManifest(digest)
 
@@ -343,7 +343,7 @@ class DigestOfDigestsIntotoPayload(IntotoPayload):
         predicate = payload["predicate"]
 
         if len(subjects) != 1:
-            raise ValueError("Expected one single subject, got {subjects}")
+            raise ValueError(f"Expected one single subject, got {subjects}")
 
         hasher = memory.SHA256()
         items = []
@@ -360,7 +360,7 @@ class DigestOfDigestsIntotoPayload(IntotoPayload):
         obtained_digest = hasher.compute().digest_hex
         if obtained_digest != expected_digest:
             raise ValueError(
-                f"Verification failed. "
+                "Verification failed. "
                 f"Expected {expected_digest}, got {obtained_digest}"
             )
 
@@ -486,7 +486,7 @@ class DigestOfShardDigestsIntotoPayload(IntotoPayload):
         predicate = payload["predicate"]
 
         if len(subjects) != 1:
-            raise ValueError("Expected one single subject, got {subjects}")
+            raise ValueError(f"Expected one single subject, got {subjects}")
 
         hasher = memory.SHA256()
         items = []
@@ -505,7 +505,7 @@ class DigestOfShardDigestsIntotoPayload(IntotoPayload):
         obtained_digest = hasher.compute().digest_hex
         if obtained_digest != expected_digest:
             raise ValueError(
-                f"Verification failed. "
+                "Verification failed. "
                 f"Expected {expected_digest}, got {obtained_digest}"
             )
 
