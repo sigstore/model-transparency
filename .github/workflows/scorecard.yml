@@ -34,6 +34,7 @@ permissions: read-all
 jobs:
   analysis:
     name: Scorecard analysis
+    if: github.repository == 'sigstore/model-transparency'  # Don't do this in forks
     runs-on: ubuntu-latest
     permissions:
       # Needed to upload the results to code-scanning dashboard.
