@@ -39,6 +39,6 @@ jobs:
     steps:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
     - name: Set up Hatch
-      uses: pypa/hatch@a3c83ab3d481fbc2dc91dd0088628817488dd1d5
+      uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
     - name: Run unit tests (with coverage report at the end)
       run: hatch test -c -py ${{ matrix.python-version }}
