@@ -41,4 +41,41 @@ jobs:
     - name: Set up Hatch
       uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
     - name: Run unit tests (with coverage report at the end)
-      run: hatch test -c -py ${{ matrix.python-version }}
+      run: |
+        set -euxo pipefail
+        if [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.python-version }}" == "3.11" ]]; then
+          hatch test -c -py ${{ matrix.python-version }} | tee > cov.txt
+        else
+          hatch test -c -py ${{ matrix.python-version }}
+        fi
+
+    - name: Highlight missing lines
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      run: |
+        set -euxo pipefail
+        awk '/Name/{flag=1; next} /TOTAL/{flag=0; next} flag && !/^[-]+$/' cov.txt | while IFS= read -r line; do
+          # Extract file name and missing ranges
+          file_name=$(echo "$line" | awk '{print $1}')
+          missing_lines=$(echo "$line" | awk '{for (i=5; i<=NF; i++) printf $i " "; print ""}')
+          # Process each range
+          for range in $missing_lines; do
+            # Trim leading and trailing whitespace
+            range=$(echo "$range" | xargs)
+            line_start=""
+            line_end=""
+            message=""
+            if [[ "$range" == *"-"* ]]; then
+              # Split range into start and end
+              line_start=$(echo "$range" | cut -d'-' -f1)
+              line_end=$(echo "$range" | cut -d'-' -f2)
+              message="The following lines were not covered in your tests: $line_start to $line_end"
+            else
+              # Single line number
+              line_start=$range
+              line_end=$range
+              message="The following line was not covered in your tests: $line_start"
+            fi
+
+            echo "::warning file=$file_name,line=$line_start,endLine=$line_end::$message"
+          done
+        done
