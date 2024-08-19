@@ -63,6 +63,18 @@ randomize = true
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.11", "3.12"]
 
+[tool.hatch.envs.docs]
+description = """Custom environment for pdoc.
+Use `hatch run docs:serve` to view documentation.
+"""
+extra-dependencies = [
+  "pdoc"
+]
+
+[tool.hatch.envs.docs.scripts]
+serve = "pdoc src/model_signing --docformat google --no-show-source"
+build = "serve --output-directory html"
+
 [tool.hatch.envs.type]
 description = """Custom environment for pytype.
 Use `hatch run type:check` to check types.
@@ -77,17 +89,15 @@ python = "3.11"
 [tool.hatch.envs.type.scripts]
 check = "pytype -k -j auto src tests"
 
-[tool.hatch.envs.docs]
-description = """Custom environment for pdoc.
-Use `hatch run docs:serve` to view documentation.
-"""
-extra-dependencies = [
-  "pdoc"
+[tool.coverage.report]
+exclude_also = [
+  "pass",
+  "return NotImplemented",
 ]
-
-[tool.hatch.envs.docs.scripts]
-serve = "pdoc src/model_signing --docformat google --no-show-source"
-build = "serve --output-directory html"
+omit = ["tests/*"]
+show_missing = true
+skip_covered = true
+skip_empty = true
 
 # Add support for testing via the old `pytest .` way, too.
 [tool.pytest.ini_options]
