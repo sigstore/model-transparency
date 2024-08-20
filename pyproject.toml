@@ -112,9 +112,13 @@ line-ending = "lf"
 skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
-select = ["B", "D", "E", "F", "I", "N", "PLC", "PLE", "PT", "SIM", "W"]
-# TODO: selectively enable back most of these in subsequent PRs
-ignore = ["B024", "D100", "D101", "D102", "D103", "D104", "D105", "D107", "D417"]
+select = ["B", "D", "E", "F", "I", "N", "PLC", "PLE", "PT", "SIM", "UP", "W"]
+ignore = [
+  # TODO: selectively enable back most of these in subsequent PRs
+  "B024", "D100", "D101", "D102", "D103", "D104", "D105", "D107", "D417",
+  # Unnecessary arguments can help with clarity
+  "UP012", "UP015"
+]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
