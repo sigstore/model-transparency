@@ -123,12 +123,28 @@ def mocked_sigstore_models():
 
 @pytest.fixture
 def mocked_sigstore_signer():
-    with mock.patch.object(
-        sigstore.sigstore_signer, "Signer", autospec=True
-    ) as mocked_signer:
-        mocked_signer.return_value.sign_artifact = MockedSigstoreBundle
-        mocked_signer.return_value.sign_dsse = MockedSigstoreBundle
-        yield mocked_signer
+    with mock.patch.multiple(
+        sigstore.sigstore_signer,
+        Signer=mock.DEFAULT,
+        SigningContext=mock.DEFAULT,
+        autospec=True,
+    ) as mocked_objects:
+        signer = mock.MagicMock()
+        signer.sign_artifact = MockedSigstoreBundle
+        signer.sign_dsse = MockedSigstoreBundle
+        signer.__enter__.return_value = signer
+
+        mocked_signer = mocked_objects["Signer"]
+        mocked_signer.return_value = signer
+
+        mocked_context = mock.MagicMock()
+        mocked_context.signer.return_value = signer
+
+        mocked_signing_context = mocked_objects["SigningContext"]
+        mocked_signing_context.staging.return_value = mocked_context
+        mocked_signing_context.production.return_value = mocked_context
+
+        yield mocked_objects
 
 
 @pytest.fixture
