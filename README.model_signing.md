@@ -21,62 +21,108 @@ monitor](https://github.com/sigstore/rekor-monitor) that runs on GitHub Actions.
 
 ![Signing models with Sigstore](docs/images/sigstore-model-diagram.png)
 
-## Usage
+## Model Signing CLI
 
-You will need to install a few prerequisites to be able to run all of the
-examples below:
+The `sign.py` and `verify.py` scripts aim to provide the necessary functionality
+to sign and verify ML models. For signing and verification the following methods
+are supported:
 
-```bash
-sudo apt install git git-lfs python3-venv python3-pip unzip
-git lfs install
-```
+* Bring your own key pair
+* Bring your own PKI
+* Skip signing (only hash and create a bundle)
 
-After this, you can clone the repository, create a Python virtual environment
-and install the dependencies needed by the project:
+The signing part creates a [sigstore bundle](https://github.com/sigstore/protobuf-specs/blob/main/protos/sigstore_bundle.proto)
+protobuf that is stored as in JSON format. The bundle contains the verification
+material necessary to check the payload and a payload as a [DSSE envelope](https://github.com/sigstore/protobuf-specs/blob/main/protos/envelope.proto).
+Further the DSSE envelope contains an in-toto statment and the signature over
+that statement. The signature format and how the the signature is computed can
+be seen [here](https://github.com/secure-systems-lab/dsse/blob/v1.0.0/protocol.md).
 
-```bash
-git clone git@github.com:sigstore/model-transparency.git
-cd model-transparency/model_signing
-python3 -m venv test_env
-source test_env/bin/activate
-os=Linux # Supported: Linux, Windows, Darwin.
-python3 -m pip install --require-hashes -r "install/requirements_${os}".txt
-```
+Finally, the statement itself contains subjects which are a list of (file path,
+digest) pairs a predicate type set to `model_signing/v1/model`and a dictionary
+f predicates. The idea is to use the predicates to store (and therefor sign) model
+card information in the future.
 
-After this point, you can use the project to sign and verify models and
-checkpoints. A help message with all arguments can be obtained by passing `-h`
-argument, either to the main driver or to the two subcommands:
+The verification part reads the sigstore bundle file and firstly verifies that the
+signature is valid and secondly compute the model's file hashes again to compare
+against the signed ones.
 
-```bash
-python3 main.py -h
-python3 main.py sign -h
-python3 main.py verify -h
-```
+**Note**: The signature is stored as `./model.sig` by default and can be adjusted
+by setting the `--sig_out` flag.
 
-Signing a model requires passing an argument for the path to the model. This can
-be a path to a file or a directory (for large models, or model formats such as
-`SavedModel` which are stored as a directory of related files):
+### Usage
 
-```bash
-path=path/to/model
-python3 main.py sign --path "${path}"
-```
+There are two scripts one can be used to create and sign a bundle and the other to
+verify a bundle. Furthermore, the functionality can be used directly from other
+Python tools. The `sign.py` and `verify.py` scripts can be used as canonical
+how-to examples.
 
-The sign process will start an OIDC workflow to generate a short lived
-certificate based on an identity provider. This will be relevant when verifying
-the signature, as shown below.
-
-**Note**: The signature is stored as `<file>.sig` for a model serialized as a
-single file, and `<dir>/model.sig` for a model in a folder-based format.
-
-For verification, we need to pass both the path to the model and identity
-related arguments:
+The easiest way to use the scripts directly is from a virtual environment:
 
 ```bash
-python3 main.py verify --path "${path}" \
-    --identity-provider https://accounts.google.com \
-    --identity myemail@gmail.com
+$ python3 -m venv .venv
+$ source .venv/bin/activate
+(.venv) $ pip install -r install/requirements.in
 ```
+
+## Sign
+
+```bash
+(.venv) $ python3 sign.py --model_path ${MODEL_PATH} --sig_out ${OUTPUT_PATH} --method {private-key, pki} {additional parameters depending on method}
+```
+
+## Verify
+
+```bash
+(.venv) $ python3 verify.py --model_path ${MODEL_PATH} --method {private-key, pki} {additional parameters depending on method}
+```
+
+### Examples
+
+#### Bring Your Own Key
+
+```bash
+$ MODEL_PATH='/path/to/your/model'
+$ openssl ecparam -name secp256k1 -genkey -noout -out ec-secp256k1-priv-key.pem
+$ openssl ec -in ec-secp256k1-priv-key.pem -pubout > ec-secp256k1-pub-key.pem
+$ source .venv/bin/activate
+# SIGN
+(.venv) $ python3 sign_model.py --model_path ${MODEL_PATH} --method private-key --private-key ec-secp256k1-priv-key.pem
+...
+#VERIFY
+(.venv) $ python3 verify_model.py --model_path ${MODEL_PATH} --method private-key --public-key ec-secp256k1-pub-key.pem
+...
+```
+
+#### Bring your own PKI
+In order to sign a model with your own PKI you need to create the following information:
+
+    - The signing certificate
+    - The elliptic curve private key matching the signing certificate's public key
+    - Optionally, the certificate chain used for verification.
+
+
+```bash
+$ MODEL_PATH='/path/to/your/model'
+$ CERT_CHAIN='/path/to/cert_chain'
+$ SIGNING_CERT='/path/to/signing_certificate'
+$ PRIVATE_KEY='/path/to/private_key'
+# SIGN
+(.venv) $ python3 sign_model.py --model_path ${MODEL_PATH} \
+    --method pki \
+    --private-key ${PRIVATE_KEY} \
+    --signing_cert ${SIGNING_CERT} \
+    [--cert_chain ${CERT_CHAIN}]
+...
+#VERIFY
+$ ROOT_CERTS='/path/to/root/certs'
+(.venv) $ python3 verify_model.py --model_path ${MODEL_PATH} \
+     --method pki \
+     --root_certs ${ROOT_CERTS}
+...
+```
+
+## Sigstore ID providers
 
 For developers signing models, there are three identity providers that can
 be used at the moment:
