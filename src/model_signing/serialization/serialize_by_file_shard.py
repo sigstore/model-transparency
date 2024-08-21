@@ -69,8 +69,7 @@ def _endpoints(step: int, end: int) -> Iterable[int]:
     Yields:
         Values in the range, from `step` and up to `end`.
     """
-    for value in range(step, end, step):
-        yield value
+    yield from range(step, end, step)
     yield end
 
 

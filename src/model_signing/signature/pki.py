@@ -13,7 +13,7 @@
 # limitations under the License.
 """Functionality to sign and verify models with certificates."""
 
-from typing import Optional, Self
+from typing import Self
 
 import certifi
 from cryptography import x509
@@ -67,10 +67,8 @@ class PKISigner(Signer):
         cert_pub_key = self._signing_cert.public_key()
         if pub_key != cert_pub_key:
             raise ValueError(
-                (
-                    "the private key's public key does not match the"
-                    " signing certificates public key"
-                )
+                "the private key's public key does not match the"
+                " signing certificates public key"
             )
         self._cert_chain = cert_chain
 
@@ -129,9 +127,7 @@ class PKIVerifier(Verifier):
             self._store.add_cert(ssl_crypto.X509.from_cryptography(c))
 
     @classmethod
-    def from_paths(
-        cls, root_cert_paths: Optional[list[str]] | None = None
-    ) -> Self:
+    def from_paths(cls, root_cert_paths: list[str] | None = None) -> Self:
         crypto_trust_roots: list[x509.Certificate] = []
         if root_cert_paths:
             crypto_trust_roots = _load_multiple_certs(root_cert_paths)
@@ -171,14 +167,14 @@ class PKIVerifier(Verifier):
         )
         if not usage.value.digital_signature:
             raise VerificationError(
-                ("the certificate is not valid for digital signature usage")
+                "the certificate is not valid for digital signature usage"
             )
         ext_usage = signing_cert_crypto.extensions.get_extension_for_class(
             x509.ExtendedKeyUsage
         )
         if crypto_oid.ExtendedKeyUsageOID.CODE_SIGNING not in ext_usage.value:
             raise VerificationError(
-                ("the certificate is not valid for code signing usage")
+                "the certificate is not valid for code signing usage"
             )
 
         # Verify the contents with a key verifier

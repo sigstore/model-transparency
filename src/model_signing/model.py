@@ -13,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections.abc import Callable, Iterable
 import pathlib
-from typing import Callable, Iterable, TypeAlias
+from typing import TypeAlias
 
 from model_signing.manifest import manifest
 from model_signing.serialization import serialization
