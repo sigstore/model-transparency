@@ -47,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false # Don't cancel other jobs if one fails
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest] ## , macos-latest, windows-latest]
         include:
           - os: macos-latest
             os_family: Darwin
@@ -57,8 +57,8 @@ jobs:
             os_family: Windows
     outputs:
       hash-ubuntu-latest: ${{ steps.hash.outputs.hash-ubuntu-latest }}
-      hash-macos-latest: ${{ steps.hash.outputs.hash-macos-latest }}
-      hash-windows-latest: ${{ steps.hash.outputs.hash-windows-latest }}
+      # hash-macos-latest: ${{ steps.hash.outputs.hash-macos-latest }}
+      # hash-windows-latest: ${{ steps.hash.outputs.hash-windows-latest }}
     steps:
     - run: git config --global core.autocrlf input
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -101,7 +101,7 @@ jobs:
     strategy:
       fail-fast: false # Don't cancel other jobs if one fails
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest] #, macos-latest, windows-latest]
     permissions:
       actions: read
       id-token: write
