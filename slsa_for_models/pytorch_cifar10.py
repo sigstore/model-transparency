@@ -12,16 +12,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import torch
+import torch.nn as nn
 
-# We will do a lazy import for these 7 modules, exploiting Python's symbol
+# We will do a lazy import for these 5 modules, exploiting Python's symbol
 # resolution. The lazy import is needed to make sure we only import PyTorch
 # libraries only if we want to train a PyTorch model.
-torch = None
-nn = None
 functional = None
 optim = None
 torchvision = None
 transforms = None
+
+
+class MyModel(nn.Module):
+    """Train a PyTorch model.
+
+    Based on tutorial from
+    https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(3, 6, 5)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.fc1 = nn.Linear(16 * 5 * 5, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
+
+    def forward(self, x):
+        x = self.pool(functional.relu(self.conv1(x)))
+        x = self.pool(functional.relu(self.conv2(x)))
+        x = torch.flatten(x, 1)
+        x = functional.relu(self.fc1(x))
+        x = functional.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
 
 
 def pretraining():
@@ -30,14 +56,10 @@ def pretraining():
     Does the lazy loading of TensorFlow too, to prevent compatibility issues
     with mixing TensorFlow and PyTorch imports.
     """
-    global torch
-    global nn
     global functional
     global optim
     global torchvision
     global transforms
-    import torch
-    import torch.nn as nn
     import torch.nn.functional as functional
     import torch.optim as optim
     import torchvision
@@ -90,27 +112,6 @@ def create_model():
     Returns the model.
     """
 
-    # Train a model based on tutorial from
-    # https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html.
-    # We inline the class to be able to use lazy loading of PyTorch modules.
-    class MyModel(nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.conv1 = nn.Conv2d(3, 6, 5)
-            self.pool = nn.MaxPool2d(2, 2)
-            self.conv2 = nn.Conv2d(6, 16, 5)
-            self.fc1 = nn.Linear(16 * 5 * 5, 120)
-            self.fc2 = nn.Linear(120, 84)
-            self.fc3 = nn.Linear(84, 10)
-
-        def forward(self, x):
-            x = self.pool(functional.relu(self.conv1(x)))
-            x = self.pool(functional.relu(self.conv2(x)))
-            x = torch.flatten(x, 1)
-            x = functional.relu(self.fc1(x))
-            x = functional.relu(self.fc2(x))
-            x = self.fc3(x)
-            return x
 
     return MyModel()
 

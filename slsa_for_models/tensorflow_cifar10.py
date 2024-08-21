@@ -121,7 +121,7 @@ def train_model(model, train, test):
         epochs=16,
         validation_data=test,
         shuffle=True,
-        verbose=2,
+        verbose=0,
     )
 
 
