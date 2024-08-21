@@ -66,7 +66,9 @@ class TestIntotoSignature:
         manifest = sig.to_manifest()
         assert shard_manifest == manifest
 
-    def test_sign_and_verify_digest_of_digest_manifest(self, sample_model_folder):
+    def test_sign_and_verify_digest_of_digest_manifest(
+        self, sample_model_folder
+    ):
         signer = in_toto_signature.IntotoSigner(fake.FakeSigner())
         verifier = in_toto_signature.IntotoVerifier(fake.FakeVerifier())
         file_serializer = serialize_by_file.ManifestSerializer(

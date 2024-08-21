@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import pathlib
-from typing import Callable, TypeAlias, Iterable
+from typing import Callable, Iterable, TypeAlias
 
 from model_signing.manifest import manifest
 from model_signing.serialization import serialization
