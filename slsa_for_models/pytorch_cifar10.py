@@ -15,6 +15,7 @@
 import torch
 import torch.nn as nn
 
+
 # We will do a lazy import for these 5 modules, exploiting Python's symbol
 # resolution. The lazy import is needed to make sure we only import PyTorch
 # libraries only if we want to train a PyTorch model.
@@ -111,8 +112,6 @@ def create_model():
 
     Returns the model.
     """
-
-
     return MyModel()
 
 
