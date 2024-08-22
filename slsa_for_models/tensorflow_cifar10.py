@@ -115,7 +115,13 @@ def train_model(model, train, test):
     """
     x, y = train
     model.fit(
-        x, y, batch_size=256, epochs=16, validation_data=test, shuffle=True
+        x,
+        y,
+        batch_size=256,
+        epochs=16,
+        validation_data=test,
+        shuffle=True,
+        verbose=0,
     )
 
 
