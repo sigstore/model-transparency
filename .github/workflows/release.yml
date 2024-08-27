@@ -15,8 +15,9 @@
 name: Release
 
 on:
-  tags:
-    - v*
+  release:
+    types:
+      - published
 
 permissions: {}
 
