@@ -15,8 +15,9 @@
 name: Release
 
 on:
-  tags:
-    - v*
+  push:
+    tags:
+      - v*
 
 permissions: {}
 
