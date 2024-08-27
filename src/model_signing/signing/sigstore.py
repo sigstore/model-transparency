@@ -16,7 +16,7 @@
 
 import json
 import pathlib
-from typing import Self
+import sys
 
 from google.protobuf import json_format
 from sigstore import dsse as sigstore_dsse
@@ -31,6 +31,12 @@ from model_signing.manifest import manifest
 from model_signing.signing import as_bytes
 from model_signing.signing import in_toto
 from model_signing.signing import signing
+
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 _IN_TOTO_JSON_PAYLOAD_TYPE: str = "application/vnd.in-toto+json"

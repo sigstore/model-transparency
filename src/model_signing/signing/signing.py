@@ -43,9 +43,15 @@ payload and then expand that to a `manifest.Manifest` subclass.
 
 import abc
 import pathlib
-from typing import Self
+import sys
 
 from model_signing.manifest import manifest
+
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class SigningPayload(metaclass=abc.ABCMeta):

@@ -48,6 +48,7 @@ Example usage for `OpenedFileHasher`:
 
 import hashlib
 import pathlib
+import sys
 from typing import BinaryIO
 
 from typing_extensions import override
@@ -192,11 +193,24 @@ class OpenedFileHasher(FileHasher):
 
     @override
     def compute(self) -> hashing.Digest:
-        # https://github.com/python/typeshed/issues/2166
-        # pytype: disable=wrong-arg-types
-        digest = hashlib.file_digest(self._fd, self._algorithm)
-        # pytype: enable=wrong-arg-types
-        return hashing.Digest(self.digest_name, digest.digest())
+        if sys.version_info >= (3, 11):
+            # https://github.com/python/typeshed/issues/2166
+            # pytype: disable=wrong-arg-types
+            digest = hashlib.file_digest(self._fd, self._algorithm)
+            # pytype: enable=wrong-arg-types
+            return hashing.Digest(self.digest_name, digest.digest())
+
+        # Polyfill for Python 3.10
+        # https://github.com/python/cpython/blob/4deb32a992/Lib/hashlib.py#L195
+        hasher = hashlib.new(self._algorithm)
+        buffer = bytearray(2**18)
+        view = memoryview(buffer)
+        while True:
+            size = self._fd.readinto(buffer)
+            if size == 0:
+                break
+            hasher.update(view[:size])
+        return hashing.Digest(self.digest_name, hasher.digest())
 
     @property
     @override

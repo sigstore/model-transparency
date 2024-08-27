@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import pathlib
-from typing import Self
+import sys
 
 import pytest
 from typing_extensions import override
@@ -23,6 +23,12 @@ from model_signing.manifest import manifest
 from model_signing.signing import empty_signing
 from model_signing.signing import signing
 from tests import test_support
+
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class TestEmptySigningPayload:

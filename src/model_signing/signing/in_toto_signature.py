@@ -16,7 +16,7 @@
 
 import json
 import pathlib
-from typing import Self
+import sys
 
 from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 from typing_extensions import override
@@ -26,6 +26,12 @@ from model_signing.signature import signing as signature_signing
 from model_signing.signature import verifying as signature_verifying
 from model_signing.signing import in_toto
 from model_signing.signing import signing
+
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class IntotoSignature(signing.Signature):
