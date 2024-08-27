@@ -199,18 +199,18 @@ class OpenedFileHasher(FileHasher):
             digest = hashlib.file_digest(self._fd, self._algorithm)
             # pytype: enable=wrong-arg-types
             return hashing.Digest(self.digest_name, digest.digest())
-        else:
-            # Polyfill for Python 3.10
-            # See https://github.com/python/cpython/blob/4deb32a99292a3b1f6b773f6f96f1a8990a19fe0/Lib/hashlib.py#L195-L238
-            hasher = hashlib.new(self._algorithm)
-            buffer = bytearray(2**18)
-            view = memoryview(buffer)
-            while True:
-                size = self._fd.readinto(buffer)
-                if size == 0:
-                    break
-                hasher.update(view[:size])
-            return hashing.Digest(self.digest_name, hasher.digest())
+
+        # Polyfill for Python 3.10
+        # https://github.com/python/cpython/blob/4deb32a992/Lib/hashlib.py#L195
+        hasher = hashlib.new(self._algorithm)
+        buffer = bytearray(2**18)
+        view = memoryview(buffer)
+        while True:
+            size = self._fd.readinto(buffer)
+            if size == 0:
+                break
+            hasher.update(view[:size])
+        return hashing.Digest(self.digest_name, hasher.digest())
 
     @property
     @override
