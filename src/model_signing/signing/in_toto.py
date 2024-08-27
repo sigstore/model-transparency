@@ -20,7 +20,8 @@ envelope format is DSSE, see https://github.com/secure-systems-lab/dsse.
 """
 
 import pathlib
-from typing import Any, Final, Self
+import sys
+from typing import Any, Final
 
 from in_toto_attestation.v1 import statement
 from typing_extensions import override
@@ -29,6 +30,12 @@ from model_signing.hashing import hashing
 from model_signing.hashing import memory
 from model_signing.manifest import manifest as manifest_module
 from model_signing.signing import signing
+
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class IntotoPayload(signing.SigningPayload):

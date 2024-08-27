@@ -16,7 +16,7 @@
 
 import json
 import pathlib
-from typing import Self
+import sys
 from unittest import mock
 
 import pytest
@@ -29,6 +29,12 @@ from model_signing.signing import as_bytes
 from model_signing.signing import empty_signing
 from model_signing.signing import in_toto
 from model_signing.signing import sigstore
+
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class MockedSigstoreBundle:

@@ -21,12 +21,18 @@ done from outside the library).
 """
 
 import pathlib
-from typing import Self
+import sys
 
 from typing_extensions import override
 
 from model_signing.manifest import manifest
 from model_signing.signing import signing
+
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class EmptySigningPayload(signing.SigningPayload):

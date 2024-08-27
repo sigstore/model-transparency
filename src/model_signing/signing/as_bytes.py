@@ -18,12 +18,18 @@ In general, this should only be used if we want to sign a model where we have
 the hash computed from somewhere else and want to avoid the in-toto types.
 """
 
-from typing import Self
+import sys
 
 from typing_extensions import override
 
 from model_signing.manifest import manifest as manifest_module
 from model_signing.signing import signing
+
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class BytesPayload(signing.SigningPayload):
