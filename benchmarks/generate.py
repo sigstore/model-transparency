@@ -29,8 +29,18 @@ def create_file_of_given_size(path: str, size: int) -> None:
     """
     file_path = pathlib.Path(path)
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    s = bytes(random.choices(range(256), k=size))
-    file_path.write_bytes(s)
+    chunk_size = 100000
+    num_chunks = size // chunk_size
+
+    with file_path.open("wb") as f:
+        for _ in range(num_chunks):
+            s = bytes(random.choices(range(256), k=chunk_size))
+            f.write(s)
+
+        if size % chunk_size != 0:
+            chunk_size = size % chunk_size
+            s = bytes(random.choices(range(256), k=chunk_size))
+            f.write(s)
 
 
 def generate_file_sizes(
