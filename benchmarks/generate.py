@@ -139,12 +139,12 @@ def add_size_arguments(
         parser: The parser to enhance.
         multiple_files: Whether the generator generates multiple files.
     """
-    parser.add_argument("size", help="Size of the model", type=int)
+    parser.add_argument("size", help="size of the model", type=int)
 
     if multiple_files:
         parser.add_argument(
             "-w",
-            help="Optional weights for for model file sizes to generate",
+            help="optional weights for for model file sizes to generate",
             nargs="+",
             type=int,
         )
@@ -161,11 +161,11 @@ def add_count_arguments(
         parser: The parser to enhance.
         with_dirs: Also add argument to generate the directories.
     """
-    parser.add_argument("-n", help="Number of files", type=int, required=True)
+    parser.add_argument("-n", help="number of files", type=int, required=True)
 
     if with_dirs:
         parser.add_argument(
-            "-m", help="Number of directories", type=int, required=True
+            "-m", help="number of directories", type=int, required=True
         )
 
 
@@ -175,26 +175,26 @@ def add_root_argument(parser: argparse.ArgumentParser) -> None:
     Args:
         parser: The parser to enhance.
     """
-    parser.add_argument("--root", help="Model root path", required=True)
+    parser.add_argument("--root", help="model root path", required=True)
 
 
 def build_parser() -> argparse.ArgumentParser:
     """Builds the command line parser for the generator."""
     parser = argparse.ArgumentParser(
-        description="Generate benchmark data for model signing"
+        description="generate benchmark data for model signing"
     )
     parser.set_defaults(func=generate_file)
     subparsers = parser.add_subparsers(title="Model shapes")
 
     parser_file = subparsers.add_parser(
-        "file", help="Generate all data in a single file (default)"
+        "file", help="generate all data in a single file (default)"
     )
     add_root_argument(parser_file)
     add_size_arguments(parser_file, multiple_files=False)
     parser_file.set_defaults(func=generate_file)
 
     parser_dir = subparsers.add_parser(
-        "dir", help="Generate data split into N files in a single directory"
+        "dir", help="generate data split into N files in a single directory"
     )
     add_root_argument(parser_dir)
     add_size_arguments(parser_dir)
@@ -202,7 +202,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser_dir.set_defaults(func=generate_dir)
 
     parser_matrix = subparsers.add_parser(
-        "matrix", help="Generate data split into N files in M directories"
+        "matrix", help="generate data split into N files in M directories"
     )
     add_root_argument(parser_matrix)
     add_size_arguments(parser_matrix)
@@ -211,7 +211,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser_nested = subparsers.add_parser(
         "nested",
-        help="Generate data split into N files in a directory nested M levels",
+        help="generate data split into N files in a directory nested M levels",
     )
     add_root_argument(parser_nested)
     add_size_arguments(parser_nested)
