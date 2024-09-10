@@ -66,8 +66,12 @@ python = ["3.10", "3.11", "3.12"]
 
 [tool.hatch.envs.bench]
 description = """Custom environment for running benchmarks.
-Use `hatch run bench:generate ${args}` to generate test models.
+Use `hatch run +py=3... bench:generate ${args}` to generate test models.
+Use `hatch run +py=3... bench:serialize ${args}` to benchmark serialization code.
 """
+
+[[tool.hatch.envs.bench.matrix]]
+python = ["3.10", "3.11", "3.12"]
 
 [tool.hatch.envs.bench.scripts]
 generate = "python benchmarks/generate.py {args}"
