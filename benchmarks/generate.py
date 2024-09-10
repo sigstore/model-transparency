@@ -17,6 +17,7 @@
 import argparse
 import itertools
 import pathlib
+
 import numpy as np
 
 
@@ -155,7 +156,7 @@ def add_count_arguments(
 ) -> None:
     """Adds the count related arguments to a subparser.
 
-    We have N file. In some cases, we also have M directories.
+    We have N files. In some cases, we also have M directories.
 
     Args:
         parser: The parser to enhance.
