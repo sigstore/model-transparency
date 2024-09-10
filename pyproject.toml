@@ -64,6 +64,14 @@ randomize = true
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.10", "3.11", "3.12"]
 
+[tool.hatch.envs.bench]
+description = """Custom environment for running benchmarks.
+Use `hatch run bench:generate ${args}` to generate test models.
+"""
+
+[tool.hatch.envs.bench.scripts]
+generate = "python benchmarks/generate.py {args}"
+
 [tool.hatch.envs.docs]
 description = """Custom environment for pdoc.
 Use `hatch run docs:serve` to view documentation.
@@ -88,7 +96,7 @@ installer = "pip"
 python = "3.11"
 
 [tool.hatch.envs.type.scripts]
-check = "pytype -k -j auto src tests"
+check = "pytype -k -j auto src tests benchmarks"
 
 [tool.coverage.report]
 exclude_also = [
