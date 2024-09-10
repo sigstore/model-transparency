@@ -29,6 +29,17 @@ from model_signing.signing import in_toto
 def get_hash_engine_factory(
     hash_algorithm: str,
 ) -> type[hashing.StreamingHashEngine]:
+    """Returns the class that implements a hashing method.
+
+    Args:
+        hash_algorithm: the hash algorithm to implement.
+
+    Returns:
+        The class that corresponds to the algorithm.
+
+    Raises:
+        ValueError: if the algorithm is not implemented/not valid.
+    """
     if hash_algorithm == "sha256":
         return memory.SHA256
     if hash_algorithm == "blake2":
@@ -39,6 +50,16 @@ def get_hash_engine_factory(
 def get_sharded_file_hasher_factory(
     hash_algorithm: str, chunk_size: int, shard_size: int
 ) -> Callable[[pathlib.Path, int, int], file.ShardedFileHasher]:
+    """Returns a hasher factory for sharded serialization.
+
+    Args:
+        hash_algorithm: the hash algorithm to use for each shard.
+        chunk_size: the chunk size to use when reading shards.
+        shard_size: the shard size used in generating the shards.
+
+    Returns:
+        A callable for the hashing factory.
+    """
     hash_engine = get_hash_engine_factory(hash_algorithm)
 
     def _hasher_factory(
@@ -59,6 +80,15 @@ def get_sharded_file_hasher_factory(
 def get_file_hasher_factory(
     hash_algorithm: str, chunk_size: int
 ) -> Callable[[pathlib.Path], file.FileHasher]:
+    """Returns a hasher factory for file serialization.
+
+    Args:
+        hash_algorithm: the hash algorithm to use for each file.
+        chunk_size: the chunk size to use when reading files.
+
+    Returns:
+        A callable for the hashing factory.
+    """
     hash_engine = get_hash_engine_factory(hash_algorithm)
 
     def _hasher_factory(path: pathlib.Path) -> file.FileHasher:
@@ -72,6 +102,11 @@ def get_file_hasher_factory(
 
 
 def run(args: argparse.Namespace) -> None:
+    """Performs the benchmark.
+
+    Args:
+        args: The arguments specifying the benchmark scenario.
+    """
     # 1. Hashing layer
     if args.use_shards:
         hasher = get_sharded_file_hasher_factory(
