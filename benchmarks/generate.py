@@ -17,7 +17,7 @@
 import argparse
 import itertools
 import pathlib
-import random
+import numpy as np
 
 
 def create_file_of_given_size(path: str, size: int) -> None:
@@ -29,17 +29,17 @@ def create_file_of_given_size(path: str, size: int) -> None:
     """
     file_path = pathlib.Path(path)
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    chunk_size = 100000
+    chunk_size = 8192
     num_chunks = size // chunk_size
 
     with file_path.open("wb") as f:
         for _ in range(num_chunks):
-            s = bytes(random.choices(range(256), k=chunk_size))
+            s = np.random.randint(0, 256, chunk_size, dtype=np.uint8).tobytes()
             f.write(s)
 
         if size % chunk_size != 0:
             chunk_size = size % chunk_size
-            s = bytes(random.choices(range(256), k=chunk_size))
+            s = np.random.randint(0, 256, chunk_size, dtype=np.uint8).tobytes()
             f.write(s)
 
 
@@ -222,6 +222,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 if __name__ == "__main__":
-    random.seed(42)
+    np.random.seed(42)
     args = build_parser().parse_args()
     args.func(args)
