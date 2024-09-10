@@ -75,6 +75,7 @@ python = ["3.10", "3.11", "3.12"]
 
 [tool.hatch.envs.bench.scripts]
 generate = "python benchmarks/generate.py {args}"
+serialize = "python benchmarks/serialize.py {args}"
 
 [tool.hatch.envs.docs]
 description = """Custom environment for pdoc.
