@@ -40,10 +40,12 @@ def get_hash_engine_factory(
     Raises:
         ValueError: if the algorithm is not implemented/not valid.
     """
-    if hash_algorithm == "sha256":
-        return memory.SHA256
-    if hash_algorithm == "blake2":
-        return memory.BLAKE2
+    match hash_algorithm:
+        case "sha256":
+            return memory.SHA256
+        case "blake2":
+            return memory.BLAKE2
+
     raise ValueError(f"Cannot convert {hash_algorithm} to a hash engine")
 
 
@@ -145,20 +147,19 @@ def run(args: argparse.Namespace) -> None:
 
     # 3. Signing layer
     if args.skip_manifest:
-        in_toto_builder = id
+      in_toto_builder = (lambda x: x)  # do nothing
     else:
         if args.single_digest:
             in_toto_builder = in_toto.SingleDigestIntotoPayload
         else:
-            if args.digest_of_digests:
-                if args.use_shards:
+            match (args.digest_of_digests, args.use_shards):
+                case (True, True):
                     in_toto_builder = in_toto.DigestOfShardDigestsIntotoPayload
-                else:
+                case (True, False):
                     in_toto_builder = in_toto.DigestOfDigestsIntotoPayload
-            else:
-                if args.use_shards:
+                case (False, True):
                     in_toto_builder = in_toto.ShardDigestsIntotoPayload
-                else:
+                case (False, False):
                     in_toto_builder = in_toto.DigestsIntotoPayload
 
         in_toto_builder = in_toto_builder.from_manifest
