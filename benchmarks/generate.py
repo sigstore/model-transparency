@@ -26,7 +26,7 @@ def create_file_of_given_size(path: str, size: int) -> None:
 
     Args:
         path: Path to a file to write to. Parents are created if needed.
-        size: Size of data to generate and write to file.
+        size: Number of bytes to generate and write to file.
     """
     file_path = pathlib.Path(path)
     file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -98,7 +98,6 @@ def generate_matrix(args: argparse.Namespace):
         args: The arguments specifying the request.
     """
     sizes = generate_file_sizes(args.size // args.m, args.n, args.w)
-    print(sizes)
     exact = args.size % args.m == 0
     last = args.m if exact else (args.m - 1)
 
