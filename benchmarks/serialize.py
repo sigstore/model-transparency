@@ -147,7 +147,7 @@ def run(args: argparse.Namespace) -> None:
 
     # 3. Signing layer
     if args.skip_manifest:
-      in_toto_builder = (lambda x: x)  # do nothing
+      in_toto_builder = id  # Do nothing, just evaluate the argument
     else:
         if args.single_digest:
             in_toto_builder = in_toto.SingleDigestIntotoPayload
