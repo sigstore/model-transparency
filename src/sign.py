@@ -28,6 +28,7 @@ from model_signing.signature import pki
 from model_signing.signature import signing
 from model_signing.signing import in_toto
 from model_signing.signing import in_toto_signature
+from model_signing.signing import sigstore
 
 
 log = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ def _arguments() -> argparse.Namespace:
     method_cmd = parser.add_subparsers(
         required=True,
         dest="method",
-        help="method to sign the model: [pki, private-key, skip]",
+        help="method to sign the model: [pki, private-key, sigstore, skip]",
     )
     # PKI
     pki = method_cmd.add_parser("pki")
@@ -91,6 +92,16 @@ def _arguments() -> argparse.Namespace:
         type=pathlib.Path,
         dest="key_path",
     )
+    # sigstore
+    sigstore = method_cmd.add_parser("sigstore")
+    sigstore.add_argument(
+        "--use_ambient_credentials",
+        help="use ambient credentials (also known as Workload Identity, default is true)",
+        required=False,
+        type=bool,
+        default=True,
+        dest="use_ambient_credentials",
+    )
     # skip
     method_cmd.add_parser("skip")
 
@@ -100,17 +111,21 @@ def _arguments() -> argparse.Namespace:
 def _get_payload_signer(args: argparse.Namespace) -> signing.Signer:
     if args.method == "private-key":
         _check_private_key_options(args)
-        return key.ECKeySigner.from_path(private_key_path=args.key_path)
+        payload_signer = key.ECKeySigner.from_path(private_key_path=args.key_path)
+        return in_toto_signature.IntotoSigner(payload_signer)
     elif args.method == "pki":
         _check_pki_options(args)
-        return pki.PKISigner.from_path(
+        payload_signer = pki.PKISigner.from_path(
             args.key_path, args.signing_cert_path, args.cert_chain_path
         )
+        return in_toto_signature.IntotoSigner(payload_signer)
+    elif args.method == "sigstore":
+        return sigstore.SigstoreDSSESigner(use_ambient_credentials=args.use_ambient_credentials)
     elif args.method == "skip":
         return fake.FakeSigner()
     else:
         log.error(f"unsupported signing method {args.method}")
-        log.error('supported methods: ["pki", "private-key", "skip"]')
+        log.error('supported methods: ["pki", "private-key", "sigstore", "skip"]')
         exit(-1)
 
 
@@ -133,7 +148,6 @@ def _check_pki_options(args: argparse.Namespace):
     if args.cert_chain_path == "":
         log.warning("No certificate chain provided")
 
-
 def main():
     logging.basicConfig(level=logging.INFO)
     args = _arguments()
@@ -151,10 +165,9 @@ def main():
         file_hasher_factory=hasher_factory
     )
 
-    intoto_signer = in_toto_signature.IntotoSigner(payload_signer)
     sig = model.sign(
         model_path=args.model_path,
-        signer=intoto_signer,
+        signer=payload_signer,
         payload_generator=in_toto.DigestsIntotoPayload.from_manifest,
         serializer=serializer,
         ignore_paths=[args.sig_out],
