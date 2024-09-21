@@ -269,6 +269,12 @@ Machine M2: Debian 5.10.1 x86_64 GNU/Linux, 4GB RAM, 2 vCPUs, 56320 KB, Intel(R)
 | H2 | bert-base-uncased    | 3.3G  | 22.7s | 23.3s |
 | H2 | tiiuae/falcon-7b     | 14GB  | 2m.1s | 2m3s  |
 
+
+## Model Signing Format
+
+For a diagram showing the model signing format as well as an explanation of the
+layers, see the [model signing format](docs/model_signing_format.md) document.
+
 ## Development steps
 
 ### Linting
