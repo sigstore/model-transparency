@@ -27,6 +27,8 @@ from model_signing.signature import key
 from model_signing.signature import pki
 from model_signing.signature import verifying
 from model_signing.signing import in_toto_signature
+from model_signing.signing import signing
+from model_signing.signing import sigstore
 
 
 log = logging.getLogger(__name__)
@@ -51,7 +53,7 @@ def _arguments() -> argparse.Namespace:
     method_cmd = parser.add_subparsers(
         required=True,
         dest="method",
-        help="method to verify the model: [pki, private-key, skip]",
+        help="method to verify the model: [pki, private-key, sigstore, skip]",
     )
     # pki subcommand
     pki = method_cmd.add_parser("pki")
@@ -73,10 +75,46 @@ def _arguments() -> argparse.Namespace:
         type=pathlib.Path,
         dest="key",
     )
-
+    # sigstore subcommand
+    sigstore = method_cmd.add_parser("sigstore")
+    sigstore.add_argument(
+        "--identity",
+        help="the expected identity of the signer e.g. name@example.com",
+        required=True,
+        type=str,
+        dest="identity",
+    )
+    sigstore.add_argument(
+        "--identity-provider",
+        help="the identity provider expected e.g. https://accounts.example.com",
+        required=True,
+        type=str,
+        dest="identity_provider",
+    )
+    # skip subcommand
     method_cmd.add_parser("skip")
 
     return parser.parse_args()
+
+def _get_verifier(args: argparse.Namespace) -> verifying.Verifier:
+    verifier: verifying.Verifier
+    if args.method == "private-key":
+        _check_private_key_flags(args)
+        verifier = key.ECKeyVerifier.from_path(args.key)
+        return in_toto_signature.IntotoVerifier(verifier)
+    elif args.method == "pki":
+        _check_pki_flags(args)
+        verifier = pki.PKIVerifier.from_paths(args.root_certs)
+        return in_toto_signature.IntotoVerifier(verifier)
+    elif args.method == "sigstore":
+        return sigstore.SigstoreDSSEVerifier(identity=args.identity,
+                                             oidc_issuer=args.identity_provider)
+    elif args.method == "skip":
+        return fake.FakeVerifier()
+    else:
+        log.error(f"unsupported verification method {args.method}")
+        log.error('supported methods: ["pki", "private-key", "sigstore", "skip"]')
+        exit(-1)
 
 
 def _check_private_key_flags(args: argparse.Namespace):
@@ -89,29 +127,21 @@ def _check_pki_flags(args: argparse.Namespace):
     if not args.root_certs:
         log.warning("no root of trust is set using system default")
 
+def _get_signature(args: argparse.Namespace) -> signing.Signature:
+    if args.method == "sigstore":
+        return sigstore.SigstoreSignature.read(args.sig_path)
+    else:
+        return in_toto_signature.IntotoSignature.read(args.sig_path)
 
 def main():
     logging.basicConfig(level=logging.INFO)
     args = _arguments()
 
-    verifier: verifying.Verifier
     log.info(f"Creating verifier for {args.method}")
-    if args.method == "private-key":
-        _check_private_key_flags(args)
-        verifier = key.ECKeyVerifier.from_path(args.key)
-    elif args.method == "pki":
-        _check_pki_flags(args)
-        verifier = pki.PKIVerifier.from_paths(args.root_certs)
-    elif args.method == "skip":
-        verifier = fake.FakeVerifier()
-    else:
-        log.error(f"unsupported verification method {args.method}")
-        log.error('supported methods: ["pki", "private-key", "skip"]')
-        exit(-1)
-
+    verifier = _get_verifier(args)
     log.info(f"Verifying model signature from {args.sig_path}")
 
-    sig = in_toto_signature.IntotoSignature.read(args.sig_path)
+    sig = _get_signature(args)
 
     def hasher_factory(file_path: pathlib.Path) -> file.FileHasher:
         return file.SimpleFileHasher(
@@ -122,12 +152,10 @@ def main():
         file_hasher_factory=hasher_factory
     )
 
-    intoto_verifier = in_toto_signature.IntotoVerifier(verifier)
-
     try:
         model.verify(
             sig=sig,
-            verifier=intoto_verifier,
+            verifier=verifier,
             model_path=args.model_path,
             serializer=serializer,
             ignore_paths=[args.sig_path],
