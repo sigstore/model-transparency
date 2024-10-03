@@ -29,6 +29,7 @@ are supported:
 
 * Bring your own key pair
 * Bring your own PKI
+- Keyless signing using Sigstore with Fulcio root
 * Skip signing (only hash and create a bundle)
 
 The signing part creates a [sigstore bundle](https://github.com/sigstore/protobuf-specs/blob/main/protos/sigstore_bundle.proto)
@@ -68,13 +69,13 @@ $ source .venv/bin/activate
 ## Sign
 
 ```bash
-(.venv) $ python3 sign.py --model_path ${MODEL_PATH} --sig_out ${OUTPUT_PATH} --method {private-key, pki} {additional parameters depending on method}
+(.venv) $ python3 sign.py --model_path ${MODEL_PATH} --sig_out ${OUTPUT_PATH} --method {private-key, pki, sigstore} {additional parameters depending on method}
 ```
 
 ## Verify
 
 ```bash
-(.venv) $ python3 verify.py --model_path ${MODEL_PATH} --method {private-key, pki} {additional parameters depending on method}
+(.venv) $ python3 verify.py --model_path ${MODEL_PATH} --sig_path ${SIG_PATH} --method {private-key, pki, sigstore} {additional parameters depending on method}
 ```
 
 ### Examples
@@ -122,9 +123,21 @@ $ ROOT_CERTS='/path/to/root/certs'
 ...
 ```
 
-## Sigstore ID providers
+#### Keyless signing using Sigstore
 
-For developers signing models, there are three identity providers that can
+```bash
+$ MODEL_PATH='/path/to/your/model'
+# SIGN
+(.venv) $ python3 sign.py --model_path ${MODEL_PATH} --method sigstore
+...
+#VERIFY
+(.venv) $ python3 verify.py --model_path ${MODEL_PATH} --sig_path ./model.sig --method sigstore --identity name@example.com --identity-provider https://accounts.example.com
+...
+```
+
+### Sigstore ID providers
+
+For developers signing models with Sigstore, there are three identity providers that can
 be used at the moment:
 
 * Google's provider is `https://accounts.google.com`.
