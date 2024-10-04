@@ -96,7 +96,8 @@ def _arguments() -> argparse.Namespace:
     sigstore = method_cmd.add_parser("sigstore")
     sigstore.add_argument(
         "--use_ambient_credentials",
-        help="use ambient credentials (also known as Workload Identity, default is true)",
+        help="use ambient credentials (also known as Workload Identity,"
+        + "default is true)",
         required=False,
         type=bool,
         default=True,
@@ -111,7 +112,8 @@ def _arguments() -> argparse.Namespace:
 def _get_payload_signer(args: argparse.Namespace) -> signing.Signer:
     if args.method == "private-key":
         _check_private_key_options(args)
-        payload_signer = key.ECKeySigner.from_path(private_key_path=args.key_path)
+        payload_signer = key.ECKeySigner.from_path(
+                private_key_path=args.key_path)
         return in_toto_signature.IntotoSigner(payload_signer)
     elif args.method == "pki":
         _check_pki_options(args)
@@ -120,12 +122,14 @@ def _get_payload_signer(args: argparse.Namespace) -> signing.Signer:
         )
         return in_toto_signature.IntotoSigner(payload_signer)
     elif args.method == "sigstore":
-        return sigstore.SigstoreDSSESigner(use_ambient_credentials=args.use_ambient_credentials)
+        return sigstore.SigstoreDSSESigner(
+                use_ambient_credentials=args.use_ambient_credentials)
     elif args.method == "skip":
         return fake.FakeSigner()
     else:
         log.error(f"unsupported signing method {args.method}")
-        log.error('supported methods: ["pki", "private-key", "sigstore", "skip"]')
+        log.error('supported methods: ["pki", "private-key", "sigstore", '
+        + '"skip"]')
         exit(-1)
 
 
