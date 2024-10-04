@@ -113,7 +113,8 @@ def _get_verifier(args: argparse.Namespace) -> verifying.Verifier:
         return fake.FakeVerifier()
     else:
         log.error(f"unsupported verification method {args.method}")
-        log.error('supported methods: ["pki", "private-key", "sigstore", "skip"]')
+        log.error('supported methods: ["pki", "private-key", "sigstore", '
+                  + '"skip"]')
         exit(-1)
 
 
