@@ -96,7 +96,8 @@ def _arguments() -> argparse.Namespace:
 
     return parser.parse_args()
 
-def _get_verifier(args: argparse.Namespace) -> verifying.Verifier:
+
+def _get_verifier(args: argparse.Namespace) -> signing.Verifier:
     verifier: verifying.Verifier
     if args.method == "private-key":
         _check_private_key_flags(args)
@@ -107,14 +108,16 @@ def _get_verifier(args: argparse.Namespace) -> verifying.Verifier:
         verifier = pki.PKIVerifier.from_paths(args.root_certs)
         return in_toto_signature.IntotoVerifier(verifier)
     elif args.method == "sigstore":
-        return sigstore.SigstoreDSSEVerifier(identity=args.identity,
-                                             oidc_issuer=args.identity_provider)
+        return sigstore.SigstoreDSSEVerifier(
+            identity=args.identity, oidc_issuer=args.identity_provider
+        )
     elif args.method == "skip":
-        return fake.FakeVerifier()
+        return in_toto_signature.IntotoVerifier(fake.FakeVerifier())
     else:
         log.error(f"unsupported verification method {args.method}")
-        log.error('supported methods: ["pki", "private-key", "sigstore", '
-                  + '"skip"]')
+        log.error(
+            'supported methods: ["pki", "private-key", "sigstore", "skip"]'
+        )
         exit(-1)
 
 
@@ -128,11 +131,13 @@ def _check_pki_flags(args: argparse.Namespace):
     if not args.root_certs:
         log.warning("no root of trust is set using system default")
 
+
 def _get_signature(args: argparse.Namespace) -> signing.Signature:
     if args.method == "sigstore":
         return sigstore.SigstoreSignature.read(args.sig_path)
     else:
         return in_toto_signature.IntotoSignature.read(args.sig_path)
+
 
 def main():
     logging.basicConfig(level=logging.INFO)

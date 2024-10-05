@@ -25,9 +25,9 @@ from model_signing.serialization import serialize_by_file
 from model_signing.signature import fake
 from model_signing.signature import key
 from model_signing.signature import pki
-from model_signing.signature import signing
 from model_signing.signing import in_toto
 from model_signing.signing import in_toto_signature
+from model_signing.signing import signing
 from model_signing.signing import sigstore
 
 
@@ -113,7 +113,8 @@ def _get_payload_signer(args: argparse.Namespace) -> signing.Signer:
     if args.method == "private-key":
         _check_private_key_options(args)
         payload_signer = key.ECKeySigner.from_path(
-                private_key_path=args.key_path)
+            private_key_path=args.key_path
+        )
         return in_toto_signature.IntotoSigner(payload_signer)
     elif args.method == "pki":
         _check_pki_options(args)
@@ -123,13 +124,15 @@ def _get_payload_signer(args: argparse.Namespace) -> signing.Signer:
         return in_toto_signature.IntotoSigner(payload_signer)
     elif args.method == "sigstore":
         return sigstore.SigstoreDSSESigner(
-                use_ambient_credentials=args.use_ambient_credentials)
+            use_ambient_credentials=args.use_ambient_credentials
+        )
     elif args.method == "skip":
-        return fake.FakeSigner()
+        return in_toto_signature.IntotoSigner(fake.FakeSigner())
     else:
         log.error(f"unsupported signing method {args.method}")
-        log.error('supported methods: ["pki", "private-key", "sigstore", '
-        + '"skip"]')
+        log.error(
+            'supported methods: ["pki", "private-key", "sigstore", "skip"]'
+        )
         exit(-1)
 
 
@@ -151,6 +154,7 @@ def _check_pki_options(args: argparse.Namespace):
         exit()
     if args.cert_chain_path == "":
         log.warning("No certificate chain provided")
+
 
 def main():
     logging.basicConfig(level=logging.INFO)
