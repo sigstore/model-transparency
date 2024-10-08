@@ -29,6 +29,7 @@ are supported:
 
 * Bring your own key pair
 * Bring your own PKI
+- Keyless signing using Sigstore with Fulcio root
 * Skip signing (only hash and create a bundle)
 
 The signing part creates a [sigstore bundle](https://github.com/sigstore/protobuf-specs/blob/main/protos/sigstore_bundle.proto)
@@ -68,13 +69,13 @@ $ source .venv/bin/activate
 ## Sign
 
 ```bash
-(.venv) $ python3 sign.py --model_path ${MODEL_PATH} --sig_out ${OUTPUT_PATH} --method {private-key, pki} {additional parameters depending on method}
+(.venv) $ python3 sign.py --model_path ${MODEL_PATH} --sig_out ${SIG_PATH} {private-key, pki, sigstore} {additional parameters depending on method}
 ```
 
 ## Verify
 
 ```bash
-(.venv) $ python3 verify.py --model_path ${MODEL_PATH} --method {private-key, pki} {additional parameters depending on method}
+(.venv) $ python3 verify.py --model_path ${MODEL_PATH} --sig_path ${SIG_PATH} {private-key, pki, sigstore} {additional parameters depending on method}
 ```
 
 ### Examples
@@ -83,14 +84,15 @@ $ source .venv/bin/activate
 
 ```bash
 $ MODEL_PATH='/path/to/your/model'
+$ SIG_PATH='./model.sig'
 $ openssl ecparam -name secp256k1 -genkey -noout -out ec-secp256k1-priv-key.pem
 $ openssl ec -in ec-secp256k1-priv-key.pem -pubout > ec-secp256k1-pub-key.pem
 $ source .venv/bin/activate
 # SIGN
-(.venv) $ python3 sign_model.py --model_path ${MODEL_PATH} --method private-key --private-key ec-secp256k1-priv-key.pem
+(.venv) $ python3 sign.py --model_path ${MODEL_PATH} --sig_out ${SIG_PATH} private-key --private-key ec-secp256k1-priv-key.pem
 ...
 #VERIFY
-(.venv) $ python3 verify_model.py --model_path ${MODEL_PATH} --method private-key --public-key ec-secp256k1-pub-key.pem
+(.venv) $ python3 verify.py --model_path ${MODEL_PATH} --sig_path ${SIG_PATH} private-key --public-key ec-secp256k1-pub-key.pem
 ...
 ```
 
@@ -104,27 +106,42 @@ In order to sign a model with your own PKI you need to create the following info
 
 ```bash
 $ MODEL_PATH='/path/to/your/model'
+$ SIG_PATH='./model.sig'
 $ CERT_CHAIN='/path/to/cert_chain'
 $ SIGNING_CERT='/path/to/signing_certificate'
 $ PRIVATE_KEY='/path/to/private_key'
 # SIGN
-(.venv) $ python3 sign_model.py --model_path ${MODEL_PATH} \
-    --method pki \
+(.venv) $ python3 sign.py --model_path ${MODEL_PATH} \
+    --sig_path ${SIG_PATH} \
+    pki \
     --private-key ${PRIVATE_KEY} \
     --signing_cert ${SIGNING_CERT} \
     [--cert_chain ${CERT_CHAIN}]
 ...
 #VERIFY
 $ ROOT_CERTS='/path/to/root/certs'
-(.venv) $ python3 verify_model.py --model_path ${MODEL_PATH} \
-     --method pki \
-     --root_certs ${ROOT_CERTS}
+(.venv) $ python3 verify.py --model_path ${MODEL_PATH} \
+    --sig_path ${SIG_PATH} \
+    pki \
+    --root_certs ${ROOT_CERTS}
 ...
 ```
 
-## Sigstore ID providers
+#### Keyless signing using Sigstore
 
-For developers signing models, there are three identity providers that can
+```bash
+$ MODEL_PATH='/path/to/your/model'
+# SIGN
+(.venv) $ python3 sign.py --model_path ${MODEL_PATH} sigstore
+...
+#VERIFY
+(.venv) $ python3 verify.py --model_path ${MODEL_PATH} --sig_path ./model.sig sigstore --identity name@example.com --identity-provider https://accounts.example.com
+...
+```
+
+### Sigstore ID providers
+
+For developers signing models with Sigstore, there are three identity providers that can
 be used at the moment:
 
 * Google's provider is `https://accounts.google.com`.
@@ -151,11 +168,13 @@ stored in TFHub, run the following commands:
 
 ```bash
 model_path=bertseq2seq
+sig_path=model.sig
 wget "https://tfhub.dev/google/bertseq2seq/bert24_en_de/1?tf-hub-format=compressed" -O "${model_path}".tgz
 mkdir -p "${model_path}"
 cd "${model_path}" && tar xvzf ../"${model_path}".tgz && rm ../"${model_path}".tgz && cd -
-python3 main.py sign --path "${model_path}"
-python3 main.py verify --path "${model_path}" \
+python3 sign.py --model_path "${model_path}" sigstore
+python3 verify.py --model_path "${model_path}" --sig_path ${sig_path} \
+    sigstore \
     --identity-provider https://accounts.google.com \
     --identity myemail@gmail.com
 ```
@@ -173,9 +192,11 @@ After this, we can sign and verify a Bert base model:
 ```bash
 model_name=bert-base-uncased
 model_path="${model_name}"
+sig_path=model.sig
 git clone --depth=1 "https://huggingface.co/${model_name}" && rm -rf "${model_name}"/.git
-python3 main.py sign --path "${model_path}"
-python3 main.py verify --path "${model_path}" \
+python3 sign.py --model_path "${model_path}"
+python3 verify.py --model_path "${model_path}" --sig_path ${sig_path} \
+    sigstore \
     --identity-provider https://accounts.google.com \
     --identity myemail@gmail.com
 ```
@@ -185,9 +206,11 @@ Similarly, we can sign and verify a Falcon model:
 ```bash
 model_name=tiiuae/falcon-7b
 model_path=$(echo "${model_name}" | cut -d/ -f2)
+sig_path=model.sig
 git clone --depth=1 "https://huggingface.co/${model_name}" && rm -rf "${model_name}"/.git
-python3 main.py sign --path "${model_path}"
-python3 main.py verify --path "${model_path}" \
+python3 sign.py --model_path "${model_path}"
+python3 verify.py --model_path "${model_path}" --sig_path ${sig_path} \
+    sigstore \
     --identity-provider https://accounts.google.com \
     --identity myemail@gmail.com
 ```
@@ -197,11 +220,13 @@ We can also support models from  the PyTorch Hub:
 ```bash
 model_name=hustvl/YOLOP
 model_path=$(echo "${model_name}" | cut -d/ -f2)
+sig_path=model.sig
 wget "https://github.com/${model_name}/archive/main.zip" -O "${model_path}".zip
 mkdir -p "${model_path}"
 cd "${model_path}" && unzip ../"${model_path}".zip && rm ../"${model_path}".zip && shopt -s dotglob && mv YOLOP-main/* . && shopt -u dotglob && rmdir YOLOP-main/ && cd -
-python3 main.py sign --path "${model_path}"
-python3 main.py verify --path "${model_path}" \
+python3 sign.py --model_path "${model_path}"
+python3 verify.py --model_path "${model_path}" --sig_path ${sig_path} \
+    sigstore \
     --identity-provider https://accounts.google.com \
     --identity myemail@gmail.com
 ```
@@ -211,9 +236,11 @@ We also support ONNX models, for example Roberta:
 ```bash
 model_name=roberta-base-11
 model_path="${model_name}.onnx"
+sig_path=model.sig
 wget "https://github.com/onnx/models/raw/main/text/machine_comprehension/roberta/model/${model_name}.onnx"
-python3 main.py sign --path "${model_path}"
-python3 main.py verify --path "${model_path}" \
+python3 sign.py --model_path "${model_path}"
+python3 verify.py --model_path "${model_path}" --sig_path ${sig_path} \
+    sigstore \
     --identity-provider https://accounts.google.com \
     --identity myemail@gmail.com
 ```
