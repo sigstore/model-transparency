@@ -27,7 +27,7 @@ jobs:
     if: github.repository == 'sigstore/model-transparency'  # Don't do this in forks
     runs-on: ubuntu-latest  # Use matrix when we have OS specific pieces
     steps:
-    - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: Set up Hatch
       uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
     - name: Build artifacts
