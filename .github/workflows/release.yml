@@ -53,7 +53,7 @@ jobs:
         with:
           name: dist.zip
           path: dist/
-      - uses: pypa/gh-action-pypi-publish@f7600683efdcb7656dec5b29656edb7bc586e597 # v1.10.3
+      - uses: pypa/gh-action-pypi-publish@fb13cb306901256ace3dab689990e13a5550ffaa # v1.11.0
 
   # TODO: Create and publish release notes
   # TODO: Generate SLSA provenance for the wheels
