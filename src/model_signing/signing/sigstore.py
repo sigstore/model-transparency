@@ -102,6 +102,7 @@ class SigstoreSigner(signing.Signer):
         oidc_issuer: str | None = None,
         use_ambient_credentials: bool = True,
         use_staging: bool = False,
+        identity_token: str | None = None,
     ):
         """Initializes Sigstore signers.
 
@@ -118,6 +119,8 @@ class SigstoreSigner(signing.Signer):
               identity via OIDC will start.
             use_staging: Use staging configurations, instead of production. This
               is supposed to be set to True only when testing. Default is False.
+            identity_token: An explicit identity token to use when signing,
+              taking precedence over any ambient credential or OAuth workflow.
         """
         if use_staging:
             self._signing_context = sigstore_signer.SigningContext.staging()
@@ -130,9 +133,18 @@ class SigstoreSigner(signing.Signer):
                 self._issuer = sigstore_oidc.Issuer.production()
 
         self._use_ambient_credentials = use_ambient_credentials
+        self._identity_token = identity_token
 
     def _get_identity_token(self) -> sigstore_oidc.IdentityToken:
-        """Obtains an identity token to use in signing."""
+        """Obtains an identity token to use in signing.
+
+        The precedence matches that of sigstore-python:
+        1) Explicitly supplied identity token
+        2) Ambient credential detected in the environment, if enabled
+        3) Interactive OAuth flow
+        """
+        if self._identity_token:
+            return sigstore_oidc.IdentityToken(self._identity_token)
         if self._use_ambient_credentials:
             token = sigstore_oidc.detect_credential()
             if token:
