@@ -88,8 +88,9 @@ def mocked_oidc_provider():
         mocked_detect_credential = mocked_objects["detect_credential"]
         mocked_detect_credential.return_value = "fake_token"
 
+        # return whatever raw_token was passed in
         mocked_identity_token = mocked_objects["IdentityToken"]
-        mocked_identity_token.return_value = "fake_token"
+        mocked_identity_token.side_effect = lambda x: x
 
         mocked_issuer = mocked_objects["Issuer"]
         mocked_issuer.return_value.identity_token.return_value = "fake_token"
@@ -474,6 +475,15 @@ class TestSigstoreSigning:
                 as_bytes.BytesPayload,
                 sigstore.SigstoreDSSESigner,
             )
+
+    def test_sign_identity_token_precedence(self, mocked_oidc_provider):
+        signer = sigstore.SigstoreDSSESigner(identity_token="provided_token")
+        token = signer._get_identity_token()
+        assert token == "provided_token"
+
+        signer = sigstore.SigstoreDSSESigner()
+        token = signer._get_identity_token()
+        assert token == "fake_token"
 
     def test_verify_artifact_signature_not_sigstore(self, mocked_sigstore):
         signature = empty_signing.EmptySignature()
