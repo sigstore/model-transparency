@@ -103,6 +103,21 @@ def _arguments() -> argparse.Namespace:
         default=True,
         dest="use_ambient_credentials",
     )
+    sigstore.add_argument(
+        "--staging",
+        help="Use Sigstore's staging instances, instead of the default"
+        + " production instances",
+        action="store_true",
+        dest="sigstore_staging",
+    )
+    sigstore.add_argument(
+        "--identity-token",
+        help="the OIDC identity token to use",
+        required=False,
+        type=str,
+        default="",
+        dest="identity_token",
+    )
     # skip
     method_cmd.add_parser("skip")
 
@@ -124,7 +139,9 @@ def _get_payload_signer(args: argparse.Namespace) -> signing.Signer:
         return in_toto_signature.IntotoSigner(payload_signer)
     elif args.method == "sigstore":
         return sigstore.SigstoreDSSESigner(
-            use_ambient_credentials=args.use_ambient_credentials
+            use_ambient_credentials=args.use_ambient_credentials,
+            use_staging=args.sigstore_staging,
+            identity_token=args.identity_token,
         )
     elif args.method == "skip":
         return in_toto_signature.IntotoSigner(fake.FakeSigner())
