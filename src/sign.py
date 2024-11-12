@@ -106,7 +106,7 @@ def _arguments() -> argparse.Namespace:
     sigstore.add_argument(
         "--staging",
         help="Use Sigstore's staging instances, instead of the default"
-        + " production instances",
+        " production instances",
         action="store_true",
         dest="sigstore_staging",
     )
@@ -114,8 +114,6 @@ def _arguments() -> argparse.Namespace:
         "--identity-token",
         help="the OIDC identity token to use",
         required=False,
-        type=str,
-        default="",
         dest="identity_token",
     )
     # skip
