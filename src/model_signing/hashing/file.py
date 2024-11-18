@@ -253,7 +253,7 @@ class ShardedFileHasher(SimpleFileHasher):
             chunk_size: The amount of file to read at once. Default is 8KB. A
               special value of 0 signals to attempt to read everything in a
               single call.
-            shard_size: The amount of file to read at once. Default is 8KB.
+            shard_size: The size of a file shard. Default is 1,000,000 bytes.
             digest_name_override: Optional string to allow overriding the
               `digest_name` property to support shorter, standardized names.
         """
