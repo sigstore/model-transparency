@@ -90,7 +90,7 @@ extra-dependencies = [
 ]
 
 [tool.hatch.envs.docs.scripts]
-serve = "pdoc src/model_signing --docformat google --no-show-source"
+serve = "pdoc model_signing --docformat google --edit-url model_signing=https://github.com/sigstore/model-transparency/blob/main/src/model_signing/ {args}"
 build = "serve --output-directory html"
 
 [tool.hatch.envs.type]
