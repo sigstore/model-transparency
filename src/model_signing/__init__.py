@@ -14,4 +14,4 @@
 
 """For the stable high-level API, see model_signing.api."""
 
-__version__ = "0.0.2-alpha"
+__version__ = "0.1.0"
