@@ -12,4 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""For the stable high-level API, see model_signing.api."""
+
 __version__ = "0.0.2-alpha"
