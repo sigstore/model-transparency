@@ -58,7 +58,7 @@ def hash(model_path: os.PathLike) -> manifest.Manifest:
         model_path: the path to the model to hash.
 
     Returns:
-        A manifest that represents hashes for the model.
+        A manifest of the hashed model.
     """
     return HashingConfig().hash(model_path)
 
@@ -68,7 +68,7 @@ def sign(model_path: os.PathLike, signature_path: os.PathLike):
 
     Args:
         model_path: the path to the model to sign.
-        signature_path: the path where to store the resulting signature.
+        signature_path: the path of the resulting signature.
     """
     SigningConfig().sign(model_path, signature_path)
 
@@ -124,12 +124,12 @@ class HashingConfig:
 
         The default hashing configuration uses SHA256 to compute the digest of
         every file in the model. The resulting manifest is a listing of files
-        paired with their hashes. By default, no file is ignored and symbolic
-        links are replaced by their contents.
+        paired with their hashes. By default, no file is ignored and any
+        symbolic link in the model directory results in an error.
         """
         self._ignored_paths = frozenset()
         self._serializer = serialize_by_file.ManifestSerializer(
-            self._build_file_hasher_factory(), allow_symlinks=True
+            self._build_file_hasher_factory(), allow_symlinks=False
         )
 
     def hash(self, model_path: os.PathLike) -> manifest.Manifest:
@@ -425,7 +425,7 @@ class SigningConfig:
 
         Args:
             model_path: the path to the model to sign.
-            signature_path: the path where to store the resulting signature.
+            signature_path: the path of the resulting signature.
         """
         manifest = self._hashing_config.hash(model_path)
         payload = self._payload_generator(manifest)
