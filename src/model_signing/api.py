@@ -176,10 +176,10 @@ class HashingConfig:
             The hasher factory that should be used by the active serialization
             method.
         """
-        algorithm = self._build_stream_hasher(hashing_algorithm)
 
         def factory(path: pathlib.Path) -> file.SimpleFileHasher:
-            return file.SimpleFileHasher(path, algorithm, chunk_size=chunk_size)
+            hasher = self._build_stream_hasher(hashing_algorithm)
+            return file.SimpleFileHasher(path, hasher, chunk_size=chunk_size)
 
         return factory
 
