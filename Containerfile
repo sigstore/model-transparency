@@ -1,9 +1,9 @@
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 COPY pyproject.toml ./
 COPY src ./src
 
-RUN pip install typing-extensions sigstore-protobuf-specs protobuf in-toto-attestation cryptography certifi pyOpenSSL sigstore
+RUN python -m pip install model_signing
 
 RUN echo '#!/bin/bash\n\
 cd "/src" && python sign.py' > /usr/local/bin/sign
