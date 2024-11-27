@@ -61,6 +61,7 @@ packages = ["src/model_signing"]
 installer = "pip"
 parallel = true
 randomize = true
+extra-args = ["-m", "not integration"]
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.10", "3.11", "3.12", "3.13"]
@@ -119,6 +120,9 @@ skip_empty = true
 
 # Add support for testing via the old `pytest .` way, too.
 [tool.pytest.ini_options]
+markers = [
+  "integration: mark a test as an integration test.",
+]
 pythonpath = "src"
 
 [tool.ruff]
