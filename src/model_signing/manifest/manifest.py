@@ -299,3 +299,49 @@ class ShardLevelManifest(FileLevelManifest):
         """
         for item, digest in sorted(self._item_to_digest.items()):
             yield ResourceDescriptor(identifier=str(item), digest=digest)
+
+
+@dataclasses.dataclass
+class ModelManifestItem(ManifestItem):
+    """A manifest item that records a model attribute together with its digest.
+
+    Note that the path component is a `pathlib.PurePath`, relative to the model.
+    """
+
+    model_attr: str
+    digest: hashing.Digest
+
+    def __init__(self, *, model_attr: str, digest: hashing.Digest):
+        """Builds a manifest item pairing a file with its digest.
+
+        Args:
+            path: The path to the file, relative to the model root.
+            digest: The digest of the file.
+        """
+        # Note: we need to force a PosixPath to canonicalize the manifest.
+        self.model_attr = model_attr
+        self.digest = digest
+
+
+class ModelLevelManifest(ItemizedManifest):
+    """A detailed manifest, recording integrity of every model file."""
+
+    def __init__(self, items: Iterable[ModelManifestItem]):
+        """Builds an itemized manifest from a collection of files.
+
+        Rather than recording the items in a list, we use a dictionary, to allow
+        efficient updates and retrieval of digests.
+        """
+        self._item_to_digest = {item.path: item.digest for item in items}
+
+    def __eq__(self, other: Self):
+        return self._item_to_digest == other._item_to_digest
+
+    @override
+    def resource_descriptors(self) -> Iterator[ResourceDescriptor]:
+        """Yields each resource from the manifest, one by one.
+
+        The items are returned in alphabetical order of the path.
+        """
+        for item, digest in sorted(self._item_to_digest.items()):
+            yield ResourceDescriptor(identifier=str(item), digest=digest)
