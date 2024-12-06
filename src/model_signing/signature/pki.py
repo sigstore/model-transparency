@@ -13,7 +13,7 @@
 # limitations under the License.
 """Functionality to sign and verify models with certificates."""
 
-from typing import Self
+from typing_extensions import Self
 
 import certifi
 from cryptography import x509

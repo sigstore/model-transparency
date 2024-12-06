@@ -17,11 +17,14 @@
 import argparse
 import logging
 import pathlib
+import collections
 
 from model_signing import model
 from model_signing.hashing import file
+from model_signing.hashing import state
 from model_signing.hashing import memory
 from model_signing.serialization import serialize_by_file
+from model_signing.serialization import serialize_by_state
 from model_signing.signature import fake
 from model_signing.signature import key
 from model_signing.signature import pki
@@ -29,6 +32,9 @@ from model_signing.signing import in_toto
 from model_signing.signing import in_toto_signature
 from model_signing.signing import signing
 from model_signing.signing import sigstore
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 
 log = logging.getLogger(__name__)
@@ -171,7 +177,7 @@ def _check_pki_options(args: argparse.Namespace):
         log.warning("No certificate chain provided")
 
 
-def main():
+def sign_files():
     logging.basicConfig(level=logging.INFO)
     args = _arguments()
 
@@ -188,7 +194,7 @@ def main():
         file_hasher_factory=hasher_factory
     )
 
-    sig = model.sign(
+    sig = model.sign_file(
         model_path=args.model_path,
         signer=payload_signer,
         payload_generator=in_toto.DigestsIntotoPayload.from_manifest,
@@ -200,5 +206,54 @@ def main():
     sig.write(args.sig_out)
 
 
+def sign_model():
+    logging.basicConfig(level=logging.INFO)
+    args = _arguments()
+
+    log.info(f"Creating signer for {args.method}")
+    payload_signer = _get_payload_signer(args)
+    
+    class Net(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.conv1 = nn.Conv2d(3, 6, 5)
+            self.pool = nn.MaxPool2d(2, 2)
+            self.conv2 = nn.Conv2d(6, 16, 5)
+            self.fc1 = nn.Linear(16 * 5 * 5, 120)
+            self.fc2 = nn.Linear(120, 84)
+            self.fc3 = nn.Linear(84, 10)
+
+        def forward(self, x):
+            x = self.pool(F.relu(self.conv1(x)))
+            x = self.pool(F.relu(self.conv2(x)))
+            x = torch.flatten(x, 1) # flatten all dimensions except batch
+            x = F.relu(self.fc1(x))
+            x = F.relu(self.fc2(x))
+            x = self.fc3(x)
+            return x
+    net = Net().to('cuda')
+
+    def hasher_factory(state_dict: collections.OrderedDict) -> state.StateHasher:
+        return state.SimpleStateHasher(
+            state=state_dict, content_hasher=memory.SHA256()
+        )
+
+    serializer = serialize_by_state.ManifestSerializer(
+        state_hasher_factory=hasher_factory
+    )
+
+    states = [net.state_dict(),]
+
+    sig = model.sign_state(
+        states=states,
+        signer=payload_signer,
+        payload_generator=in_toto.DigestsIntotoPayload.from_manifest,
+        serializer=serializer,
+    )
+
+    log.info(f'Storing signature at "{args.sig_out}"')
+    sig.write(args.sig_out)
+
+
 if __name__ == "__main__":
-    main()
+    sign_model()

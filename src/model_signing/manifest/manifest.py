@@ -302,16 +302,16 @@ class ShardLevelManifest(FileLevelManifest):
 
 
 @dataclasses.dataclass
-class ModelManifestItem(ManifestItem):
+class StateManifestItem(ManifestItem):
     """A manifest item that records a model attribute together with its digest.
 
     Note that the path component is a `pathlib.PurePath`, relative to the model.
     """
 
-    model_attr: str
+    state: str
     digest: hashing.Digest
 
-    def __init__(self, *, model_attr: str, digest: hashing.Digest):
+    def __init__(self, *, state: str, digest: hashing.Digest):
         """Builds a manifest item pairing a file with its digest.
 
         Args:
@@ -319,14 +319,14 @@ class ModelManifestItem(ManifestItem):
             digest: The digest of the file.
         """
         # Note: we need to force a PosixPath to canonicalize the manifest.
-        self.model_attr = model_attr
+        self.state = state
         self.digest = digest
 
 
-class ModelLevelManifest(ItemizedManifest):
+class StateLevelManifest(ItemizedManifest):
     """A detailed manifest, recording integrity of every model file."""
 
-    def __init__(self, items: Iterable[ModelManifestItem]):
+    def __init__(self, items: Iterable[StateManifestItem]):
         """Builds an itemized manifest from a collection of files.
 
         Rather than recording the items in a list, we use a dictionary, to allow
