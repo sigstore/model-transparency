@@ -1,7 +1,7 @@
 #ifndef SHA256_H
 #define SHA256_H
 
-/****************************** MACROS ******************************/
+// /****************************** MACROS ******************************/
 #define DIGEST_SIZE 32            // SHA256 outputs a 32 byte digest
 
 #define ROTLEFT(a,b) (((a) << (b)) | ((a) >> (32-(b))))
@@ -14,17 +14,15 @@
 #define SIG0(x) (ROTRIGHT(x,7) ^ ROTRIGHT(x,18) ^ ((x) >> 3))
 #define SIG1(x) (ROTRIGHT(x,17) ^ ROTRIGHT(x,19) ^ ((x) >> 10))
 
-#include <cstdint>
-#include <cstdio>
 
 typedef struct {
-	uint8_t data[64];
-	uint32_t datalen;
+	unsigned char data[64];
+	unsigned int datalen;
 	unsigned long long bitlen;
-	uint32_t state[8];
+	unsigned int state[8];
 } SHA256_CTX;
 
-__constant__ uint32_t k[64] = {
+__constant__ unsigned int k[64] = {
 	0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
 	0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
 	0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
@@ -35,31 +33,17 @@ __constant__ uint32_t k[64] = {
 	0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
 };
 
-/*********************** FUNCTION DECLARATIONS **********************/
-char * print_sha(uint8_t * buff);
+// /*********************** FUNCTION DECLARATIONS **********************/
 __device__
 void sha256_init(SHA256_CTX *ctx);
 __device__
-void sha256_update(SHA256_CTX *ctx, const uint8_t data[], size_t len);
+void sha256_update(SHA256_CTX *ctx, const unsigned char data[], size_t len);
 __device__
-void sha256_final(SHA256_CTX *ctx, uint8_t hash[]);
-
-
-char * hash_to_string(uint8_t * buff) {
-	char * string = (char *)malloc(70);
-	int k, i;
-	for (i = 0, k = 0; i < 32; i++, k+= 2)
-	{
-		sprintf(string + k, "%.2x", buff[i]);
-		//printf("%02x", buff[i]);
-	}
-	string[64] = 0;
-	return string;
-}
+void sha256_final(SHA256_CTX *ctx, unsigned char hash[]);
 
 __device__
-void sha256_transform(SHA256_CTX *ctx, const uint8_t data[]) {
-	uint32_t a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
+void sha256_transform(SHA256_CTX *ctx, const unsigned char data[]) {
+	unsigned int a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
 
     #pragma unroll 16
 	for (i = 0, j = 0; i < 16; ++i, j += 4)
@@ -117,8 +101,8 @@ void sha256_init(SHA256_CTX *ctx) {
 }
 
 __device__
-void sha256_update(SHA256_CTX *ctx, const uint8_t data[], size_t len) {
-	uint32_t i;
+void sha256_update(SHA256_CTX *ctx, const unsigned char data[], size_t len) {
+	unsigned int i;
 
 	// for each byte in message
 	for (i = 0; i < len; ++i) {
@@ -134,8 +118,8 @@ void sha256_update(SHA256_CTX *ctx, const uint8_t data[], size_t len) {
 }
 
 __device__
-void sha256_final(SHA256_CTX *ctx, uint8_t hash[]) {
-	uint32_t i;
+void sha256_final(SHA256_CTX *ctx, unsigned char hash[]) {
+	unsigned int i;
 
 	i = ctx->datalen;
 
@@ -180,8 +164,8 @@ void sha256_final(SHA256_CTX *ctx, uint8_t hash[]) {
 }
 
 // first mapping of blocks to digests at the leaves layer
-__global__
-void merkle_tree_pre(uint8_t *output, uint8_t *input, size_t blockSize, size_t n) {
+extern "C" __global__
+void merkle_tree_pre(unsigned char *output, unsigned char *input, size_t blockSize, size_t n) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 	SHA256_CTX ctx;
@@ -197,10 +181,10 @@ void merkle_tree_pre(uint8_t *output, uint8_t *input, size_t blockSize, size_t n
 	n /= 2;
 }
 
-// subsequent halving of merkle tree until one digest remains per threadblock
-__global__
-void merkle_tree_hash(uint8_t *output, uint8_t *input, size_t blockSize, size_t n) {
-	__shared__ uint8_t shMem[1024 * DIGEST_SIZE];
+// // subsequent halving of merkle tree until one digest remains per threadblock
+extern "C" __global__
+void merkle_tree_hash(unsigned char *output, unsigned char *input, size_t blockSize, size_t n) {
+	__shared__ unsigned char shMem[1024 * DIGEST_SIZE];
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 	SHA256_CTX ctx;
@@ -222,27 +206,6 @@ void merkle_tree_hash(uint8_t *output, uint8_t *input, size_t blockSize, size_t 
 
   if (i == 0)
     memcpy(&output[blockIdx.x*1024*blockSize], &shMem[0], DIGEST_SIZE);
-}
-
-__host__
-void merkle_tree(uint8_t *digest, uint8_t *content, size_t blockSize, size_t nBytes) {
-  size_t nThread = (nBytes + (blockSize-1)) / blockSize;
-  
-  uint8_t *buffer;
-  cudaMalloc(&buffer, nBytes);
-  size_t block = std::min(1024UL, nThread);
-  size_t grid = (nThread + (block-1)) / block;
-  merkle_tree_pre<<<grid, block>>>(buffer, content, blockSize, nThread);
-  nThread /= 2;
-
-  for (; nThread > 0; nThread /= 2048) {
-    block = std::min(1024UL, nThread);
-    grid = (nThread + (block-1)) / block;
-    merkle_tree_hash<<<grid, block>>>(content, buffer, blockSize, nThread);
-    cudaMemcpy2D(buffer, DIGEST_SIZE, content, 1024*blockSize, 1, grid, cudaMemcpyDeviceToDevice);
-  }
-
-  cudaMemcpy(digest, buffer, DIGEST_SIZE, cudaMemcpyDeviceToDevice);
 }
 
 #endif   // SHA256_H

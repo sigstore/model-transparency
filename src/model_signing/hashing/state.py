@@ -18,7 +18,30 @@ from typing_extensions import override
 from model_signing.hashing import hashing
 import json
 import torch
-from cuda.bindings import driver, nvrtc
+from cuda.bindings import driver, nvrtc, runtime
+import numpy as np
+
+
+def _cudaGetErrorEnum(error):
+    if isinstance(error, driver.CUresult):
+        err, name = driver.cuGetErrorName(error)
+        return name if err == driver.CUresult.CUDA_SUCCESS else "<unknown>"
+    elif isinstance(error, nvrtc.nvrtcResult):
+        return nvrtc.nvrtcGetErrorString(error)[1]
+    else:
+        raise RuntimeError('Unknown error type: {}'.format(error))
+
+
+def checkCudaErrors(result):
+    if result[0].value:
+        raise RuntimeError("CUDA error code={}({})".format(result[0].value, _cudaGetErrorEnum(result[0])))
+    if len(result) == 1:
+        return None
+    elif len(result) == 2:
+        return result[1]
+    else:
+        return result[1:]
+
 
 
 class StateHasher(hashing.HashEngine):
@@ -73,6 +96,35 @@ class SimpleStateHasher(StateHasher):
         self._chunk_size = chunk_size
         self._digest_name_override = digest_name_override
 
+        # compilation of cuda code into ptx for joint execution with python
+        with open('model_signing/hashing/merkle_tree.cu', 'r') as f:
+            code = f.read()
+
+        driver.cuInit(0)
+        cuDevice = checkCudaErrors(runtime.cudaGetDevice())
+        major = checkCudaErrors(driver.cuDeviceGetAttribute(driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, cuDevice))
+        minor = checkCudaErrors(driver.cuDeviceGetAttribute(driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, cuDevice))
+        arch_arg = bytes(f'--gpu-architecture=compute_{major}{minor}', 'ascii')
+        prog = checkCudaErrors(nvrtc.nvrtcCreateProgram(str.encode(code), b'merkle_tree.cuh', 0, [], []))
+        opts = [b'--fmad=false', arch_arg]
+        checkCudaErrors(nvrtc.nvrtcCompileProgram(prog, len(opts), opts))
+        ptxSize = checkCudaErrors(nvrtc.nvrtcGetPTXSize(prog))
+        ptx = b' ' * ptxSize
+        checkCudaErrors(nvrtc.nvrtcGetPTX(prog, ptx))
+        self.context = checkCudaErrors(driver.cuCtxCreate(0, cuDevice))
+        self.stream = checkCudaErrors(runtime.cudaStreamCreate())
+        ptx = np.char.array(ptx)
+        module = checkCudaErrors(driver.cuModuleLoadData(ptx.ctypes.data))
+        self.merkle_tree_pre = checkCudaErrors(driver.cuModuleGetFunction(module, b'merkle_tree_pre'))
+        self.merkle_tree_hash = checkCudaErrors(driver.cuModuleGetFunction(module, b'merkle_tree_hash'))
+
+    def __del__(self):
+        # checkCudaErrors(runtime.cudaStreamDestroy(self.stream))
+        # checkCudaErrors(driver.cuModuleUnload(self.merkle_tree_pre))
+        # checkCudaErrors(driver.cuModuleUnload(self.merkle_tree_hash))
+        # checkCudaErrors(driver.cuCtxDestroy(self.context))
+        pass
+
     def set_state(self, state: collections.OrderedDict) -> None:
         """Redefines the state to be hashed in `compute`."""
         self._state = state
@@ -83,6 +135,47 @@ class SimpleStateHasher(StateHasher):
         if self._digest_name_override is not None:
             return self._digest_name_override
         return f"state-{self._content_hasher.digest_name}"
+    
+    def merkle_tree(self, content, blockSize) -> hashing.Digest:
+        buffer = checkCudaErrors(runtime.cudaMalloc(nBytes))
+        buffer = np.array([int(buffer)], dtype=np.uint64)
+
+        content = np.array([int(content)], dtype=np.uint64)
+        blockSize = np.array([int(blockSize)], dtype=np.uint64)
+
+        nThread = (nBytes + (blockSize-1)) // blockSize
+        nThread = np.array([int(nThread)], dtype=np.uint64)
+
+        args = [buffer, content, blockSize, nThread]
+        args = np.array([arg.ctypes.data for arg in args], dtype=np.uint64)
+
+        block = min(1024, nThread)
+        grid = (nThread + (block-1)) // block
+
+        checkCudaErrors(driver.cuLaunchKernel(
+            merkle_tree_pre, grid, 1, 1, block, 1, 1,
+            0, self.stream, args.ctypes.data, 0,
+        ))
+        nThread //= 2
+
+        while nThread > 0:
+            args = [content, buffer, blockSize, nThread]
+            args = np.array([arg.ctypes.data for arg in args], dtype=np.uint64)
+
+            block = min(1024, nThread)
+            grid = (nThread + (block-1)) // block
+
+            checkCudaErrors(driver.cuLaunchKernel(
+                merkle_tree_hash, grid, 1, 1, block, 1, 1,
+                0, self.stream, args.ctypes.data, 0,
+            ))
+
+            checkCudaErrors(runtime.cudaMemcpy2D(buffer, DIGEST_SIZE, content,
+                1024*blockSize, 1, grid, cudaMemcpyDeviceToDevice))
+            nThread //= 2048
+
+        checkCudaErrors(runtime.cudaMemcpy(digest, buffer, DIGEST_SIZE,
+            cudaMemcpyDeviceToDevice))
 
     @override
     def compute(self) -> hashing.Digest:
@@ -94,8 +187,8 @@ class SimpleStateHasher(StateHasher):
                 self._buffer = v
             else:
                 self._buffer = torch.cat((self._buffer, v))
-        print(self._buffer.nbytes)
-        return
+
+        # merkle_tree()
 
         b = 0
         while (b < len(dictBytes)):
