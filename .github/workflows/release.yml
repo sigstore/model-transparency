@@ -55,6 +55,51 @@ jobs:
           path: dist/
       - uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
 
+  build_and_push_container:
+    name: Build and Push Docker Image
+    needs: [publish_release_to_pypi]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Build Image
+        id: build_image
+        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2.13
+        with:
+          containerfiles: |
+            ./Containerfile
+          image: ghcr.io/sigstore/model-transparency-cli
+          tags: latest
+          archs: amd64
+          oci: false
+
+      - id: docker_meta
+        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5.6.1
+        with:
+          images: ${{ steps.build_image.outputs.image }}
+          tags: type=sha,format=long,type=ref,event=branch
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        id: registry_login
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push To GHCR
+        uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2.8
+        id: push
+        with:
+          image: ${{ steps.build_image.outputs.image }}
+          tags: ${{ steps.build_image.outputs.tags }}
+          registry: ghcr.io
+
   # TODO: Create and publish release notes
   # TODO: Generate SLSA provenance for the wheels
   # TODO: Sign artifacts with sigstore and publish to release page
+  # TODO: Build container cli for other platforms
