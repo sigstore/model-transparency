@@ -73,7 +73,7 @@ jobs:
           containerfiles: |
             ./Containerfile
           image: ghcr.io/sigstore/model-transparency-cli
-          tags: latest
+          tags: "latest ${{ github.event.release.tag_name }}"
           archs: amd64
           oci: false
 
