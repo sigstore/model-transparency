@@ -99,6 +99,13 @@ jobs:
           tags: ${{ steps.build_image.outputs.tags }}
           registry: ghcr.io
 
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@7668571508540a607bdfd90a87a560489fe372eb # v2.1.0
+        with:
+          subject-name: ghcr.io/sigstore/model-transparency-cli
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
   # TODO: Create and publish release notes
   # TODO: Generate SLSA provenance for the wheels
   # TODO: Sign artifacts with sigstore and publish to release page
