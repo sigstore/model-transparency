@@ -52,11 +52,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--data-sizes",
-        help="hash methods to benchmark",
-        nargs="+",
-        type=int,
-        default=[KB, MB, 512 * MB, GB, 4 * GB, 16 * GB, 32 * GB],
+        "--data-sizes", help="hash methods to benchmark", nargs="+", type=int
     )
 
     return parser
@@ -87,11 +83,23 @@ def _generate_data(size: int) -> bytes:
     return np.random.randint(0, 256, size, dtype=np.uint8).tobytes()
 
 
+def _default_sizes() -> list[int]:
+    """Generates sizes following 1, 2, 5 pattern, useful for log scale."""
+    sizes = []
+    for scale in [KB, MB, GB]:
+        for d in [1, 2, 5, 10, 20, 50, 100, 200, 500]:
+            if scale == GB and d > 20:
+                break
+            sizes.append(d * scale)
+    return sizes
+
+
 if __name__ == "__main__":
     np.random.seed(42)
     args = build_parser().parse_args()
-    data = _generate_data(max(args.data_sizes))
-    for size in args.data_sizes:
+    sizes = args.data_sizes or _default_sizes()
+    data = _generate_data(max(sizes))
+    for size in sizes:
         for algorithm in args.methods:
             hasher = _get_hasher(algorithm)
 
