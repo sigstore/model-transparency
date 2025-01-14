@@ -122,4 +122,4 @@ if __name__ == "__main__":
             # Grab the min time, as suggested by the docs
             # https://docs.python.org/3/library/timeit.html#timeit.Timer.repeat
             measurement = min(times)
-            print(f"{f'{algorithm}/{size}: ':<{padding}}{measurement}")
+            print(f"{f'{algorithm}/{size}: ':<{padding}}{measurement:10.4f}")
