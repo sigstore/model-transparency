@@ -107,13 +107,14 @@ if __name__ == "__main__":
     args = build_parser().parse_args()
     sizes = args.data_sizes or _default_sizes()
     padding = _get_padding(args.methods, sizes)
-    data = _generate_data(max(sizes))
+
     for size in sizes:
+        data = _generate_data(size)
         for algorithm in args.methods:
             hasher = _get_hasher(algorithm)
 
-            def hash(hasher=hasher, size=size):
-                hasher.update(data[:size])
+            def hash(hasher=hasher, data=data):
+                hasher.update(data)
                 return hasher.compute()
 
             times = timeit.repeat(lambda: hash(), number=1, repeat=args.repeat)
