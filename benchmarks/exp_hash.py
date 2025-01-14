@@ -94,10 +94,19 @@ def _default_sizes() -> list[int]:
     return sizes
 
 
+def _get_padding(methods: list[str], sizes: list[int]) -> int:
+    """Calculates the necessary padding by looking at longest output.
+
+    E.g. "sha256/1024: " would require 13 characters of padding.
+    """
+    return len(f"{max(methods, key=len)}/{max(sizes)}: ")
+
+
 if __name__ == "__main__":
     np.random.seed(42)
     args = build_parser().parse_args()
     sizes = args.data_sizes or _default_sizes()
+    padding = _get_padding(args.methods, sizes)
     data = _generate_data(max(sizes))
     for size in sizes:
         for algorithm in args.methods:
@@ -111,8 +120,5 @@ if __name__ == "__main__":
 
             # Grab the min time, as suggested by the docs
             # https://docs.python.org/3/library/timeit.html#timeit.Timer.repeat
-            print(
-                f"algorithm: {algorithm}, "
-                f"size: {_human_size(size)}, "
-                f"best time: {min(times)}s"
-            )
+            measurement = min(times)
+            print(f"{f'{algorithm}/{size}: ':<{padding}}{measurement}")
