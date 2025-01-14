@@ -16,10 +16,18 @@
 """Script for running a benchmark to pick a hashing algorithm."""
 
 import argparse
-import pathlib
 import timeit
+from typing import Final
 
-import serialize
+import numpy as np
+
+from model_signing.hashing import hashing
+from model_signing.hashing import memory
+
+
+KB: Final[int] = 1024
+MB: Final[int] = 1024 * KB
+GB: Final[int] = 1024 * MB
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -27,7 +35,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="hash algorithm benchmark data for model signing"
     )
-    parser.add_argument("path", help="path to model", type=pathlib.Path)
 
     parser.add_argument(
         "--repeat",
@@ -44,28 +51,60 @@ def build_parser() -> argparse.ArgumentParser:
         default=["sha256", "blake2"],
     )
 
+    parser.add_argument(
+        "--data-sizes",
+        help="hash methods to benchmark",
+        nargs="+",
+        type=int,
+        default=[KB, MB, 512 * MB, GB, 4 * GB, 16 * GB, 32 * GB],
+    )
+
     return parser
 
 
+def _human_size(size: int) -> str:
+    if size >= GB:
+        return str(size / GB) + " GB"
+    elif size >= MB:
+        return str(size / MB) + " MB"
+    elif size >= KB:
+        return str(size / KB) + " KB"
+    return str(size) + " B"
+
+
+def _get_hasher(hash_algorithm: str) -> hashing.StreamingHashEngine:
+    match hash_algorithm:
+        case "sha256":
+            return memory.SHA256()
+        case "blake2":
+            return memory.BLAKE2()
+    raise ValueError(f"Cannot convert {hash_algorithm} to a hash engine")
+
+
+def _generate_data(size: int) -> bytes:
+    if size < 0:
+        raise ValueError("Cannot generate negative bytes")
+    return np.random.randint(0, 256, size, dtype=np.uint8).tobytes()
+
+
 if __name__ == "__main__":
-    hash_args = build_parser().parse_args()
-    bench_parser = serialize.build_parser()
-    for algorithm in hash_args.methods:
-        args = bench_parser.parse_args(
-            [
-                str(hash_args.path),
-                "--skip_manifest",
-                "--hash_method",
-                algorithm,
-                "--merge_hasher",
-                algorithm,
-            ]
-        )
-        times = timeit.repeat(
-            lambda args=args: serialize.run(args),
-            number=1,
-            repeat=hash_args.repeat,
-        )
-        # Grab the min time, as suggested by the docs
-        # https://docs.python.org/3/library/timeit.html#timeit.Timer.repeat
-        print(f"algorithm: {algorithm}, best time: {min(times)}s")
+    np.random.seed(42)
+    args = build_parser().parse_args()
+    data = _generate_data(max(args.data_sizes))
+    for size in args.data_sizes:
+        for algorithm in args.methods:
+            hasher = _get_hasher(algorithm)
+
+            def hash(hasher=hasher, size=size):
+                hasher.update(data[:size])
+                return hasher.compute()
+
+            times = timeit.repeat(lambda: hash(), number=1, repeat=args.repeat)
+
+            # Grab the min time, as suggested by the docs
+            # https://docs.python.org/3/library/timeit.html#timeit.Timer.repeat
+            print(
+                f"algorithm: {algorithm}, "
+                f"size: {_human_size(size)}, "
+                f"best time: {min(times)}s"
+            )
