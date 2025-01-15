@@ -23,7 +23,7 @@ from collections.abc import Callable, Iterable
 import os
 import pathlib
 import sys
-from typing import Literal, cast
+from typing import Literal, Optional, cast
 
 from model_signing.hashing import file
 from model_signing.hashing import hashing
@@ -78,7 +78,7 @@ def verify(
     signature_path: os.PathLike,
     *,
     identity: str,
-    oidc_issuer: str | None = None,
+    oidc_issuer: Optional[str] = None,
     use_staging: bool = False,
 ):
     """Verifies that a model conforms to a signature.
@@ -149,15 +149,13 @@ class HashingConfig:
         Returns:
             An instance of the requested hasher.
         """
-        match hashing_algorithm:
-            case "sha256":
-                return memory.SHA256()
-            case "blake2":
-                return memory.BLAKE2()
-            case _:
-                raise ValueError(
-                    f"Unsupported hashing method {hashing_algorithm}"
-                )
+        # TODO: Once Python 3.9 support is deprecated revert to using `match`
+        if hashing_algorithm == "sha256":
+            return memory.SHA256()
+        if hashing_algorithm == "blake2":
+            return memory.BLAKE2()
+
+        raise ValueError(f"Unsupported hashing method {hashing_algorithm}")
 
     def _build_file_hasher_factory(
         self,
@@ -223,7 +221,7 @@ class HashingConfig:
         *,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 8192,
-        max_workers: int | None = None,
+        max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ) -> Self:
         """Configures serialization to a manifest pairing files with hashes.
@@ -302,7 +300,7 @@ class HashingConfig:
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 8192,
         shard_size: int = 1000000,
-        max_workers: int | None = None,
+        max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ) -> Self:
         """Configures serialization to a manifest of (file shard, hash) pairs.
@@ -343,7 +341,7 @@ class HashingConfig:
         merge_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 8192,
         shard_size: int = 1000000,
-        max_workers: int | None = None,
+        max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ) -> Self:
         """Configures serialization to a single digest, at shard granularity.
@@ -467,10 +465,10 @@ class SigningConfig:
         self,
         *,
         sign_dsse: bool = True,
-        oidc_issuer: str | None = None,
+        oidc_issuer: Optional[str] = None,
         use_ambient_credentials: bool = True,
         use_staging: bool = False,
-        identity_token: str | None = None,
+        identity_token: Optional[str] = None,
     ) -> Self:
         """Configures the signing to be performed with Sigstore.
 
@@ -556,7 +554,7 @@ class VerificationConfig:
         self,
         *,
         identity: str,
-        oidc_issuer: str | None = None,
+        oidc_issuer: Optional[str] = None,
         use_staging: bool = False,
     ) -> Self:
         """Configures the verification of a Sigstore signature over DSSE.

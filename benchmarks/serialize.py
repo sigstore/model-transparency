@@ -40,11 +40,11 @@ def get_hash_engine_factory(
     Raises:
         ValueError: if the algorithm is not implemented/not valid.
     """
-    match hash_algorithm:
-        case "sha256":
-            return memory.SHA256
-        case "blake2":
-            return memory.BLAKE2
+    # TODO: Once Python 3.9 support is deprecated revert to using `match`
+    if hash_algorithm == "sha256":
+        return memory.SHA256
+    if hash_algorithm == "blake2":
+        return memory.BLAKE2
 
     raise ValueError(f"Cannot convert {hash_algorithm} to a hash engine")
 
@@ -152,14 +152,16 @@ def run(args: argparse.Namespace) -> None:
         if args.single_digest:
             in_toto_builder = in_toto.SingleDigestIntotoPayload
         else:
-            match (args.digest_of_digests, args.use_shards):
-                case (True, True):
+            # TODO: Once Python 3.9 support is deprecated revert to `match`
+            if args.digest_of_digests:
+                if args.use_shards:
                     in_toto_builder = in_toto.DigestOfShardDigestsIntotoPayload
-                case (True, False):
+                else:
                     in_toto_builder = in_toto.DigestOfDigestsIntotoPayload
-                case (False, True):
+            else:
+                if args.use_shards:
                     in_toto_builder = in_toto.ShardDigestsIntotoPayload
-                case (False, False):
+                else:
                     in_toto_builder = in_toto.DigestsIntotoPayload
 
         in_toto_builder = in_toto_builder.from_manifest

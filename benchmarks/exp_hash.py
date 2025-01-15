@@ -69,11 +69,12 @@ def _human_size(size: int) -> str:
 
 
 def _get_hasher(hash_algorithm: str) -> hashing.StreamingHashEngine:
-    match hash_algorithm:
-        case "sha256":
-            return memory.SHA256()
-        case "blake2":
-            return memory.BLAKE2()
+    # TODO: Once Python 3.9 support is deprecated revert to using `match`
+    if hash_algorithm == "sha256":
+        return memory.SHA256()
+    if hash_algorithm == "blake2":
+        return memory.BLAKE2()
+
     raise ValueError(f"Cannot convert {hash_algorithm} to a hash engine")
 
 

@@ -13,6 +13,8 @@
 # limitations under the License.
 """Functionality to sign and verify models with keys."""
 
+from typing import Optional
+
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.hashes import SHA256
@@ -30,7 +32,7 @@ from model_signing.signature.verifying import Verifier
 
 
 def load_ec_private_key(
-    path: str, password: str | None = None
+    path: str, password: Optional[str] = None
 ) -> ec.EllipticCurvePrivateKey:
     private_key: ec.EllipticCurvePrivateKey
     with open(path, "rb") as fd:
@@ -48,7 +50,7 @@ class ECKeySigner(Signer):
         self._private_key = private_key
 
     @classmethod
-    def from_path(cls, private_key_path: str, password: str | None = None):
+    def from_path(cls, private_key_path: str, password: Optional[str] = None):
         private_key = load_ec_private_key(private_key_path, password)
         return cls(private_key)
 
