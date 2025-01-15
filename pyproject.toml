@@ -71,6 +71,8 @@ python = ["3.9", "3.10", "3.11", "3.12", "3.13"]
 description = """Custom environment for running benchmarks.
 Use `hatch run +py=3... bench:generate ${args}` to generate test models.
 Use `hatch run +py=3... bench:serialize ${args}` to benchmark serialization code.
+Use `hatch run +py=3... bench:hash ${args}` to benchmark hashing code.
+Use `hatch run +py=3... bench:chunk ${args}` to benchmark the chunk size parameter.
 """
 extra-dependencies = [
   "numpy",
@@ -83,6 +85,7 @@ python = ["3.9", "3.10", "3.11", "3.12", "3.13"]
 generate = "python benchmarks/generate.py {args}"
 serialize = "python benchmarks/serialize.py {args}"
 hash = "python benchmarks/exp_hash.py {args}"
+chunk = "python benchmarks/exp_chunk.py {args}"
 
 [tool.hatch.envs.docs]
 description = """Custom environment for pdoc.
