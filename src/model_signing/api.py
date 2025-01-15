@@ -149,15 +149,13 @@ class HashingConfig:
         Returns:
             An instance of the requested hasher.
         """
-        match hashing_algorithm:
-            case "sha256":
-                return memory.SHA256()
-            case "blake2":
-                return memory.BLAKE2()
-            case _:
-                raise ValueError(
-                    f"Unsupported hashing method {hashing_algorithm}"
-                )
+        # TODO: Once Python 3.9 support is deprecated revert to using `match`
+        if hashing_algorithm == "sha256":
+            return memory.SHA256()
+        if hashing_algorithm == "blake2":
+            return memory.BLAKE2()
+
+        raise ValueError(f"Unsupported hashing method {hashing_algorithm}")
 
     def _build_file_hasher_factory(
         self,
