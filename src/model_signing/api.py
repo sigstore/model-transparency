@@ -32,8 +32,8 @@ from model_signing.manifest import manifest
 from model_signing.serialization import serialize_by_file
 from model_signing.serialization import serialize_by_file_shard
 from model_signing.signing import in_toto
-from model_signing.signing import signing
 from model_signing.signing import sign_sigstore as sigstore
+from model_signing.signing import signing
 
 
 if sys.version_info >= (3, 11):

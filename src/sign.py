@@ -27,8 +27,8 @@ from model_signing.signature import key
 from model_signing.signature import pki
 from model_signing.signing import in_toto
 from model_signing.signing import in_toto_signature
-from model_signing.signing import signing
 from model_signing.signing import sign_sigstore as sigstore
+from model_signing.signing import signing
 
 
 log = logging.getLogger(__name__)
