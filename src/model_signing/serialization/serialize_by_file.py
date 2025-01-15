@@ -20,7 +20,7 @@ from collections.abc import Callable, Iterable
 import concurrent.futures
 import itertools
 import pathlib
-from typing import cast
+from typing import Optional, cast
 
 from typing_extensions import override
 
@@ -110,7 +110,7 @@ class FilesSerializer(serialization.Serializer):
         self,
         file_hasher_factory: Callable[[pathlib.Path], file.FileHasher],
         *,
-        max_workers: int | None = None,
+        max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ):
         """Initializes an instance to serialize a model with this serializer.
@@ -252,7 +252,7 @@ class _FileDigestTree:
     """
 
     def __init__(
-        self, path: pathlib.PurePath, digest: hashing.Digest | None = None
+        self, path: pathlib.PurePath, digest: Optional[hashing.Digest] = None
     ):
         """Builds a node in the digest tree.
 

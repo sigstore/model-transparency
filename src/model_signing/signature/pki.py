@@ -13,7 +13,7 @@
 # limitations under the License.
 """Functionality to sign and verify models with certificates."""
 
-from typing import Self
+from typing import Optional, Self
 
 import certifi
 from cryptography import x509
@@ -120,14 +120,14 @@ class PKIVerifier(Verifier):
     """Provides a verifier based on root certificates."""
 
     def __init__(
-        self, root_certs: list[x509.Certificate] | None = None
+        self, root_certs: Optional[list[x509.Certificate]] = None
     ) -> None:
         self._store = ssl_crypto.X509Store()
         for c in root_certs:
             self._store.add_cert(ssl_crypto.X509.from_cryptography(c))
 
     @classmethod
-    def from_paths(cls, root_cert_paths: list[str] | None = None) -> Self:
+    def from_paths(cls, root_cert_paths: Optional[list[str]] = None) -> Self:
         crypto_trust_roots: list[x509.Certificate] = []
         if root_cert_paths:
             crypto_trust_roots = _load_multiple_certs(root_cert_paths)

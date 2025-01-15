@@ -17,6 +17,7 @@
 import json
 import pathlib
 import sys
+from typing import Optional
 
 from google.protobuf import json_format
 from sigstore import dsse as sigstore_dsse
@@ -99,10 +100,10 @@ class SigstoreSigner(signing.Signer):
     def __init__(
         self,
         *,
-        oidc_issuer: str | None = None,
+        oidc_issuer: Optional[str] = None,
         use_ambient_credentials: bool = True,
         use_staging: bool = False,
-        identity_token: str | None = None,
+        identity_token: Optional[str] = None,
     ):
         """Initializes Sigstore signers.
 

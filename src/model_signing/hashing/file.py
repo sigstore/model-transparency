@@ -49,7 +49,7 @@ Example usage for `OpenedFileHasher`:
 import hashlib
 import pathlib
 import sys
-from typing import BinaryIO
+from typing import BinaryIO, Optional
 
 from typing_extensions import override
 
@@ -84,7 +84,7 @@ class SimpleFileHasher(FileHasher):
         content_hasher: hashing.StreamingHashEngine,
         *,
         chunk_size: int = 8192,
-        digest_name_override: str | None = None,
+        digest_name_override: Optional[str] = None,
     ):
         """Initializes an instance to hash a file with a specific `HashEngine`.
 
@@ -161,7 +161,7 @@ class OpenedFileHasher(FileHasher):
         file_descriptor: BinaryIO,
         *,
         algorithm: str = "sha256",
-        digest_name_override: str | None = None,
+        digest_name_override: Optional[str] = None,
     ):
         """Initializes an instance to hash a file with a specific algorithm.
 
@@ -237,7 +237,7 @@ class ShardedFileHasher(SimpleFileHasher):
         end: int,
         chunk_size: int = 8192,
         shard_size: int = 1000000,
-        digest_name_override: str | None = None,
+        digest_name_override: Optional[str] = None,
     ):
         """Initializes an instance to hash a file with a specific `HashEngine`.
 
