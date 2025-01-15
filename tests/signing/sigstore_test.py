@@ -28,7 +28,7 @@ from model_signing.serialization import serialize_by_file_shard
 from model_signing.signing import as_bytes
 from model_signing.signing import empty_signing
 from model_signing.signing import in_toto
-from model_signing.signing import sigstore
+from model_signing.signing import sign_sigstore as sigstore
 
 
 if sys.version_info >= (3, 11):
