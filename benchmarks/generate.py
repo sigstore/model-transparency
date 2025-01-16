@@ -31,7 +31,7 @@ def create_file_of_given_size(path: str, size: int) -> None:
     """
     file_path = pathlib.Path(path)
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    chunk_size = 8192
+    chunk_size = 1048576
     num_chunks = size // chunk_size
 
     with file_path.open("wb") as f:

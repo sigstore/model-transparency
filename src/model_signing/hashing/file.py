@@ -83,7 +83,7 @@ class SimpleFileHasher(FileHasher):
         file: pathlib.Path,
         content_hasher: hashing.StreamingHashEngine,
         *,
-        chunk_size: int = 8192,
+        chunk_size: int = 1048576,
         digest_name_override: Optional[str] = None,
     ):
         """Initializes an instance to hash a file with a specific `HashEngine`.
@@ -92,7 +92,7 @@ class SimpleFileHasher(FileHasher):
             file: The file to hash. Use `set_file` to reset it.
             content_hasher: A `hashing.StreamingHashEngine` instance used to
               compute the digest of the file.
-            chunk_size: The amount of file to read at once. Default is 8KB. A
+            chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
             digest_name_override: Optional string to allow overriding the
@@ -235,7 +235,7 @@ class ShardedFileHasher(SimpleFileHasher):
         *,
         start: int,
         end: int,
-        chunk_size: int = 8192,
+        chunk_size: int = 1048576,
         shard_size: int = 1000000,
         digest_name_override: Optional[str] = None,
     ):
@@ -250,7 +250,7 @@ class ShardedFileHasher(SimpleFileHasher):
             end: The file offset to start reading from. Must be stricly greater
               than start. If past the file size, or -1, it will be trimmed.
               Reset with `set_shard`.
-            chunk_size: The amount of file to read at once. Default is 8KB. A
+            chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
             shard_size: The size of a file shard. Default is 1,000,000 bytes.
