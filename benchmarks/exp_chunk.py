@@ -46,9 +46,11 @@ def build_parser() -> argparse.ArgumentParser:
 def _default_sizes() -> list[int]:
     # 0 is a special value to (attempt to) read whole files into RAM
     # then powers of 2 between 1KB and 1GB
-    return (
-        [0] + [2**i for i in range(10, 31)]
-    )  # pytype: disable=bad-return-type (https://github.com/google/pytype/issues/795)
+
+    # https://github.com/google/pytype/issues/795
+    # pytype: disable=bad-return-type
+    return [0] + [2**i for i in range(10, 31)]
+    # pytype: enable=bad-return-type
 
 
 if __name__ == "__main__":
