@@ -24,10 +24,10 @@ COPY src ./src
 RUN python -m pip install model_signing
 
 RUN echo '#!/bin/bash\n\
-cd "/src" && python sign.py' > /usr/local/bin/sign
+cd "/src" && python sign.py "$@"' > /usr/local/bin/sign
 
 RUN echo '#!/bin/bash\n\
-cd "/src" && python verify.py' > /usr/local/bin/verify
+cd "/src" && python verify.py "$@"' > /usr/local/bin/verify
 
 RUN echo '#!/bin/bash\n\
 echo "Usage:"\n\
