@@ -160,13 +160,13 @@ class HashingConfig:
     def _build_file_hasher_factory(
         self,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
-        chunk_size: int = 8192,
+        chunk_size: int = 1048576,
     ) -> Callable[[pathlib.Path], file.SimpleFileHasher]:
         """Builds the hasher factory for a serialization by file.
 
         Args:
             hashing_algorithm: the hashing algorithm to use to hash a file
-            chunk_size: The amount of file to read at once. Default is 8KB. A
+            chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
 
@@ -184,14 +184,14 @@ class HashingConfig:
     def _build_sharded_file_hasher_factory(
         self,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
-        chunk_size: int = 8192,
+        chunk_size: int = 1048576,
         shard_size: int = 1000000,
     ) -> Callable[[pathlib.Path, int, int], file.ShardedFileHasher]:
         """Builds the hasher factory for a serialization by file shards.
 
         Args:
             hashing_algorithm: the hashing algorithm to use to hash a file
-            chunk_size: The amount of file to read at once. Default is 8KB. A
+            chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
             shard_size: The size of a file shard. Default is 1,000,000 bytes.
@@ -220,7 +220,7 @@ class HashingConfig:
         self,
         *,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
-        chunk_size: int = 8192,
+        chunk_size: int = 1048576,
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ) -> Self:
@@ -232,7 +232,7 @@ class HashingConfig:
 
         Args:
             hashing_algorithm: the hashing algorithm to use to hash a file
-            chunk_size: The amount of file to read at once. Default is 8KB. A
+            chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
             max_workers: Maximum number of workers to use in parallel. Default
@@ -256,7 +256,7 @@ class HashingConfig:
         *,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         merge_algorithm: Literal["sha256", "blake2"] = "sha256",
-        chunk_size: int = 8192,
+        chunk_size: int = 1048576,
         allow_symlinks: bool = False,
     ) -> Self:
         """Configures serialization to a single digest, at file granularity.
@@ -269,7 +269,7 @@ class HashingConfig:
             hashing_algorithm: the hashing algorithm to use to hash a file
             merge_algorithm: the hashing algorithm to use when computing the
               final digest over all the (file, digest) pairings
-            chunk_size: The amount of file to read at once. Default is 8KB. A
+            chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
             allow_symlinks: Controls whether symbolic links are included. If a
@@ -298,7 +298,7 @@ class HashingConfig:
         self,
         *,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
-        chunk_size: int = 8192,
+        chunk_size: int = 1048576,
         shard_size: int = 1000000,
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
@@ -312,7 +312,7 @@ class HashingConfig:
 
         Args:
             hashing_algorithm: the hashing algorithm to use to hash a file shard
-            chunk_size: The amount of file to read at once. Default is 8KB. A
+            chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
             shard_size: The size of a file shard. Default is 1,000,000 bytes.
@@ -339,7 +339,7 @@ class HashingConfig:
         *,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         merge_algorithm: Literal["sha256", "blake2"] = "sha256",
-        chunk_size: int = 8192,
+        chunk_size: int = 1048576,
         shard_size: int = 1000000,
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
@@ -354,7 +354,7 @@ class HashingConfig:
             hashing_algorithm: the hashing algorithm to use to hash a file shard
             merge_algorithm: the hashing algorithm to use when computing the
               final digest over all the (file, digest) pairings
-            chunk_size: The amount of file to read at once. Default is 8KB. A
+            chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
             shard_size: The size of a file shard. Default is 1,000,000 bytes.

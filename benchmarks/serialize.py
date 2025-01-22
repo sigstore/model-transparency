@@ -193,7 +193,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     param_groups = parser.add_argument_group("Internal parameters to fine-tune")
     param_groups.add_argument(
-        "--chunk", help="chunk size (default: 8192)", type=int, default=8192
+        "--chunk",
+        help="chunk size (default: 1048576)",
+        type=int,
+        default=1048576,
     )
     param_groups.add_argument(
         "--shard",
