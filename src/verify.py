@@ -168,6 +168,7 @@ def main():
         )
     except verifying.VerificationError as err:
         log.error(f"verification failed: {err}")
+        exit(-1)
 
     log.info("all checks passed")
 
