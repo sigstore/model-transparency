@@ -17,6 +17,7 @@
 import argparse
 from collections.abc import Callable
 import pathlib
+from typing import Optional
 
 from model_signing.hashing import file
 from model_signing.hashing import hashing
@@ -103,7 +104,7 @@ def get_file_hasher_factory(
     return _hasher_factory
 
 
-def run(args: argparse.Namespace) -> None:
+def run(args: argparse.Namespace) -> Optional[in_toto.IntotoPayload]:
     """Performs the benchmark.
 
     Args:
@@ -146,29 +147,26 @@ def run(args: argparse.Namespace) -> None:
         serializer = serializer_factory(hasher, max_workers=args.max_workers)
 
     # 3. Signing layer
-    if args.skip_manifest:
-        in_toto_builder = id  # Do nothing, just evaluate the argument
+    if args.single_digest:
+        in_toto_builder = in_toto.SingleDigestIntotoPayload
     else:
-        if args.single_digest:
-            in_toto_builder = in_toto.SingleDigestIntotoPayload
-        else:
-            # TODO: Once Python 3.9 support is deprecated revert to `match`
-            if args.digest_of_digests:
-                if args.use_shards:
-                    in_toto_builder = in_toto.DigestOfShardDigestsIntotoPayload
-                else:
-                    in_toto_builder = in_toto.DigestOfDigestsIntotoPayload
+        # TODO: Once Python 3.9 support is deprecated revert to `match`
+        if args.digest_of_digests:
+            if args.use_shards:
+                in_toto_builder = in_toto.DigestOfShardDigestsIntotoPayload
             else:
-                if args.use_shards:
-                    in_toto_builder = in_toto.ShardDigestsIntotoPayload
-                else:
-                    in_toto_builder = in_toto.DigestsIntotoPayload
-
-        in_toto_builder = in_toto_builder.from_manifest
+                in_toto_builder = in_toto.DigestOfDigestsIntotoPayload
+        else:
+            if args.use_shards:
+                in_toto_builder = in_toto.ShardDigestsIntotoPayload
+            else:
+                in_toto_builder = in_toto.DigestsIntotoPayload
 
     # Put everything together
     if not args.dry_run:
-        in_toto_builder(serializer.serialize(args.path))
+        manifest = serializer.serialize(args.path)
+        if not args.skip_manifest:
+            return in_toto_builder.from_manifest(manifest)
 
 
 def build_parser() -> argparse.ArgumentParser:
