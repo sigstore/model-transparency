@@ -17,6 +17,7 @@
 import argparse
 import logging
 import pathlib
+import sys
 
 from model_signing import model
 from model_signing.hashing import file
@@ -168,7 +169,7 @@ def main():
         )
     except verifying.VerificationError as err:
         log.error(f"verification failed: {err}")
-        exit(-1)
+        sys.exit(-1)
 
     log.info("all checks passed")
 
