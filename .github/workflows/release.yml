@@ -53,7 +53,7 @@ jobs:
         with:
           name: dist.zip
           path: dist/
-      - uses: pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70 # v1.12.3
+      - uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
 
   build_and_push_container:
     name: Build and Push Docker Image
@@ -101,7 +101,7 @@ jobs:
           registry: ghcr.io
 
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@7668571508540a607bdfd90a87a560489fe372eb # v2.1.0
+        uses: actions/attest-build-provenance@520d128f165991a6c774bcb264f323e3d70747f4 # v2.2.0
         with:
           subject-name: ghcr.io/sigstore/model-transparency-cli
           subject-digest: ${{ steps.push.outputs.digest }}
