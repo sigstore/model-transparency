@@ -70,7 +70,7 @@ jobs:
       - name: Check out source repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Set up Hatch
-        uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
+        uses: pypa/hatch@55dd8409fd4f8dde5869003d24b04d43dab192a9 # hatch-v1.14.0
       - name: Run type check
         run: hatch run type:check
 
@@ -81,6 +81,6 @@ jobs:
       - name: Check out source repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Set up Hatch
-        uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
+        uses: pypa/hatch@55dd8409fd4f8dde5869003d24b04d43dab192a9 # hatch-v1.14.0
       - name: Run python linting
         run: hatch fmt --check
