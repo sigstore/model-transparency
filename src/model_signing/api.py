@@ -185,7 +185,7 @@ class HashingConfig:
         self,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 1048576,
-        shard_size: int = 1000000,
+        shard_size: int = 1_073_741_824,
     ) -> Callable[[pathlib.Path, int, int], file.ShardedFileHasher]:
         """Builds the hasher factory for a serialization by file shards.
 
@@ -194,7 +194,7 @@ class HashingConfig:
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
-            shard_size: The size of a file shard. Default is 1,000,000 bytes.
+            shard_size: The size of a file shard. Default is 1 GB.
 
         Returns:
             The hasher factory that should be used by the active serialization
@@ -299,7 +299,7 @@ class HashingConfig:
         *,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 1048576,
-        shard_size: int = 1000000,
+        shard_size: int = 1_073_741_824,
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ) -> Self:
@@ -315,7 +315,7 @@ class HashingConfig:
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
-            shard_size: The size of a file shard. Default is 1,000,000 bytes.
+            shard_size: The size of a file shard. Default is 1 GB.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurrent.futures` library.
             allow_symlinks: Controls whether symbolic links are included. If a
@@ -340,7 +340,7 @@ class HashingConfig:
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         merge_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 1048576,
-        shard_size: int = 1000000,
+        shard_size: int = 1_073_741_824,
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ) -> Self:
@@ -357,7 +357,7 @@ class HashingConfig:
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
-            shard_size: The size of a file shard. Default is 1,000,000 bytes.
+            shard_size: The size of a file shard. Default is 1 GB.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurrent.futures` library.
             allow_symlinks: Controls whether symbolic links are included. If a

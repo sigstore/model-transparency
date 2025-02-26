@@ -236,7 +236,7 @@ class ShardedFileHasher(SimpleFileHasher):
         start: int,
         end: int,
         chunk_size: int = 1048576,
-        shard_size: int = 1000000,
+        shard_size: int = 1_073_741_824,
         digest_name_override: Optional[str] = None,
     ):
         """Initializes an instance to hash a file with a specific `HashEngine`.
@@ -253,7 +253,7 @@ class ShardedFileHasher(SimpleFileHasher):
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
-            shard_size: The size of a file shard. Default is 1,000,000 bytes.
+            shard_size: The size of a file shard. Default is 1 GB.
             digest_name_override: Optional string to allow overriding the
               `digest_name` property to support shorter, standardized names.
         """

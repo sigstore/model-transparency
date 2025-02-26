@@ -198,9 +198,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     param_groups.add_argument(
         "--shard",
-        help="shard size (default: 1000000)",
+        help="shard size (default: 1073741824)",
         type=int,
-        default=1000000,
+        default=1_073_741_824,
     )
 
     shard_group = parser.add_argument_group("Serialization modes")
