@@ -236,7 +236,7 @@ class ShardedFileHasher(SimpleFileHasher):
         start: int,
         end: int,
         chunk_size: int = 1048576,
-        shard_size: int = 1_073_741_824,
+        shard_size: int = 1_000_000_000,
         digest_name_override: Optional[str] = None,
     ):
         """Initializes an instance to hash a file with a specific `HashEngine`.

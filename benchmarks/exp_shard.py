@@ -25,9 +25,9 @@ import serialize
 from model_signing.signing import in_toto
 
 
-KB: Final[int] = 1024
-MB: Final[int] = 1024 * KB
-GB: Final[int] = 1024 * MB
+KB: Final[int] = 1000
+MB: Final[int] = 1000 * KB
+GB: Final[int] = 1000 * MB
 
 
 def build_parser() -> argparse.ArgumentParser:

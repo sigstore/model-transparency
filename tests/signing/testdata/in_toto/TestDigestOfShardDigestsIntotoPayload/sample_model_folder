@@ -13,52 +13,52 @@
     "shards": [
       {
         "digest": "fdd8925354242a7fd1515e79534317b800015607a609cd306e0b4dcfe6c92249",
-        "algorithm": "file-sha256-1073741824",
+        "algorithm": "file-sha256-1000000000",
         "name": "d0/f00:0:23"
       },
       {
         "digest": "e16940b5e44ce981150bda37c4ba95881a749a521b4a297c5cdf97bdcfe965e6",
-        "algorithm": "file-sha256-1073741824",
+        "algorithm": "file-sha256-1000000000",
         "name": "d0/f01:0:23"
       },
       {
         "digest": "407822246ea8f9e26380842c3f4cd10d7b23e78f1fe7c74c293608682886a426",
-        "algorithm": "file-sha256-1073741824",
+        "algorithm": "file-sha256-1000000000",
         "name": "d0/f02:0:23"
       },
       {
         "digest": "6a3b08b5df77c4d418ceee1ac136a9ad49fc7c41358b5e82c1176daccb21ff3f",
-        "algorithm": "file-sha256-1073741824",
+        "algorithm": "file-sha256-1000000000",
         "name": "d1/f10:0:23"
       },
       {
         "digest": "a484b3d8ea5e99b75f9f123f9a42c882388693edc7d85d82ccba54834712cadf",
-        "algorithm": "file-sha256-1073741824",
+        "algorithm": "file-sha256-1000000000",
         "name": "d1/f11:0:23"
       },
       {
         "digest": "8f577930f5f40c2c2133cb299d36f9527fde98c1608569017cae6b5bcd01abb3",
-        "algorithm": "file-sha256-1073741824",
+        "algorithm": "file-sha256-1000000000",
         "name": "d1/f12:0:23"
       },
       {
         "digest": "997b37cc51f1ca1c7a270466607e26847429cd7264c30148c1b9352e224083fc",
-        "algorithm": "file-sha256-1073741824",
+        "algorithm": "file-sha256-1000000000",
         "name": "f0:0:24"
       },
       {
         "digest": "c88a04d48353133fb065ba2c8ab369abab21395b9526aa20373ad828915fa7ae",
-        "algorithm": "file-sha256-1073741824",
+        "algorithm": "file-sha256-1000000000",
         "name": "f1:0:24"
       },
       {
         "digest": "700e3ba5065d8dd47e41fd928ea086670d628f891ba363be0ca3c31d20d7d719",
-        "algorithm": "file-sha256-1073741824",
+        "algorithm": "file-sha256-1000000000",
         "name": "f2:0:24"
       },
       {
         "digest": "912bcf5ebdf44dc7b4085b07940e0a81d157fba24b276e73fd911121d4544c4a",
-        "algorithm": "file-sha256-1073741824",
+        "algorithm": "file-sha256-1000000000",
         "name": "f3:0:24"
       }
     ]

@@ -185,7 +185,7 @@ class HashingConfig:
         self,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 1048576,
-        shard_size: int = 1_073_741_824,
+        shard_size: int = 1_000_000_000,
     ) -> Callable[[pathlib.Path, int, int], file.ShardedFileHasher]:
         """Builds the hasher factory for a serialization by file shards.
 
@@ -299,7 +299,7 @@ class HashingConfig:
         *,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 1048576,
-        shard_size: int = 1_073_741_824,
+        shard_size: int = 1_000_000_000,
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ) -> Self:
@@ -340,7 +340,7 @@ class HashingConfig:
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         merge_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 1048576,
-        shard_size: int = 1_073_741_824,
+        shard_size: int = 1_000_000_000,
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ) -> Self:
