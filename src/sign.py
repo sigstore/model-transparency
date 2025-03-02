@@ -167,7 +167,7 @@ def _check_pki_options(args: argparse.Namespace):
                 "PEM encoded signing certificate",
             )
         )
-        sys.exit()
+        sys.exit(1)
     if args.cert_chain_path == "":
         log.warning("No certificate chain provided")
 
