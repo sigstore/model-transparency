@@ -155,7 +155,7 @@ def _get_payload_signer(args: argparse.Namespace) -> signing.Signer:
 def _check_private_key_options(args: argparse.Namespace):
     if args.key_path == "":
         log.error("--private_key must be set to a valid private key PEM file")
-        sys.exit()
+        sys.exit(1)
 
 
 def _check_pki_options(args: argparse.Namespace):
