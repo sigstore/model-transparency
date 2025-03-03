@@ -119,13 +119,13 @@ def _get_verifier(args: argparse.Namespace) -> signing.Verifier:
         log.error(
             'supported methods: ["pki", "private-key", "sigstore", "skip"]'
         )
-        exit(-1)
+        sys.exit(1)
 
 
 def _check_private_key_flags(args: argparse.Namespace):
     if args.key == "":
         log.error("--public_key must be defined")
-        exit()
+        sys.exit(1)
 
 
 def _check_pki_flags(args: argparse.Namespace):
@@ -169,7 +169,7 @@ def main():
         )
     except verifying.VerificationError as err:
         log.error(f"verification failed: {err}")
-        sys.exit(-1)
+        sys.exit(1)
 
     log.info("all checks passed")
 

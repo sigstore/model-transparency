@@ -17,6 +17,7 @@
 import argparse
 import logging
 import pathlib
+import sys
 
 from model_signing import model
 from model_signing.hashing import file
@@ -148,13 +149,13 @@ def _get_payload_signer(args: argparse.Namespace) -> signing.Signer:
         log.error(
             'supported methods: ["pki", "private-key", "sigstore", "skip"]'
         )
-        exit(-1)
+        sys.exit(1)
 
 
 def _check_private_key_options(args: argparse.Namespace):
     if args.key_path == "":
         log.error("--private_key must be set to a valid private key PEM file")
-        exit()
+        sys.exit(1)
 
 
 def _check_pki_options(args: argparse.Namespace):
@@ -166,7 +167,7 @@ def _check_pki_options(args: argparse.Namespace):
                 "PEM encoded signing certificate",
             )
         )
-        exit()
+        sys.exit(1)
     if args.cert_chain_path == "":
         log.warning("No certificate chain provided")
 
