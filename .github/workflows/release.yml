@@ -49,7 +49,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: dist.zip
           path: dist/
@@ -79,7 +79,7 @@ jobs:
           oci: false
 
       - id: docker_meta
-        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5.6.1
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
         with:
           images: ${{ steps.build_image.outputs.image }}
           tags: type=sha,format=long,type=ref,event=branch
@@ -101,7 +101,7 @@ jobs:
           registry: ghcr.io
 
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@520d128f165991a6c774bcb264f323e3d70747f4 # v2.2.0
+        uses: actions/attest-build-provenance@bd77c077858b8d561b7a36cbe48ef4cc642ca39d # v2.2.2
         with:
           subject-name: ghcr.io/sigstore/model-transparency-cli
           subject-digest: ${{ steps.push.outputs.digest }}
