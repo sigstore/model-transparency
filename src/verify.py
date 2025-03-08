@@ -63,7 +63,8 @@ def _arguments() -> argparse.Namespace:
         help="paths to PEM encoded certificate files or a single file"
         + "used as the root of trust",
         required=False,
-        type=list[str],
+        nargs="+",
+        type=str,
         default=[],
         dest="root_certs",
     )

@@ -65,7 +65,7 @@ def _arguments() -> argparse.Namespace:
         help="paths to pem encoded certificate files or a single file"
         + "containing a chain",
         required=False,
-        type=list[str],
+        type=str,
         default=[],
         nargs="+",
         dest="cert_chain_path",
