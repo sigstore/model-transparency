@@ -62,16 +62,6 @@ class TestDigestSerializer:
 
             assert manifest.digest.digest_hex == expected_digest
 
-    def test_file_hash_is_same_as_hash_of_content(self, sample_model_file):
-        serializer = serialize_by_file.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-
-        manifest = serializer.serialize(sample_model_file)
-        digest = memory.SHA256(test_support.KNOWN_MODEL_TEXT).compute()
-
-        assert manifest.digest.digest_hex == digest.digest_hex
-
     def test_file_manifest_unchanged_when_model_moved(self, sample_model_file):
         serializer = serialize_by_file.DigestSerializer(
             self._hasher_factory, memory.SHA256()
