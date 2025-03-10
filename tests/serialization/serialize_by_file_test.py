@@ -33,6 +33,9 @@ from tests import test_support
 
 
 class TestDigestSerializer:
+    def _hasher_factory(self, path: pathlib.Path) -> file.SimpleFileHasher:
+        return file.SimpleFileHasher(path, memory.SHA256())
+
     @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
     def test_known_models(self, request, model_fixture_name):
         # Set up variables (arrange)
@@ -44,11 +47,8 @@ class TestDigestSerializer:
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute model manifest (act)
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256, allow_symlinks=True
+            self._hasher_factory, memory.SHA256(), allow_symlinks=True
         )
         manifest = serializer.serialize(model)
 
@@ -62,25 +62,9 @@ class TestDigestSerializer:
 
             assert manifest.digest.digest_hex == expected_digest
 
-    def test_file_hash_is_same_as_hash_of_content(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
-        serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
-        )
-
-        manifest = serializer.serialize(sample_model_file)
-        digest = memory.SHA256(test_support.KNOWN_MODEL_TEXT).compute()
-
-        assert manifest.digest.digest_hex == digest.digest_hex
-
     def test_file_manifest_unchanged_when_model_moved(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
         manifest = serializer.serialize(sample_model_file)
 
@@ -91,11 +75,8 @@ class TestDigestSerializer:
         assert manifest == new_manifest
 
     def test_file_manifest_changes_if_content_changes(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
         manifest = serializer.serialize(sample_model_file)
 
@@ -107,11 +88,8 @@ class TestDigestSerializer:
         assert manifest.digest.digest_value != new_manifest.digest.digest_value
 
     def test_directory_model_with_only_known_file(self, sample_model_file):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
         manifest_file = serializer.serialize(sample_model_file)
         content_digest = memory.SHA256(test_support.KNOWN_MODEL_TEXT).compute()
@@ -124,11 +102,8 @@ class TestDigestSerializer:
     def test_folder_model_hash_is_same_if_model_is_moved(
         self, sample_model_folder
     ):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
         manifest = serializer.serialize(sample_model_folder)
 
@@ -139,11 +114,8 @@ class TestDigestSerializer:
         assert manifest == new_manifest
 
     def test_folder_model_empty_folder_not_included(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
         manifest = serializer.serialize(sample_model_folder)
 
@@ -155,11 +127,8 @@ class TestDigestSerializer:
         assert manifest == new_manifest
 
     def test_folder_model_empty_file_gets_included(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
         manifest = serializer.serialize(sample_model_folder)
 
@@ -171,11 +140,8 @@ class TestDigestSerializer:
         assert manifest != new_manifest
 
     def test_folder_model_rename_file(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
         manifest = serializer.serialize(sample_model_folder)
 
@@ -188,11 +154,8 @@ class TestDigestSerializer:
         assert manifest != new_manifest
 
     def test_folder_model_rename_dir(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
         manifest = serializer.serialize(sample_model_folder)
 
@@ -204,11 +167,8 @@ class TestDigestSerializer:
         assert manifest != new_manifest
 
     def test_folder_model_replace_file_empty_folder(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
         manifest = serializer.serialize(sample_model_folder)
 
@@ -221,11 +181,8 @@ class TestDigestSerializer:
         assert manifest != new_manifest
 
     def test_folder_model_change_file(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
         manifest = serializer.serialize(sample_model_folder)
 
@@ -239,11 +196,8 @@ class TestDigestSerializer:
     def test_empty_folder_hashes_differently_than_empty_file(
         self, empty_model_file, empty_model_folder
     ):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
 
         folder_manifest = serializer.serialize(empty_model_folder)
@@ -254,11 +208,8 @@ class TestDigestSerializer:
     def test_model_with_empty_folder_hashes_differently_than_with_empty_file(
         self, sample_model_folder
     ):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
 
         # Compute digest of model with empty folder
@@ -276,11 +227,8 @@ class TestDigestSerializer:
         assert folder_manifest != file_manifest
 
     def test_symlinks_disallowed_by_default(self, symlink_model_folder):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
         with pytest.raises(
             ValueError, match="Cannot use '.+' because it is a symlink."
@@ -288,11 +236,8 @@ class TestDigestSerializer:
             _ = serializer.serialize(symlink_model_folder)
 
     def test_ignore_list_respects_directories(self, sample_model_folder):
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256
+            self._hasher_factory, memory.SHA256()
         )
         manifest1 = serializer.serialize(sample_model_folder)
         ignore_path = test_support.get_first_directory(sample_model_folder)

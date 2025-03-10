@@ -4,12 +4,12 @@
     {
       "name": ".",
       "digest": {
-        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        "sha256": "23b0a10a02142cb279fafd68aef732f541f112952b4ddba604a5aefee1c33af5"
       }
     }
   ],
   "predicateType": "https://model_signing/Digest/v0.1",
   "predicate": {
-    "actual_hash_algorithm": "file-sha256"
+    "actual_hash_algorithm": "sha256"
   }
 }

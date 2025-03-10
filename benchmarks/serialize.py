@@ -122,22 +122,15 @@ def run(args: argparse.Namespace) -> Optional[in_toto.IntotoPayload]:
     if args.skip_manifest or args.single_digest:
         merge_hasher_factory = get_hash_engine_factory(args.merge_hasher)
         if args.use_shards:
-            serializer = serialize_by_file_shard.DigestSerializer(
-                hasher,
-                merge_hasher_factory(),  # pytype: disable=not-instantiable
-                max_workers=args.max_workers,
-            )
+            serializer_factory = serialize_by_file_shard.DigestSerializer
         else:
-            # This gets complicated because the API here is not matching the
-            # rest. We should fix this.
-            if args.max_workers is not None and args.max_workers != 1:
-                raise ValueError("Currently, only 1 worker is supported here")
-            serializer = serialize_by_file.DigestSerializer(
-                # pytype: disable=wrong-arg-count
-                hasher(pathlib.Path("unused")),
-                # pytype: enable=wrong-arg-count
-                merge_hasher_factory,
-            )
+            serializer_factory = serialize_by_file.DigestSerializer
+
+        serializer = serializer_factory(
+            hasher,
+            merge_hasher_factory(),  # pytype: disable=not-instantiable
+            max_workers=args.max_workers,
+        )
     else:
         if args.use_shards:
             serializer_factory = serialize_by_file_shard.ManifestSerializer
