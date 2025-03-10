@@ -19,6 +19,7 @@ import certifi
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.x509 import ExtensionNotFound
 from cryptography.x509 import oid as crypto_oid
 from in_toto_attestation.v1 import statement
 from OpenSSL import crypto as ssl_crypto
@@ -162,22 +163,32 @@ class PKIVerifier(Verifier):
             raise VerificationError(
                 f"signing certificate verification failed: {err}"
             ) from err
+
         usage = signing_cert_crypto.extensions.get_extension_for_class(
             x509.KeyUsage
         )
         if not usage.value.digital_signature:
-            raise VerificationError(
-                "the certificate is not valid for digital signature usage"
-            )
-        ext_usage = signing_cert_crypto.extensions.get_extension_for_class(
-            x509.ExtendedKeyUsage
-        )
-        if crypto_oid.ExtendedKeyUsageOID.CODE_SIGNING not in ext_usage.value:
-            raise VerificationError(
-                "the certificate is not valid for code signing usage"
-            )
+            code_signing = False
+            try:
+                ext_usage = (
+                    signing_cert_crypto.extensions.get_extension_for_class(
+                        x509.ExtendedKeyUsage
+                    )
+                )
+                if (
+                    crypto_oid.ExtendedKeyUsageOID.CODE_SIGNING
+                    in ext_usage.value
+                ):
+                    code_signing = True
+            except ExtensionNotFound:
+                pass
+            if not code_signing:
+                raise VerificationError(
+                    "signing certificate neither allows digital signature"
+                    "nor code signing"
+                )
 
         # Verify the contents with a key verifier
-        pub_key: ec.EllipticCurvePublicKey = signing_cert_crypto.public_key
+        pub_key: ec.EllipticCurvePublicKey = signing_cert_crypto.public_key()
         verifier = ECKeyVerifier(pub_key)
         return verifier.verify(bundle)
