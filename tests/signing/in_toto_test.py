@@ -37,6 +37,9 @@ from tests import test_support
 
 
 class TestSingleDigestIntotoPayload:
+    def _hasher_factory(self, path: pathlib.Path) -> file.FileHasher:
+        return file.SimpleFileHasher(path, memory.SHA256())
+
     @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
     def test_known_models(self, request, model_fixture_name):
         # Set up variables (arrange)
@@ -48,11 +51,8 @@ class TestSingleDigestIntotoPayload:
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute payload (act)
-        file_hasher = file.SimpleFileHasher(
-            test_support.UNUSED_PATH, memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256, allow_symlinks=True
+            self._hasher_factory, memory.SHA256(), allow_symlinks=True
         )
         manifest = serializer.serialize(model)
         payload = in_toto.SingleDigestIntotoPayload.from_manifest(manifest)

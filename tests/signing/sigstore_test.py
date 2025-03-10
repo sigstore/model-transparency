@@ -237,11 +237,8 @@ class TestSigstoreSigning:
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
         # Serialize and sign model
-        file_hasher = file.SimpleFileHasher(
-            pathlib.Path("unused"), memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256, allow_symlinks=True
+            self._file_hasher_factory, memory.SHA256(), allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
@@ -263,11 +260,8 @@ class TestSigstoreSigning:
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
         # Serialize and sign model
-        file_hasher = file.SimpleFileHasher(
-            pathlib.Path("unused"), memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256, allow_symlinks=True
+            self._file_hasher_factory, memory.SHA256(), allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
@@ -457,11 +451,8 @@ class TestSigstoreSigning:
     def test_sign_bytes_as_digest(
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
-        file_hasher = file.SimpleFileHasher(
-            pathlib.Path("unused"), memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256, allow_symlinks=True
+            self._file_hasher_factory, memory.SHA256(), allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
@@ -580,11 +571,8 @@ class TestSigstoreSigning:
     def test_verify_intoto_single_digest_more_than_one_digests(
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
-        file_hasher = file.SimpleFileHasher(
-            pathlib.Path("unused"), memory.SHA256()
-        )
         serializer = serialize_by_file.DigestSerializer(
-            file_hasher, memory.SHA256, allow_symlinks=True
+            self._file_hasher_factory, memory.SHA256(), allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
