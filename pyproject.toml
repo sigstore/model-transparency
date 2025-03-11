@@ -28,7 +28,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "cryptography",  # TODO: make pki a feature
+  "cryptography",
   "in-toto-attestation",
   "sigstore",
   "typing_extensions",
