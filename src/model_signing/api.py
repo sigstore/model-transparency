@@ -23,7 +23,7 @@ from collections.abc import Callable, Iterable
 import os
 import pathlib
 import sys
-from typing import Literal, Optional, cast
+from typing import Literal, Optional
 
 from model_signing.hashing import file
 from model_signing.hashing import hashing
@@ -257,6 +257,7 @@ class HashingConfig:
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         merge_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 1048576,
+        max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ) -> Self:
         """Configures serialization to a single digest, at file granularity.
@@ -272,6 +273,8 @@ class HashingConfig:
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
+            max_workers: Maximum number of workers to use in parallel. Default
+              is to defer to the `concurrent.futures` library.
             allow_symlinks: Controls whether symbolic links are included. If a
               symlink is present but the flag is `False` (default) the
               serialization would raise an error.
@@ -279,18 +282,13 @@ class HashingConfig:
         Returns:
             The new hashing configuration with the new serialization method.
         """
-        # TODO: https://github.com/sigstore/model-transparency/issues/197 -
-        # Because the API for this case is different than the other ones, we
-        # have to perform additional steps here.
-        file_hasher = cast(
-            file.SimpleFileHasher,
+        self._serializer = serialize_by_file.DigestSerializer(
             self._build_file_hasher_factory(
                 hashing_algorithm, chunk_size=chunk_size
-            )(pathlib.Path("unused")),
-        )
-        merge_hasher = self._build_stream_hasher(merge_algorithm).__class__
-        self._serializer = serialize_by_file.DigestSerializer(
-            file_hasher, merge_hasher, allow_symlinks=allow_symlinks
+            ),
+            self._build_stream_hasher(merge_algorithm),
+            max_workers=max_workers,
+            allow_symlinks=allow_symlinks,
         )
         return self
 

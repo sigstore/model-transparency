@@ -64,23 +64,21 @@ def check_file_or_directory(
         )
 
 
-def _build_header(*, entry_name: str, entry_type: str) -> bytes:
-    """Builds a header to encode a path with given name and type.
+def _build_header(*, entry_name: str) -> bytes:
+    """Builds a header to encode a path with given name.
 
     Args:
         entry_name: The name of the entry to build the header for.
-        entry_type: The type of the entry (file or directory).
 
     Returns:
         A sequence of bytes that encodes all arguments as a sequence of UTF-8
         bytes. Each argument is separated by dots and the last byte is also a
         dot (so the file digest can be appended unambiguously).
     """
-    encoded_type = entry_type.encode("utf-8")
     # Prevent confusion if name has a "." inside by encoding to base64.
     encoded_name = base64.b64encode(entry_name.encode("utf-8"))
     # Note: empty string at the end, to terminate header with a "."
-    return b".".join([encoded_type, encoded_name, b""])
+    return b".".join([encoded_name, b""])
 
 
 def _ignored(path: pathlib.Path, ignore_paths: Iterable[pathlib.Path]) -> bool:
@@ -243,122 +241,44 @@ class ManifestSerializer(FilesSerializer):
         return manifest.FileLevelManifest(items)
 
 
-class _FileDigestTree:
-    """A tree of files with their digests.
-
-    Every leaf in the tree is a file, paired with its digest. Every intermediate
-    node represents a directory. We need to pair every directory with a digest,
-    in a bottom-up fashion.
-    """
-
-    def __init__(
-        self, path: pathlib.PurePath, digest: Optional[hashing.Digest] = None
-    ):
-        """Builds a node in the digest tree.
-
-        Don't call this from outside of the class. Instead, use `build_tree`.
-
-        Args:
-            path: Path included in the node.
-            digest: Optional hash of the path. Files must have a digest,
-              directories never have one.
-        """
-        self._path = path
-        self._digest = digest
-        self._children: list[_FileDigestTree] = []
-
-    @classmethod
-    def build_tree(
-        cls, items: Iterable[manifest.FileManifestItem]
-    ) -> "_FileDigestTree":
-        """Builds a tree out of the sequence of manifest items."""
-        path_to_node: dict[pathlib.PurePath, _FileDigestTree] = {}
-
-        for file_item in items:
-            file = file_item.path
-            node = cls(file, file_item.digest)
-            for parent in file.parents:
-                if parent in path_to_node:
-                    parent_node = path_to_node[parent]
-                    parent_node._children.append(node)
-                    break  # everything else already exists
-
-                parent_node = cls(parent)  # no digest for directories
-                parent_node._children.append(node)
-                path_to_node[parent] = parent_node
-                node = parent_node
-
-        # Handle empty model
-        if not path_to_node:
-            return cls(pathlib.PurePosixPath())
-
-        return path_to_node[pathlib.PurePosixPath()]
-
-    def get_digest(
-        self, hasher_factory: Callable[[], hashing.StreamingHashEngine]
-    ) -> hashing.Digest:
-        """Returns the digest of this tree of files.
-
-        Args:
-            hasher_factory: A callable that returns a
-              `hashing.StreamingHashEngine` instance used to merge individual
-              digests to compute an aggregate digest.
-        """
-        hasher = hasher_factory()
-
-        for child in sorted(self._children, key=lambda c: c._path):
-            name = child._path.name
-            if child._digest is not None:
-                header = _build_header(entry_name=name, entry_type="file")
-                hasher.update(header)
-                hasher.update(child._digest.digest_value)
-            else:
-                header = _build_header(entry_name=name, entry_type="dir")
-                hasher.update(header)
-                digest = child.get_digest(hasher_factory)
-                hasher.update(digest.digest_value)
-
-        return hasher.compute()
-
-
 class DigestSerializer(FilesSerializer):
     """Serializer for a model that performs a traversal of the model directory.
 
     This serializer produces a single hash for the entire model. If the model is
     a file, the hash is the digest of the file. If the model is a directory, we
-    perform a depth-first traversal of the directory, hash each individual files
-    and aggregate the hashes together.
-
-    Currently, this has a different initialization than `FilesSerializer`, but
-    this will likely change in a subsequent change. Similarly, currently, this
-    only supports one single worker, but this will change in the future.
+    traverse the directory, hash each individual file and aggregate the hashes
+    together.
     """
 
     def __init__(
         self,
-        file_hasher: file.SimpleFileHasher,
-        merge_hasher_factory: Callable[[], hashing.StreamingHashEngine],
+        file_hasher_factory: Callable[[pathlib.Path], file.FileHasher],
+        merge_hasher: hashing.StreamingHashEngine,
         *,
+        max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ):
         """Initializes an instance to serialize a model with this serializer.
 
         Args:
-            hasher: The hash engine used to hash the individual files.
-            merge_hasher_factory: A callable that returns a
-              `hashing.StreamingHashEngine` instance used to merge individual
-              file digests to compute an aggregate digest.
+            file_hasher_factory: A callable to build the hash engine used to
+              hash individual files. Because each file is processed in
+              parallel, every thread needs to call the factory to start
+              hashing.
+            merge_hasher: A `hashing.StreamingHashEngine` instance used to
+              merge individual file digests to compute an aggregate digest.
+            max_workers: Maximum number of workers to use in parallel. Default
+              is to defer to the `concurent.futures` library.
             allow_symlinks: Controls whether symbolic links are included. If a
               symlink is present but the flag is `False` (default) the
               serialization would raise an error.
         """
-
-        def _factory(path: pathlib.Path) -> file.FileHasher:
-            file_hasher.set_file(path)
-            return file_hasher
-
-        super().__init__(_factory, max_workers=1, allow_symlinks=allow_symlinks)
-        self._merge_hasher_factory = merge_hasher_factory
+        super().__init__(
+            file_hasher_factory,
+            max_workers=max_workers,
+            allow_symlinks=allow_symlinks,
+        )
+        self._merge_hasher = merge_hasher
 
     @override
     def serialize(
@@ -395,17 +315,18 @@ class DigestSerializer(FilesSerializer):
     def _build_manifest(
         self, items: Iterable[manifest.FileManifestItem]
     ) -> manifest.DigestManifest:
-        # Note: we do several computations here to try and match the old
-        # behavior but these would be simplified in the future. Since we are
-        # defining the hashing behavior, we can freely change this.
-
         # If the model is just one file, return the hash of the file.
         # A model is a file if we have one item only and its path is empty.
         items = list(items)
         if len(items) == 1 and not items[0].path.name:
             return manifest.DigestManifest(items[0].digest)
 
-        # Otherwise, build a tree of files and compute the digests.
-        tree = _FileDigestTree.build_tree(items)
-        digest = tree.get_digest(self._merge_hasher_factory)
+        self._merge_hasher.reset()
+
+        for item in sorted(items, key=lambda i: i.path):
+            header = _build_header(entry_name=item.path.name)
+            self._merge_hasher.update(header)
+            self._merge_hasher.update(item.digest.digest_value)
+
+        digest = self._merge_hasher.compute()
         return manifest.DigestManifest(digest)
