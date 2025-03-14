@@ -28,6 +28,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "click",
   "cryptography",
   "in-toto-attestation",
   "sigstore",
