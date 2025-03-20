@@ -27,7 +27,7 @@ jobs:
     if: github.repository == 'sigstore/model-transparency'  # Don't do this in forks
     runs-on: ubuntu-latest  # Use matrix when we have OS specific pieces
     permissions:
-      contents: write # needed to upload artifact
+      contents: read
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:

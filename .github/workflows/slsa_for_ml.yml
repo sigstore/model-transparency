@@ -60,7 +60,7 @@ jobs:
       # hash-macos-latest: ${{ steps.hash.outputs.hash-macos-latest }}
       # hash-windows-latest: ${{ steps.hash.outputs.hash-windows-latest }}
     permissions:
-      contents: write # needed to upload artifact
+      contents: read
     steps:
     - run: git config --global core.autocrlf input
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
