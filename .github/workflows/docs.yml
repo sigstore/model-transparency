@@ -21,15 +21,18 @@ on:
     # tags:
     #   - '*'
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   build:
     if: github.repository == 'sigstore/model-transparency'  # Don't do this in forks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - name: Set up Hatch
         uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
       - name: build docs
