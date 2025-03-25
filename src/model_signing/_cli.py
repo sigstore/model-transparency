@@ -159,6 +159,7 @@ def _sign() -> None:
 
 @_sign.command(name="sigstore")
 @_model_path_argument
+@_ignore_paths_option
 @_write_signature_option
 @click.option(
     "--use_ambient_credentials",
@@ -183,6 +184,7 @@ def _sign() -> None:
 )
 def _sign_sigstore(
     model_path: pathlib.Path,
+    ignore_paths: Sequence[pathlib.Path],
     signature: pathlib.Path,
     use_ambient_credentials: bool,
     use_staging: bool,
@@ -191,7 +193,8 @@ def _sign_sigstore(
     """Sign using Sigstore (DEFAULT signing method).
 
     Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
-    (as per `--signature` option).
+    (as per `--signature` option). Files in IGNORE_PATHS are not part of the
+    signature.
 
     If using Sigstore, we need to provision an OIDC token. In general, this is
     taken from an interactive OIDC flow, but ambient credentials could be used
@@ -208,20 +211,25 @@ def _sign_sigstore(
         use_staging=use_staging,
         identity_token=identity_token,
     )
-    _serialize_and_sign(model_path, signer, signature)
+    _serialize_and_sign(model_path, list(ignore_paths), signer, signature)
 
 
 @_sign.command(name="key")
 @_model_path_argument
+@_ignore_paths_option
 @_write_signature_option
 @_private_key_option
 def _sign_private_key(
-    model_path: pathlib.Path, signature: pathlib.Path, private_key: pathlib.Path
+    model_path: pathlib.Path,
+    ignore_paths: Sequence[pathlib.Path],
+    signature: pathlib.Path,
+    private_key: pathlib.Path,
 ) -> None:
     """Sign using a private key (paired with a public one).
 
     Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
-    (as per `--signature` option).
+    (as per `--signature` option). Files in IGNORE_PATHS are not part of the
+    signature.
 
     Traditionally, signing could be achieved by using a public/private key pair.
     Pass the signing key using `--private_key`.
@@ -234,11 +242,12 @@ def _sign_private_key(
         # TODO: The API needs clean up, it uses str, not pathlib.Path
         key.ECKeySigner.from_path(private_key_path=private_key.as_posix())
     )
-    _serialize_and_sign(model_path, signer, signature)
+    _serialize_and_sign(model_path, list(ignore_paths), signer, signature)
 
 
 @_sign.command(name="certificate")
 @_model_path_argument
+@_ignore_paths_option
 @_write_signature_option
 @_private_key_option
 @click.option(
@@ -251,6 +260,7 @@ def _sign_private_key(
 @_certificate_root_of_trust_option
 def _sign_certificate(
     model_path: pathlib.Path,
+    ignore_paths: Sequence[pathlib.Path],
     signature: pathlib.Path,
     private_key: pathlib.Path,
     signing_certificate: pathlib.Path,
@@ -259,7 +269,8 @@ def _sign_certificate(
     """Sign using a certificate.
 
     Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
-    (as per `--signature` option).
+    (as per `--signature` option). Files in IGNORE_PATHS are not part of the
+    signature.
 
     Traditionally, signing can be achieved by using keys from a certificate.
     The certificate can also provide the identity of the signer, making this
@@ -279,11 +290,14 @@ def _sign_certificate(
             [c.as_posix() for c in certificate_chain],
         )
     )
-    _serialize_and_sign(model_path, signer, signature)
+    _serialize_and_sign(model_path, list(ignore_paths), signer, signature)
 
 
 def _serialize_and_sign(
-    model_path: pathlib.Path, signer: signing.Signer, signature: pathlib.Path
+    model_path: pathlib.Path,
+    ignore_paths: list[pathlib.Path],
+    signer: signing.Signer,
+    signature: pathlib.Path,
 ) -> None:
     """Serialize a model and sign it with the provided signer."""
 
@@ -301,7 +315,7 @@ def _serialize_and_sign(
         signer=signer,
         payload_generator=in_toto.DigestsIntotoPayload.from_manifest,
         serializer=serializer,
-        ignore_paths=[signature],
+        ignore_paths=ignore_paths + [signature],
     )
 
     signing_result.write(signature)
