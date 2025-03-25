@@ -14,6 +14,7 @@
 
 """The main entry-point for the model_signing package."""
 
+from collections.abc import Sequence
 import pathlib
 from typing import Optional
 
@@ -57,6 +58,14 @@ _read_signature_option = click.option(
     help="Location of the signature file to verify.",
 )
 
+# Decorator for the commonly used option to ignore certain paths
+_ignore_paths_option = click.option(
+    "--ignore-paths",
+    metavar="IGNORE_PATHS",
+    multiple=True,
+    type=pathlib.Path,
+    help="File paths to ignore when signing or verifying.",
+)
 
 # Decorator for the commonly used option to set the path to the private key
 # (when using non-Sigstore PKI).
@@ -318,6 +327,7 @@ def _verify() -> None:
 @_verify.command(name="sigstore")
 @_model_path_argument
 @_read_signature_option
+@_ignore_paths_option
 @click.option(
     "--identity",
     type=str,
@@ -335,13 +345,15 @@ def _verify() -> None:
 def _verify_sigstore(
     model_path: pathlib.Path,
     signature: pathlib.Path,
+    ignore_paths: Sequence[pathlib.Path],
     identity: str,
     identity_provider: str,
 ) -> None:
     """Verify using Sigstore (DEFAULT verification method).
 
     Verifies the integrity of model at MODEL_PATH, according to signature from
-    SIGNATURE_PATH (given via `--signature` option).
+    SIGNATURE_PATH (given via `--signature` option). Files in IGNORE_PATHS are
+    ignored.
 
     For Sigstore, we also need to provide an expected identity and identity
     provider for the signature. If these don't match what is provided in the
@@ -351,12 +363,15 @@ def _verify_sigstore(
         identity=identity, oidc_issuer=identity_provider
     )
     signature_contents = sigstore.SigstoreSignature.read(signature)
-    _serialize_and_verify(model_path, verifier, signature_contents, signature)
+    _serialize_and_verify(
+        model_path, verifier, list(ignore_paths), signature_contents, signature
+    )
 
 
 @_verify.command(name="key")
 @_model_path_argument
 @_read_signature_option
+@_ignore_paths_option
 @click.option(
     "--public_key",
     type=pathlib.Path,
@@ -365,12 +380,16 @@ def _verify_sigstore(
     help="Path to the public key used for verification.",
 )
 def _verify_private_key(
-    model_path: pathlib.Path, signature: pathlib.Path, public_key: pathlib.Path
+    model_path: pathlib.Path,
+    signature: pathlib.Path,
+    ignore_paths: Sequence[pathlib.Path],
+    public_key: pathlib.Path,
 ) -> None:
     """Verity using a public key (paired with a private one).
 
     Verifies the integrity of model at MODEL_PATH, according to signature from
-    SIGNATURE_PATH (given via `--signature` option).
+    SIGNATURE_PATH (given via `--signature` option). Files in IGNORE_PATHS are
+    ignored.
 
     The public key provided via `--public_key` must have been paired with the
     private key used when generating the signature.
@@ -384,22 +403,27 @@ def _verify_private_key(
         key.ECKeyVerifier.from_path(public_key.as_posix())
     )
     signature_contents = in_toto_signature.IntotoSignature.read(signature)
-    _serialize_and_verify(model_path, verifier, signature_contents, signature)
+    _serialize_and_verify(
+        model_path, verifier, list(ignore_paths), signature_contents, signature
+    )
 
 
 @_verify.command(name="certificate")
 @_model_path_argument
 @_read_signature_option
+@_ignore_paths_option
 @_certificate_root_of_trust_option
 def _verify_certificate(
     model_path: pathlib.Path,
     signature: pathlib.Path,
+    ignore_paths: Sequence[pathlib.Path],
     certificate_chain: list[pathlib.Path],
 ) -> None:
     """Verify using a certificate.
 
     Verifies the integrity of model at MODEL_PATH, according to signature from
-    SIGNATURE_PATH (given via `--signature` option).
+    SIGNATURE_PATH (given via `--signature` option). Files in IGNORE_PATHS are
+    ignored.
 
     The signing certificate is encoded in the signature, as part of the Sigstore
     bundle. To verify the root of trust, pass additional certificates in the
@@ -413,12 +437,15 @@ def _verify_certificate(
         pki.PKIVerifier.from_paths([c.as_posix() for c in certificate_chain])
     )
     signature_contents = in_toto_signature.IntotoSignature.read(signature)
-    _serialize_and_verify(model_path, verifier, signature_contents, signature)
+    _serialize_and_verify(
+        model_path, verifier, list(ignore_paths), signature_contents, signature
+    )
 
 
 def _serialize_and_verify(
     model_path: pathlib.Path,
     verifier: signing.Verifier,
+    ignore_paths: list[pathlib.Path],
     signature_content: signing.Signature,
     signature_file: pathlib.Path,
 ) -> None:
@@ -439,7 +466,7 @@ def _serialize_and_verify(
             verifier=verifier,
             model_path=model_path,
             serializer=serializer,
-            ignore_paths=[signature_file],
+            ignore_paths=ignore_paths + [signature_file],
         )
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
