@@ -1,4 +1,4 @@
-# Copyright 2024 The Sigstore Authors
+# Copyright 2025 The Sigstore Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -185,7 +185,7 @@ def _sign_sigstore(
     (as per `--signature` option).
 
     If using Sigstore, we need to provision an OIDC token. In general, this is
-    taken from an interractive OIDC flow, but ambient credentials could be used
+    taken from an interactive OIDC flow, but ambient credentials could be used
     to use workload identity tokens (e.g., when running in GitHub actions).
     Alternatively, a constant identity token can be provided via
     `--identity_token`.
@@ -262,10 +262,6 @@ def _sign_certificate(
 
     Note that we don't offer certificate and key management protocols.
     """
-    if not certificate_chain:
-        raise click.BadOptionUsage(
-            "--certificate_chain", "No certificate chain was provided"
-        )
     signer = in_toto_signature.IntotoSigner(
         # TODO: The API needs clean up, it uses str, not pathlib.Path
         pki.PKISigner.from_path(
