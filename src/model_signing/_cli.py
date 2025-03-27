@@ -14,7 +14,7 @@
 
 """The main entry-point for the model_signing package."""
 
-from collections.abc import Collection, Sequence
+from collections.abc import Iterable, Sequence
 import pathlib
 from typing import Optional
 
@@ -106,7 +106,7 @@ def _collect_git_related_files(model_path: pathlib.Path) -> list[pathlib.Path]:
 def _expand_paths_to_ignore(
     model_path: pathlib.Path,
     signature: pathlib.Path,
-    ignore_paths: Collection[pathlib.Path],
+    ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
 ) -> list[pathlib.Path]:
     """Expand all ignore arguments to build the list of paths to exclude."""
@@ -135,7 +135,7 @@ class PKICmdGroup(click.Group):
 
     def resolve_command(
         self, ctx: click.Context, args: Sequence[str]
-    ) -> tuple[Optional[str], Optional[click.Command], Collection[str]]:
+    ) -> tuple[Optional[str], Optional[click.Command], Iterable[str]]:
         """Resolves a command and its arguments.
 
         We use this to make Sigstore signing be the default and correctly alter
@@ -213,7 +213,7 @@ def _sign() -> None:
 )
 def _sign_sigstore(
     model_path: pathlib.Path,
-    ignore_paths: Collection[pathlib.Path],
+    ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     signature: pathlib.Path,
     use_ambient_credentials: bool,
@@ -254,7 +254,7 @@ def _sign_sigstore(
 @_private_key_option
 def _sign_private_key(
     model_path: pathlib.Path,
-    ignore_paths: Collection[pathlib.Path],
+    ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     signature: pathlib.Path,
     private_key: pathlib.Path,
@@ -297,12 +297,12 @@ def _sign_private_key(
 @_certificate_root_of_trust_option
 def _sign_certificate(
     model_path: pathlib.Path,
-    ignore_paths: Collection[pathlib.Path],
+    ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     signature: pathlib.Path,
     private_key: pathlib.Path,
     signing_certificate: pathlib.Path,
-    certificate_chain: Collection[pathlib.Path],
+    certificate_chain: Iterable[pathlib.Path],
 ) -> None:
     """Sign using a certificate.
 
@@ -335,7 +335,7 @@ def _sign_certificate(
 
 def _serialize_and_sign(
     model_path: pathlib.Path,
-    ignore_paths: Collection[pathlib.Path],
+    ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     signer: signing.Signer,
     signature: pathlib.Path,
@@ -403,7 +403,7 @@ def _verify() -> None:
 def _verify_sigstore(
     model_path: pathlib.Path,
     signature: pathlib.Path,
-    ignore_paths: Collection[pathlib.Path],
+    ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     identity: str,
     identity_provider: str,
@@ -447,7 +447,7 @@ def _verify_sigstore(
 def _verify_private_key(
     model_path: pathlib.Path,
     signature: pathlib.Path,
-    ignore_paths: Collection[pathlib.Path],
+    ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     public_key: pathlib.Path,
 ) -> None:
@@ -488,9 +488,9 @@ def _verify_private_key(
 def _verify_certificate(
     model_path: pathlib.Path,
     signature: pathlib.Path,
-    ignore_paths: Collection[pathlib.Path],
+    ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
-    certificate_chain: Collection[pathlib.Path],
+    certificate_chain: Iterable[pathlib.Path],
 ) -> None:
     """Verify using a certificate.
 
@@ -523,7 +523,7 @@ def _verify_certificate(
 def _serialize_and_verify(
     model_path: pathlib.Path,
     verifier: signing.Verifier,
-    ignore_paths: Collection[pathlib.Path],
+    ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     signature_content: signing.Signature,
     signature_file: pathlib.Path,
