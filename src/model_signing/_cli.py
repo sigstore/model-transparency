@@ -14,7 +14,7 @@
 
 """The main entry-point for the model_signing package."""
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 import pathlib
 from typing import Optional
 
@@ -61,9 +61,9 @@ _read_signature_option = click.option(
 # Decorator for the commonly used option to ignore certain paths
 _ignore_paths_option = click.option(
     "--ignore-paths",
+    type=pathlib.Path,
     metavar="IGNORE_PATHS",
     multiple=True,
-    type=pathlib.Path,
     help="File paths to ignore when signing or verifying.",
 )
 
@@ -71,8 +71,8 @@ _ignore_paths_option = click.option(
 _ignore_git_paths_option = click.option(
     "--ignore-git-paths/--no-ignore-git-paths",
     type=bool,
-    is_flag=True,
     default=True,
+    show_default=True,
     help="Ignore git-related files when signing or verifying.",
 )
 
@@ -99,7 +99,22 @@ _certificate_root_of_trust_option = click.option(
 
 
 def _collect_git_related_files(model_path: pathlib.Path) -> list[pathlib.Path]:
+    """Expand to all git related files in the model directory."""
     return [pathlib.Path(p) for p in list(model_path.glob("**/.git*"))]
+
+
+def _expand_paths_to_ignore(
+    model_path: pathlib.Path,
+    signature: pathlib.Path,
+    ignore_paths: Collection[pathlib.Path],
+    ignore_git_paths: bool,
+) -> list[pathlib.Path]:
+    """Expand all ignore arguments to build the list of paths to exclude."""
+    ignore_paths = [path for path in ignore_paths]
+    ignore_paths.append(signature)
+    if ignore_git_paths:
+        ignore_paths.extend(_collect_git_related_files(model_path))
+    return ignore_paths
 
 
 class PKICmdGroup(click.Group):
@@ -119,8 +134,8 @@ class PKICmdGroup(click.Group):
         return super().get_command(ctx, "sigstore")
 
     def resolve_command(
-        self, ctx: click.Context, args: list[str]
-    ) -> tuple[Optional[str], Optional[click.Command], list[str]]:
+        self, ctx: click.Context, args: Sequence[str]
+    ) -> tuple[Optional[str], Optional[click.Command], Collection[str]]:
         """Resolves a command and its arguments.
 
         We use this to make Sigstore signing be the default and correctly alter
@@ -198,7 +213,7 @@ def _sign() -> None:
 )
 def _sign_sigstore(
     model_path: pathlib.Path,
-    ignore_paths: Sequence[pathlib.Path],
+    ignore_paths: Collection[pathlib.Path],
     ignore_git_paths: bool,
     signature: pathlib.Path,
     use_ambient_credentials: bool,
@@ -227,7 +242,7 @@ def _sign_sigstore(
         identity_token=identity_token,
     )
     _serialize_and_sign(
-        model_path, list(ignore_paths), ignore_git_paths, signer, signature
+        model_path, ignore_paths, ignore_git_paths, signer, signature
     )
 
 
@@ -239,7 +254,7 @@ def _sign_sigstore(
 @_private_key_option
 def _sign_private_key(
     model_path: pathlib.Path,
-    ignore_paths: Sequence[pathlib.Path],
+    ignore_paths: Collection[pathlib.Path],
     ignore_git_paths: bool,
     signature: pathlib.Path,
     private_key: pathlib.Path,
@@ -262,7 +277,7 @@ def _sign_private_key(
         key.ECKeySigner.from_path(private_key_path=private_key.as_posix())
     )
     _serialize_and_sign(
-        model_path, list(ignore_paths), ignore_git_paths, signer, signature
+        model_path, ignore_paths, ignore_git_paths, signer, signature
     )
 
 
@@ -282,12 +297,12 @@ def _sign_private_key(
 @_certificate_root_of_trust_option
 def _sign_certificate(
     model_path: pathlib.Path,
-    ignore_paths: Sequence[pathlib.Path],
+    ignore_paths: Collection[pathlib.Path],
     ignore_git_paths: bool,
     signature: pathlib.Path,
     private_key: pathlib.Path,
     signing_certificate: pathlib.Path,
-    certificate_chain: list[pathlib.Path],
+    certificate_chain: Collection[pathlib.Path],
 ) -> None:
     """Sign using a certificate.
 
@@ -314,13 +329,13 @@ def _sign_certificate(
         )
     )
     _serialize_and_sign(
-        model_path, list(ignore_paths), ignore_git_paths, signer, signature
+        model_path, ignore_paths, ignore_git_paths, signer, signature
     )
 
 
 def _serialize_and_sign(
     model_path: pathlib.Path,
-    ignore_paths: list[pathlib.Path],
+    ignore_paths: Collection[pathlib.Path],
     ignore_git_paths: bool,
     signer: signing.Signer,
     signature: pathlib.Path,
@@ -336,15 +351,14 @@ def _serialize_and_sign(
         file_hasher_factory=hasher_factory
     )
 
-    if ignore_git_paths:
-        ignore_paths.extend(_collect_git_related_files(model_path))
-
     signing_result = model.sign(
         model_path=model_path,
         signer=signer,
         payload_generator=in_toto.DigestsIntotoPayload.from_manifest,
         serializer=serializer,
-        ignore_paths=ignore_paths + [signature],
+        ignore_paths=_expand_paths_to_ignore(
+            model_path, signature, ignore_paths, ignore_git_paths
+        ),
     )
 
     signing_result.write(signature)
@@ -389,7 +403,7 @@ def _verify() -> None:
 def _verify_sigstore(
     model_path: pathlib.Path,
     signature: pathlib.Path,
-    ignore_paths: Sequence[pathlib.Path],
+    ignore_paths: Collection[pathlib.Path],
     ignore_git_paths: bool,
     identity: str,
     identity_provider: str,
@@ -411,7 +425,7 @@ def _verify_sigstore(
     _serialize_and_verify(
         model_path,
         verifier,
-        list(ignore_paths),
+        ignore_paths,
         ignore_git_paths,
         signature_contents,
         signature,
@@ -433,7 +447,7 @@ def _verify_sigstore(
 def _verify_private_key(
     model_path: pathlib.Path,
     signature: pathlib.Path,
-    ignore_paths: Sequence[pathlib.Path],
+    ignore_paths: Collection[pathlib.Path],
     ignore_git_paths: bool,
     public_key: pathlib.Path,
 ) -> None:
@@ -458,7 +472,7 @@ def _verify_private_key(
     _serialize_and_verify(
         model_path,
         verifier,
-        list(ignore_paths),
+        ignore_paths,
         ignore_git_paths,
         signature_contents,
         signature,
@@ -474,9 +488,9 @@ def _verify_private_key(
 def _verify_certificate(
     model_path: pathlib.Path,
     signature: pathlib.Path,
-    ignore_paths: Sequence[pathlib.Path],
+    ignore_paths: Collection[pathlib.Path],
     ignore_git_paths: bool,
-    certificate_chain: list[pathlib.Path],
+    certificate_chain: Collection[pathlib.Path],
 ) -> None:
     """Verify using a certificate.
 
@@ -499,7 +513,7 @@ def _verify_certificate(
     _serialize_and_verify(
         model_path,
         verifier,
-        list(ignore_paths),
+        ignore_paths,
         ignore_git_paths,
         signature_contents,
         signature,
@@ -509,7 +523,7 @@ def _verify_certificate(
 def _serialize_and_verify(
     model_path: pathlib.Path,
     verifier: signing.Verifier,
-    ignore_paths: list[pathlib.Path],
+    ignore_paths: Collection[pathlib.Path],
     ignore_git_paths: bool,
     signature_content: signing.Signature,
     signature_file: pathlib.Path,
@@ -525,16 +539,15 @@ def _serialize_and_verify(
         file_hasher_factory=hasher_factory
     )
 
-    if ignore_git_paths:
-        ignore_paths.extend(_collect_git_related_files(model_path))
-
     try:
         model.verify(
             sig=signature_content,
             verifier=verifier,
             model_path=model_path,
             serializer=serializer,
-            ignore_paths=ignore_paths + [signature_file],
+            ignore_paths=_expand_paths_to_ignore(
+                model_path, signature_file, ignore_paths, ignore_git_paths
+            ),
         )
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
