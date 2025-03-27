@@ -391,7 +391,8 @@ class Pkcs11URI:
                     if self._is_allowed_path(f, self.allowed_module_paths):
                         return f
                     raise ValueError(f"module '{f}' is not allowed by policy")
-        raise ValueError(f"No module '{module_name}' could be found")
+        dirs = ", ".join(searchdirs)
+        raise ValueError(f"No module '{module_name}' could be found in {dirs}")
 
     def get_keyid_and_label(self) -> tuple[Optional[bytes], Optional[str]]:
         """Get the id for the key and its label."""
