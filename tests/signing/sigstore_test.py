@@ -43,29 +43,13 @@ class MockedSigstoreBundle:
         self._data = data
 
     def to_json(self) -> str:
-        """Convert the bundle to json for saving.
-
-        Since we just store the signed payload, we need to differentiate between
-        the case when this is already an in-toto statement or just the bytes
-        (differentiate between `sign_dsse`/`sign_artifact` results). For bytes,
-        we create a fake json object.
-        """
-        if hasattr(self._data, "_contents"):
-            return self._data._contents.decode("utf-8")
-
-        return json.dumps({"test_payload": self._data.hex()})
+        """Convert the bundle to json for saving."""
+        return self._data._contents.decode("utf-8")
 
     @classmethod
     def from_json(cls, data) -> Self:
-        """Reads a bundle from json.
-
-        Assumptions in `to_json` must be maintained here, specifically for the
-        fake json object created for the bytes payload.
-        """
-        json_data = json.loads(data)
-        if "test_payload" in json_data:
-            return cls(json_data["test_payload"])
-        return cls(json_data)
+        """Reads a bundle from json."""
+        return cls(json.loads(data))
 
 
 def _mocked_verify_dsse(
@@ -136,7 +120,6 @@ def mocked_sigstore_signer():
         autospec=True,
     ) as mocked_objects:
         signer = mock.MagicMock()
-        signer.sign_artifact = MockedSigstoreBundle
         signer.sign_dsse = MockedSigstoreBundle
         signer.__enter__.return_value = signer
 
