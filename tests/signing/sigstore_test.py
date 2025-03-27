@@ -25,7 +25,6 @@ from model_signing.hashing import file
 from model_signing.hashing import memory
 from model_signing.serialization import serialize_by_file
 from model_signing.serialization import serialize_by_file_shard
-from model_signing.signing import as_bytes
 from model_signing.signing import empty_signing
 from model_signing.signing import in_toto
 from model_signing.signing import sign_sigstore as sigstore
@@ -214,47 +213,12 @@ class TestSigstoreSigning:
         signature = signer.sign(payload)
         signature.write(signature_path)
 
-    def _verify_artifact_signature(
-        self, manifest, signature_path, use_staging=True
-    ):
-        signature = sigstore.SigstoreSignature.read(signature_path)
-        verifier = sigstore.SigstoreArtifactVerifier(
-            expected_digest=manifest.digest.digest_value,
-            identity="test",
-            oidc_issuer="test",
-            use_staging=use_staging,
-        )
-        return verifier.verify(signature)
-
     def _verify_dsse_signature(self, signature_path, use_staging=True):
         signature = sigstore.SigstoreSignature.read(signature_path)
         verifier = sigstore.SigstoreDSSEVerifier(
             identity="test", oidc_issuer="test", use_staging=use_staging
         )
         return verifier.verify(signature)
-
-    def test_sign_verify_artifacts(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        # Serialize and sign model
-        serializer = serialize_by_file.DigestSerializer(
-            self._file_hasher_factory, memory.SHA256(), allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            as_bytes.BytesPayload,
-            sigstore.SigstoreArtifactSigner,
-        )
-
-        # Read signature and check against expected serialization
-        local_manifest = serializer.serialize(sample_model_folder)
-        expected_manifest = self._verify_artifact_signature(
-            local_manifest, signature_path
-        )
-        assert expected_manifest == manifest
 
     def test_sign_verify_dsse_single_digest(
         self, sample_model_folder, mocked_sigstore, tmp_path
@@ -429,44 +393,6 @@ class TestSigstoreSigning:
         expected_manifest = self._verify_dsse_signature(signature_path)
         assert expected_manifest == manifest
 
-    def test_sign_digest_as_bytes(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        serializer = serialize_by_file.ManifestSerializer(
-            self._file_hasher_factory, allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-
-        with pytest.raises(
-            TypeError, match="Only `BytesPayload` payloads are supported"
-        ):
-            self._sign_manifest(
-                manifest,
-                signature_path,
-                in_toto.DigestsIntotoPayload,
-                sigstore.SigstoreArtifactSigner,
-            )
-
-    def test_sign_bytes_as_digest(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        serializer = serialize_by_file.DigestSerializer(
-            self._file_hasher_factory, memory.SHA256(), allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-
-        with pytest.raises(
-            TypeError, match="Only `IntotoPayload` payloads are supported"
-        ):
-            self._sign_manifest(
-                manifest,
-                signature_path,
-                as_bytes.BytesPayload,
-                sigstore.SigstoreDSSESigner,
-            )
-
     def test_sign_identity_token_precedence(self, mocked_oidc_provider):
         signer = sigstore.SigstoreDSSESigner(identity_token="provided_token")
         token = signer._get_identity_token()
@@ -475,17 +401,6 @@ class TestSigstoreSigning:
         signer = sigstore.SigstoreDSSESigner()
         token = signer._get_identity_token()
         assert token == "fake_token"
-
-    def test_verify_artifact_signature_not_sigstore(self, mocked_sigstore):
-        signature = empty_signing.EmptySignature()
-        verifier = sigstore.SigstoreArtifactVerifier(
-            expected_digest=b"", identity="", oidc_issuer=""
-        )
-
-        with pytest.raises(
-            TypeError, match="Only `SigstoreSignature` signatures are supported"
-        ):
-            verifier.verify(signature)
 
     def test_verify_dsse_signature_not_sigstore(self, mocked_sigstore):
         signature = empty_signing.EmptySignature()
