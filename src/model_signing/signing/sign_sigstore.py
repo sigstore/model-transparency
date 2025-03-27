@@ -27,7 +27,6 @@ from sigstore import sign as sigstore_signer
 from sigstore import verify as sigstore_verifier
 from typing_extensions import override
 
-from model_signing.hashing import hashing
 from model_signing.manifest import manifest
 from model_signing.signing import in_toto
 from model_signing.signing import signing
