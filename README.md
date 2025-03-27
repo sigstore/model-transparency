@@ -35,7 +35,8 @@ This project demonstrates how to protect the integrity of a model by signing it.
 We support generating signatures via [Sigstore](https://www.sigstore.dev/), a
 tool for making code signatures transparent without requiring management of
 cryptographic key material. But we also support traditional signing methods, so
-models can be signed with public keys or signing certificates.
+models can be signed with public keys or signing certificates as well as
+PKCS #11 enabled devices.
 
 The signing part creates a
 [sigstore bundle](https://github.com/sigstore/protobuf-specs/blob/main/protos/sigstore_bundle.proto)
@@ -176,6 +177,48 @@ Similarly, for key verification, we can use
 ```bash
 [...]$ model_signing verify key bert-base-uncased \
        --signature resnet.sig --public_key key.pub
+```
+
+#### Signing with PKCS #11 URIs
+
+Signing with PKCS #11 enabled crypto devices is supported through RFC 7512
+compliant PKCS #11 URIs. The URI can be used in place of the private key
+when siging with a private key or certificate.
+
+The following features are supported/required:
+
+    - The PKCS #11 URI must either provide the module through the query
+      parameter 'module-path', or the query parameter 'module-name' must
+      describe the name of a module that can be found in well-known
+      directories of Linux distributions.
+    - A token can be selected based on a provided 'slot-id' path parameter.
+      The first token that matches the given slot-id will be used. If a
+      'token' path parameter is also provided, then it will be used for
+      selecting the appropriate token by its label.
+    - When no 'slot-id' is given then all slots are searched for by the
+      name of the given 'token'.
+    - A PIN may be provided as 'pin-value' query parameter or may be read
+      from a file described by the 'pin-source' query parameter.
+    - An 'id' path parameter and/or key label (path parameter 'object') must
+      be provided to select the signing key.
+    - The public key on the PKCS #11 device will also be accessed during
+      signing.
+    - The signing key must be of type NIST P256/384/521 (secp256/384/512r1).
+
+With a PKCS #11 URI describing the private key, we can use the following
+for signing:
+
+```bash
+[...]$ model_signing sign pkcs11-key --signature model.sig \
+       --private_key "pkcs11:..." /path/to/your/model
+```
+
+For signature verification it is necessary to retrieve the public key from
+the PKCS #11 device and store it in a file in PEM format. With can then use:
+
+```bash
+[...]$ model_signing verify key --signature model.sig\
+       --public_key key.pub  /path/to/your/model
 ```
 
 ### Model Signing API

@@ -50,6 +50,7 @@ from typing import Optional
 from model_signing import hashing
 from model_signing._signing import sign_certificate as certificate
 from model_signing._signing import sign_ec_key as ec_key
+from model_signing._signing import sign_pkcs11 as pkcs11
 from model_signing._signing import sign_sigstore as sigstore
 from model_signing._signing import signing
 
@@ -194,5 +195,54 @@ class Config:
             pathlib.Path(private_key),
             pathlib.Path(signing_certificate),
             [pathlib.Path(c) for c in certificate_chain],
+        )
+        return self
+
+    def use_pkcs11_signer(
+        self, *, pkcs11_uri: str, module_paths: Iterable[str] = frozenset()
+    ) -> Self:
+        """Configures the signing to be performed using PKCS #11.
+
+        The signer in this configuration is changed to one that performs signing
+        using a private key based on elliptic curve cryptography.
+
+        Args:
+            pkcs11_uri: The PKCS11 URI.
+            module_paths: Optional list of paths of PKCS #11 modules.
+
+        Return:
+            The new signing configuration.
+        """
+        self._signer = pkcs11.Signer(pkcs11_uri, module_paths)
+        return self
+
+    def use_pkcs11_certificate_signer(
+        self,
+        *,
+        pkcs11_uri: str,
+        signing_certificate: pathlib.Path,
+        certificate_chain: Iterable[pathlib.Path],
+        module_paths: Iterable[str] = frozenset(),
+    ) -> Self:
+        """Configures the signing to be performed using signing certificates.
+
+        The signer in this configuration is changed to one that performs signing
+        using cryptographic certificates.
+
+        Args:
+            pkcs11_uri: The PKCS #11 URI.
+            signing_certificate: The path to the signing certificate.
+            certificate_chain: Optional paths to other certificates to establish
+              a chain of trust.
+            module_paths: Optional list of paths of PKCS #11 modules.
+
+        Return:
+            The new signing configuration.
+        """
+        self._signer = pkcs11.CertSigner(
+            pkcs11_uri,
+            signing_certificate,
+            certificate_chain,
+            module_paths=module_paths,
         )
         return self

@@ -28,9 +28,11 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "asn1crypto",
   "click",
   "cryptography",
   "in-toto-attestation",
+  "PyKCS11",
   "sigstore",
   "typing_extensions",
 ]
