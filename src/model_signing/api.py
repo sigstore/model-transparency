@@ -462,7 +462,6 @@ class SigningConfig:
     def set_sigstore_signer(
         self,
         *,
-        sign_dsse: bool = True,
         oidc_issuer: Optional[str] = None,
         use_ambient_credentials: bool = True,
         use_staging: bool = False,
@@ -475,7 +474,6 @@ class SigningConfig:
         We will merge the configurations in a subsequent change.
 
         Args:
-            sign_dsse: Sign a DSSE statement (if True) or a binary blob.
             oidc_issuer: An optional OpenID Connect issuer to use instead of the
               default production one. Only relevant if `use_staging = False`.
               Default is empty, relying on the Sigstore configuration.
@@ -491,12 +489,7 @@ class SigningConfig:
         Return:
             The new signing configuration.
         """
-        if sign_dsse:
-            signer_factory = sigstore.SigstoreDSSESigner
-        else:
-            signer_factory = sigstore.SigstoreArtifactSigner
-
-        self._signer = signer_factory(
+        self._signer = sigstore.SigstoreDSSESigner(
             oidc_issuer=oidc_issuer,
             use_ambient_credentials=use_ambient_credentials,
             use_staging=use_staging,
