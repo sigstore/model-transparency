@@ -45,6 +45,9 @@ keywords = [
   "ML supply chain security",
 ]
 
+[project.scripts]
+model_signing = "model_signing._cli:main"
+
 [project.urls]
 Homepage = "https://pypi.org/project/model-signing/"
 Changelog = "https://github.com/sigstore/model-transparency/blob/main/CHANGELOG.md"
