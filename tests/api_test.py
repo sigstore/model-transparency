@@ -25,7 +25,8 @@ import time
 
 import pytest
 
-from model_signing import api as model_signing_api
+from model_signing import sign
+from model_signing import verify
 
 
 _MIN_VALIDITY = timedelta(minutes=1)
@@ -86,14 +87,15 @@ class TestSigstoreSigning:
     def test_sign_and_verify(
         self, sigstore_oidc_beacon_token, sample_model_folder, tmp_path
     ):
-        sc = model_signing_api.SigningConfig()
+        sc = sign.SigningConfig()
         sc.set_sigstore_signer(
             use_staging=True, identity_token=sigstore_oidc_beacon_token
         )
         signature_path = tmp_path / "model.sig"
         sc.sign(sample_model_folder, signature_path)
+
         expected_identity = "https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon/.github/workflows/extremely-dangerous-oidc-beacon.yml@refs/heads/main"
-        model_signing_api.verify(
+        verify.verify(
             sample_model_folder,
             signature_path,
             identity=expected_identity,

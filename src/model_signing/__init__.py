@@ -14,4 +14,12 @@
 
 """For the stable high-level API, see model_signing.api."""
 
+from model_signing import hash
+from model_signing import sign
+from model_signing import verify
+
+
 __version__ = "0.2.0"
+
+
+__all__ = ["hash", "sign", "verify"]
