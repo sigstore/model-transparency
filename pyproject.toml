@@ -109,7 +109,7 @@ extra-dependencies = [
   "pytype",
 ]
 installer = "pip"
-python = "3.13"
+python = "3.12"
 
 [tool.hatch.envs.type.scripts]
 check = "pytype -k -j auto src tests benchmarks"
