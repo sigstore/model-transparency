@@ -35,7 +35,7 @@ jobs:
       fail-fast: false # Don't cancel other jobs if one fails
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
     permissions:
       contents: read
     steps:
@@ -54,7 +54,7 @@ jobs:
         fi
 
     - name: Highlight missing lines
-      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
       run: |
         set -euxo pipefail
         awk '/Name/{flag=1; next} /TOTAL/{flag=0; next} flag && !/^[-]+$/' cov.txt | while IFS= read -r line; do
