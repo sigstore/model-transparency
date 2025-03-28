@@ -47,7 +47,7 @@ jobs:
     - name: Run unit tests (with coverage report at the end)
       run: |
         set -euxo pipefail
-        if [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.python-version }}" == "3.11" ]]; then
+        if [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.python-version }}" == "3.13" ]]; then
           hatch test -c -py ${{ matrix.python-version }} | tee > cov.txt
         else
           hatch test -c -py ${{ matrix.python-version }}
