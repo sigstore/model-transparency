@@ -22,6 +22,7 @@ models. If the golden tests are failing, regenerate the golden files with
 
 import os
 import pathlib
+from typing import cast
 
 import pytest
 
@@ -161,7 +162,7 @@ class TestManifestSerializer:
             old_manifest._item_to_digest
         )
         for key, digest in new_manifest._item_to_digest.items():
-            path = key.path
+            path = cast(_manifest.File, key).path
             if path.name == new_name:
                 key = _manifest.File(old_name)
             else:
@@ -203,7 +204,7 @@ class TestManifestSerializer:
             old_manifest._item_to_digest
         )
         for key, digest in new_manifest._item_to_digest.items():
-            path = key.path
+            path = cast(_manifest.File, key).path
             if new_name in path.parts:
                 parts = [
                     old_name if part == new_name else part
@@ -262,7 +263,7 @@ class TestManifestSerializer:
             old_manifest._item_to_digest
         )
         for key, digest in new_manifest._item_to_digest.items():
-            path = key.path
+            path = cast(_manifest.File, key).path
             if path == expected_mismatch_path:
                 assert old_manifest._item_to_digest[key] != digest
             else:

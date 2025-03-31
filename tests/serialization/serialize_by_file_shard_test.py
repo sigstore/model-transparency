@@ -21,6 +21,7 @@ models. If the golden tests are failing, regenerate the golden files with
 """
 
 import pathlib
+from typing import cast
 
 import pytest
 
@@ -33,7 +34,7 @@ from tests import test_support
 
 def _extract_shard_items_from_manifest(
     manifest: _manifest.Manifest,
-) -> dict[_manifest.Shard, str]:
+) -> dict[_manifest.ManifestKey, str]:
     """Builds a dictionary representation of the items in a manifest.
 
     Every item is mapped to its digest.
@@ -236,7 +237,8 @@ class TestManifestSerializer:
         assert len(new_manifest._item_to_digest) == len(
             old_manifest._item_to_digest
         )
-        for shard, digest in new_manifest._item_to_digest.items():
+        for key, digest in new_manifest._item_to_digest.items():
+            shard = cast(_manifest.Shard, key)
             if shard.path.name == new_name:
                 old_shard = _manifest.Shard(old_name, shard.start, shard.end)
                 assert old_manifest._item_to_digest[old_shard] == digest
@@ -279,7 +281,8 @@ class TestManifestSerializer:
         assert len(new_manifest._item_to_digest) == len(
             old_manifest._item_to_digest
         )
-        for shard, digest in new_manifest._item_to_digest.items():
+        for key, digest in new_manifest._item_to_digest.items():
+            shard = cast(_manifest.Shard, key)
             if new_name in shard.path.parts:
                 parts = [
                     old_name if part == new_name else part
@@ -341,11 +344,12 @@ class TestManifestSerializer:
         assert len(new_manifest._item_to_digest) == len(
             old_manifest._item_to_digest
         )
-        for shard, digest in new_manifest._item_to_digest.items():
+        for key, digest in new_manifest._item_to_digest.items():
+            shard = cast(_manifest.Shard, key)
             if shard.path == expected_mismatch_path:
                 # Note that the file size changes
-                item = _manifest.Shard(shard.path, 0, 23)
-                assert old_manifest._item_to_digest[item] != digest
+                key = _manifest.Shard(shard.path, 0, 23)
+                assert old_manifest._item_to_digest[key] != digest
             else:
                 assert old_manifest._item_to_digest[shard] == digest
 
