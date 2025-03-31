@@ -184,7 +184,7 @@ class PKIVerifier(Verifier):
                 pass
             if not code_signing:
                 raise VerificationError(
-                    "signing certificate neither allows digital signature"
+                    "signing certificate neither allows digital signature "
                     "nor code signing"
                 )
 
