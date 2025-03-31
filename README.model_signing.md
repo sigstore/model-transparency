@@ -23,8 +23,8 @@ monitor](https://github.com/sigstore/rekor-monitor) that runs on GitHub Actions.
 
 ## Model Signing CLI
 
-The `sign.py` and `verify.py` scripts aim to provide the necessary functionality
-to sign and verify ML models. For signing and verification the following methods
+The `model_signing` module aims to provide the necessary functionality to
+sign and verify ML models. For signing and verification the following methods
 are supported:
 
 * Bring your own key pair
@@ -53,12 +53,8 @@ by setting the `--sig_out` flag.
 
 ### Usage
 
-There are two scripts one can be used to create and sign a bundle and the other to
-verify a bundle. Furthermore, the functionality can be used directly from other
-Python tools. The `sign.py` and `verify.py` scripts can be used as canonical
-how-to examples.
-
-The easiest way to use the scripts directly is from a virtual environment:
+The model_signing module can be used to create and sign a bundle as well as
+verify a bundle. The easiest way to use the it is from a virtual environment:
 
 ```bash
 $ python3 -m venv .venv
@@ -69,13 +65,13 @@ $ source .venv/bin/activate
 ## Sign
 
 ```bash
-(.venv) $ python3 sign.py --model_path ${MODEL_PATH} --sig_out ${SIG_PATH} {private-key, pki, sigstore} {additional parameters depending on method}
+(.venv) $ python3 -m model_signing sign {certificate, key, sigstore} --signature ${SIG_PATH} {additional parameters depending on method} ${MODEL_PATH}
 ```
 
 ## Verify
 
 ```bash
-(.venv) $ python3 verify.py --model_path ${MODEL_PATH} --sig_path ${SIG_PATH} {private-key, pki, sigstore} {additional parameters depending on method}
+(.venv) $ python3 -m model_signing verify {certificate, key, sigstore} --signature ${SIG_PATH} {additional parameters depending on method} ${MODEL_PATH}
 ```
 
 ### Examples
@@ -89,10 +85,10 @@ $ openssl ecparam -name secp256k1 -genkey -noout -out ec-secp256k1-priv-key.pem
 $ openssl ec -in ec-secp256k1-priv-key.pem -pubout > ec-secp256k1-pub-key.pem
 $ source .venv/bin/activate
 # SIGN
-(.venv) $ python3 sign.py --model_path ${MODEL_PATH} --sig_out ${SIG_PATH} private-key --private-key ec-secp256k1-priv-key.pem
+(.venv) $ python3 -m model_signing sign key --signature ${SIG_PATH} --private_key ec-secp256k1-priv-key.pem ${MODEL_PATH}
 ...
 #VERIFY
-(.venv) $ python3 verify.py --model_path ${MODEL_PATH} --sig_path ${SIG_PATH} private-key --public-key ec-secp256k1-pub-key.pem
+(.venv) $ python3 -m model_signing verify key --signature ${SIG_PATH} --public_key ec-secp256k1-pub-key.pem ${MODEL_PATH}
 ...
 ```
 
@@ -111,19 +107,19 @@ $ CERT_CHAIN='/path/to/cert_chain'
 $ SIGNING_CERT='/path/to/signing_certificate'
 $ PRIVATE_KEY='/path/to/private_key'
 # SIGN
-(.venv) $ python3 sign.py --model_path ${MODEL_PATH} \
-    --sig_path ${SIG_PATH} \
-    pki \
-    --private-key ${PRIVATE_KEY} \
+(.venv) $ python3 -m model_signing sign certificate \
+    --signature ${SIG_PATH} \
+    --private_key ${PRIVATE_KEY} \
     --signing_cert ${SIGNING_CERT} \
-    [--cert_chain ${CERT_CHAIN}]
+    [--cert_chain ${CERT_CHAIN}] \
+    ${MODEL_PATH}
 ...
 #VERIFY
 $ ROOT_CERTS='/path/to/root/certs'
-(.venv) $ python3 verify.py --model_path ${MODEL_PATH} \
-    --sig_path ${SIG_PATH} \
-    pki \
-    --root_certs ${ROOT_CERTS}
+(.venv) $ python3 -m model_signing verify certificate\
+    --signature ${SIG_PATH} \
+    --root_certs ${ROOT_CERTS} \
+    ${MODEL_PATH}
 ...
 ```
 
@@ -132,10 +128,10 @@ $ ROOT_CERTS='/path/to/root/certs'
 ```bash
 $ MODEL_PATH='/path/to/your/model'
 # SIGN
-(.venv) $ python3 sign.py --model_path ${MODEL_PATH} sigstore
+(.venv) $ python3 -m model_signing sign sigstore ${MODEL_PATH}
 ...
 #VERIFY
-(.venv) $ python3 verify.py --model_path ${MODEL_PATH} --sig_path ./model.sig sigstore --identity name@example.com --identity-provider https://accounts.example.com
+(.venv) $ python3 -m model_signing verify sigstore --signature ./model.sig --identity name@example.com --identity_provider https://accounts.example.com ${MODEL_PATH}
 ...
 ```
 
@@ -172,11 +168,12 @@ sig_path=model.sig
 wget "https://tfhub.dev/google/bertseq2seq/bert24_en_de/1?tf-hub-format=compressed" -O "${model_path}".tgz
 mkdir -p "${model_path}"
 cd "${model_path}" && tar xvzf ../"${model_path}".tgz && rm ../"${model_path}".tgz && cd -
-python3 sign.py --model_path "${model_path}" sigstore
-python3 verify.py --model_path "${model_path}" --sig_path ${sig_path} \
-    sigstore \
-    --identity-provider https://accounts.google.com \
-    --identity myemail@gmail.com
+python3 -m model_signing sign sigstore "${model_path}"
+python3 -m model_signing verify sigstore \
+    --signature ${sig_path} \
+    --identity_provider https://accounts.google.com \
+    --identity myemail@gmail.com \
+    ${model_path}
 ```
 
 For models stored in Hugging Face we need the large file support from git, which
@@ -194,11 +191,12 @@ model_name=bert-base-uncased
 model_path="${model_name}"
 sig_path=model.sig
 git clone --depth=1 "https://huggingface.co/${model_name}" && rm -rf "${model_name}"/.git
-python3 sign.py --model_path "${model_path}"
-python3 verify.py --model_path "${model_path}" --sig_path ${sig_path} \
-    sigstore \
-    --identity-provider https://accounts.google.com \
-    --identity myemail@gmail.com
+python3 -m model_signing sign sigstore "${model_path}"
+python3 -m model_signing verify sigstore \
+    --signature ${sig_path} \
+    --identity_provider https://accounts.google.com \
+    --identity myemail@gmail.com \
+    ${model_path}
 ```
 
 Similarly, we can sign and verify a Falcon model:
@@ -208,11 +206,12 @@ model_name=tiiuae/falcon-7b
 model_path=$(echo "${model_name}" | cut -d/ -f2)
 sig_path=model.sig
 git clone --depth=1 "https://huggingface.co/${model_name}" && rm -rf "${model_name}"/.git
-python3 sign.py --model_path "${model_path}"
-python3 verify.py --model_path "${model_path}" --sig_path ${sig_path} \
-    sigstore \
-    --identity-provider https://accounts.google.com \
-    --identity myemail@gmail.com
+python3 -m model_signing sign sigstore "${model_path}"
+python3 -m model_signing verify sigstore \
+    --signature ${sig_path} \
+    --identity_provider https://accounts.google.com \
+    --identity myemail@gmail.com \
+    ${model_path}
 ```
 
 We can also support models from  the PyTorch Hub:
@@ -224,11 +223,12 @@ sig_path=model.sig
 wget "https://github.com/${model_name}/archive/main.zip" -O "${model_path}".zip
 mkdir -p "${model_path}"
 cd "${model_path}" && unzip ../"${model_path}".zip && rm ../"${model_path}".zip && shopt -s dotglob && mv YOLOP-main/* . && shopt -u dotglob && rmdir YOLOP-main/ && cd -
-python3 sign.py --model_path "${model_path}"
-python3 verify.py --model_path "${model_path}" --sig_path ${sig_path} \
-    sigstore \
-    --identity-provider https://accounts.google.com \
-    --identity myemail@gmail.com
+python3 -m model_signing sign sigstore "${model_path}"
+python3 -m model_signing verify sigstore \
+    --signature ${sig_path} \
+    --identity_provider https://accounts.google.com \
+    --identity myemail@gmail.com \
+    ${model_path}
 ```
 
 We also support ONNX models, for example Roberta:
@@ -238,11 +238,12 @@ model_name=roberta-base-11
 model_path="${model_name}.onnx"
 sig_path=model.sig
 wget "https://github.com/onnx/models/raw/main/text/machine_comprehension/roberta/model/${model_name}.onnx"
-python3 sign.py --model_path "${model_path}"
-python3 verify.py --model_path "${model_path}" --sig_path ${sig_path} \
-    sigstore \
-    --identity-provider https://accounts.google.com \
-    --identity myemail@gmail.com
+python3 -m model_signing sign sigstore "${model_path}"
+python3 -m model_signing verify sigstore \
+    --signature ${sig_path} \
+    --identity_provider https://accounts.google.com \
+    --identity myemail@gmail.com \
+    ${model_path}
 ```
 
 ## Benchmarking
