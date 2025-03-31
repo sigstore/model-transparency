@@ -45,10 +45,10 @@ def sign(model_path: os.PathLike, signature_path: os.PathLike):
         model_path: the path to the model to sign.
         signature_path: the path of the resulting signature.
     """
-    SigningConfig().sign(model_path, signature_path)
+    Config().sign(model_path, signature_path)
 
 
-class SigningConfig:
+class Config:
     """Configuration to use when signing models.
 
     The signing configuration is used to decouple between serialization formats
@@ -60,7 +60,7 @@ class SigningConfig:
 
     def __init__(self):
         """Initializes the default configuration for signing."""
-        self._hashing_config = hash.HashingConfig()
+        self._hashing_config = hash.Config()
         self._payload_generator = in_toto.DigestsIntotoPayload.from_manifest
         self._signer = sigstore.SigstoreDSSESigner(
             use_ambient_credentials=False, use_staging=False
@@ -78,7 +78,7 @@ class SigningConfig:
         signature = self._signer.sign(payload)
         signature.write(pathlib.Path(signature_path))
 
-    def set_hashing_config(self, hashing_config: hash.HashingConfig) -> Self:
+    def set_hashing_config(self, hashing_config: hash.Config) -> Self:
         """Sets the new configuration for hashing models.
 
         Args:

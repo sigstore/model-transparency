@@ -57,12 +57,12 @@ def verify(
         use_staging: Use staging configurations, instead of production. This
           is supposed to be set to True only when testing. Default is False.
     """
-    VerificationConfig().set_sigstore_dsse_verifier(
+    Config().set_sigstore_dsse_verifier(
         identity=identity, oidc_issuer=oidc_issuer, use_staging=use_staging
     ).verify(model_path, signature_path)
 
 
-class VerificationConfig:
+class Config:
     """Configuration to use when verifying models against signatures.
 
     The verification configuration is used to decouple between serialization
@@ -73,7 +73,7 @@ class VerificationConfig:
 
     def __init__(self):
         """Initializes the default configuration for verification."""
-        self._hashing_config = hash.HashingConfig()
+        self._hashing_config = hash.Config()
         self._verifier = None
 
     def verify(self, model_path: os.PathLike, signature_path: os.PathLike):
@@ -92,7 +92,7 @@ class VerificationConfig:
         if actual_manifest != expected_manifest:
             raise ValueError("Signature mismatch")
 
-    def set_hashing_config(self, hashing_config: hash.HashingConfig) -> Self:
+    def set_hashing_config(self, hashing_config: hash.Config) -> Self:
         """Sets the new configuration for hashing models.
 
         Args:

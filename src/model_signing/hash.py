@@ -61,10 +61,10 @@ def hash(model_path: os.PathLike) -> manifest.Manifest:
     Returns:
         A manifest of the hashed model.
     """
-    return HashingConfig().hash(model_path)
+    return Config().hash(model_path)
 
 
-class HashingConfig:
+class Config:
     """Configuration to use when hashing models.
 
     Hashing a model results in a `manifest.Manifest` object. This may contain a

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""For the stable high-level API, see model_signing.api."""
+"""For the stable high-level API, see model_signing.{hash,sign,verify}."""
 
 from model_signing import hash
 from model_signing import sign
