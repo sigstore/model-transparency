@@ -10,6 +10,6 @@
   ],
   "predicateType": "https://model_signing/Digest/v0.1",
   "predicate": {
-    "actual_hash_algorithm": "file-sha256"
+    "actual_hash_algorithm": "sha256"
   }
 }

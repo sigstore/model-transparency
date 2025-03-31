@@ -25,8 +25,8 @@ import pathlib
 
 import pytest
 
-from model_signing.hashing import file
-from model_signing.hashing import memory
+from model_signing._hashing import file
+from model_signing._hashing import memory
 from model_signing.manifest import manifest
 from model_signing.serialization import serialize_by_file
 from tests import test_support
@@ -203,7 +203,7 @@ class TestDigestSerializer:
 
         assert manifest != new_manifest
 
-    def test_empty_folder_hashes_differently_than_empty_file(
+    def test_empty_folder_hashes_same_as_empty_file(
         self, empty_model_file, empty_model_folder
     ):
         serializer = serialize_by_file.DigestSerializer(
@@ -213,7 +213,7 @@ class TestDigestSerializer:
         folder_manifest = serializer.serialize(empty_model_folder)
         file_manifest = serializer.serialize(empty_model_file)
 
-        assert folder_manifest != file_manifest
+        assert folder_manifest == file_manifest
 
     def test_model_with_empty_folder_hashes_differently_than_with_empty_file(
         self, sample_model_folder

@@ -29,9 +29,9 @@ import pathlib
 import sys
 from typing import Literal, Optional
 
-from model_signing.hashing import file
-from model_signing.hashing import hashing
-from model_signing.hashing import memory
+from model_signing._hashing import file
+from model_signing._hashing import hashing
+from model_signing._hashing import memory
 from model_signing.manifest import manifest
 from model_signing.serialization import serialize_by_file
 from model_signing.serialization import serialize_by_file_shard

@@ -16,8 +16,8 @@ import pathlib
 
 import pytest
 
-from model_signing.hashing import file
-from model_signing.hashing import memory
+from model_signing._hashing import file
+from model_signing._hashing import memory
 
 
 # some constants used throughout testing
@@ -128,7 +128,7 @@ class TestSimpleFileHasher:
 
     def test_default_digest_name(self):
         hasher = file.SimpleFileHasher(_UNUSED_PATH, memory.SHA256())
-        assert hasher.digest_name == "file-sha256"
+        assert hasher.digest_name == "sha256"
 
     def test_override_digest_name(self):
         hasher = file.SimpleFileHasher(
@@ -380,7 +380,7 @@ class TestShardedFileHasher:
         hasher = file.ShardedFileHasher(
             _UNUSED_PATH, memory.SHA256(), start=0, end=2, shard_size=10
         )
-        assert hasher.digest_name == "file-sha256-10"
+        assert hasher.digest_name == "sha256-sharded-10"
 
     def test_override_digest_name(self):
         hasher = file.ShardedFileHasher(
@@ -410,49 +410,4 @@ class TestShardedFileHasher:
         hasher = file.ShardedFileHasher(
             sample_file, memory_hasher, start=0, end=2
         )
-        assert hasher.digest_size == memory_hasher.digest_size
-
-
-class TestOpenedFileHasher:
-    def test_hash_of_known_file(self, sample_file, expected_digest):
-        with open(sample_file, "rb") as f:
-            hasher = file.OpenedFileHasher(f)
-            digest = hasher.compute()
-
-        assert digest.digest_hex == expected_digest
-
-    def test_set_file_descriptor(self, sample_file, expected_digest):
-        with open(sample_file, "rb") as f:
-            hasher = file.OpenedFileHasher(f)
-
-        with open(sample_file, "rb") as f:
-            hasher.set_file_descriptor(f)
-            digest = hasher.compute()
-
-        assert digest.digest_hex == expected_digest
-
-    def test_default_digest_name(self, sample_file):
-        with open(sample_file, "rb") as f:
-            hasher = file.OpenedFileHasher(f)
-
-        assert hasher.digest_name == "file-fd-sha256"
-
-    def test_override_digest_name(self, sample_file):
-        with open(sample_file, "rb") as f:
-            hasher = file.OpenedFileHasher(f, digest_name_override="test-hash")
-
-        assert hasher.digest_name == "test-hash"
-
-    def test_digest_algorithm_is_digest_name(self, sample_file):
-        with open(sample_file, "rb") as f:
-            hasher = file.OpenedFileHasher(f)
-            digest = hasher.compute()
-
-        assert digest.algorithm == hasher.digest_name
-
-    def test_digest_size(self, sample_file):
-        with open(sample_file, "rb") as f:
-            hasher = file.OpenedFileHasher(f)
-
-        memory_hasher = memory.SHA256()
         assert hasher.digest_size == memory_hasher.digest_size

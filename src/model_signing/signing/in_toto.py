@@ -26,8 +26,8 @@ from typing import Any, Final
 from in_toto_attestation.v1 import statement
 from typing_extensions import override
 
-from model_signing.hashing import hashing
-from model_signing.hashing import memory
+from model_signing._hashing import hashing
+from model_signing._hashing import memory
 from model_signing.manifest import manifest as manifest_module
 from model_signing.signing import signing
 

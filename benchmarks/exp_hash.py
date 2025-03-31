@@ -21,8 +21,8 @@ from typing import Final
 
 import numpy as np
 
-from model_signing.hashing import hashing
-from model_signing.hashing import memory
+from model_signing._hashing import hashing
+from model_signing._hashing import memory
 
 
 KB: Final[int] = 1024

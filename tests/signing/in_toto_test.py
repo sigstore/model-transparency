@@ -26,9 +26,9 @@ from google.protobuf import json_format
 from in_toto_attestation.v1 import statement_pb2
 import pytest
 
-from model_signing.hashing import file
-from model_signing.hashing import hashing
-from model_signing.hashing import memory
+from model_signing._hashing import file
+from model_signing._hashing import hashing
+from model_signing._hashing import memory
 from model_signing.manifest import manifest as manifest_module
 from model_signing.serialization import serialize_by_file
 from model_signing.serialization import serialize_by_file_shard

@@ -24,8 +24,8 @@ from typing import Optional, cast
 
 from typing_extensions import override
 
-from model_signing.hashing import file
-from model_signing.hashing import hashing
+from model_signing._hashing import file
+from model_signing._hashing import hashing
 from model_signing.manifest import manifest
 from model_signing.serialization import serialization
 from model_signing.serialization import serialize_by_file

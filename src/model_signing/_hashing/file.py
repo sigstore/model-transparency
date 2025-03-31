@@ -33,27 +33,14 @@ Example usage for `ShardedFileHasher`, reading only the second part of a file:
 >>> digest.digest_hex
 '88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
 ```
-
-Example usage for `OpenedFileHasher`:
-```python
->>> with open("/tmp/file", "w") as f:
-...     f.write("abcd")
->>> with open("/tmp/file", "rb") as f:
-...     hasher = OpenedFileHasher(f)
-...     digest = hasher.compute()
->>> digest.digest_hex
-'88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589'
-```
 """
 
-import hashlib
 import pathlib
-import sys
-from typing import BinaryIO, Optional
+from typing import Optional
 
 from typing_extensions import override
 
-from model_signing.hashing import hashing
+from model_signing._hashing import hashing
 
 
 class FileHasher(hashing.HashEngine):
@@ -63,8 +50,6 @@ class FileHasher(hashing.HashEngine):
     only as a type annotation (to signal that API expects a hasher capable of
     hashing files, instead of any `HashEngine` instance).
     """
-
-    pass
 
 
 class SimpleFileHasher(FileHasher):
@@ -83,7 +68,7 @@ class SimpleFileHasher(FileHasher):
         file: pathlib.Path,
         content_hasher: hashing.StreamingHashEngine,
         *,
-        chunk_size: int = 1048576,
+        chunk_size: int = 1_048_576,
         digest_name_override: Optional[str] = None,
     ):
         """Initializes an instance to hash a file with a specific `HashEngine`.
@@ -109,7 +94,11 @@ class SimpleFileHasher(FileHasher):
         self._digest_name_override = digest_name_override
 
     def set_file(self, file: pathlib.Path) -> None:
-        """Redefines the file to be hashed in `compute`."""
+        """Redefines the file to be hashed in `compute`.
+
+        Args:
+            file: The new file to be hashed.
+        """
         self._file = file
 
     @property
@@ -117,7 +106,10 @@ class SimpleFileHasher(FileHasher):
     def digest_name(self) -> str:
         if self._digest_name_override is not None:
             return self._digest_name_override
-        return f"file-{self._content_hasher.digest_name}"
+        # Since there is no difference between hashing the file with this engine
+        # or reading the file in memory and then using the content hasher
+        # directly, we must have the same digest_name.
+        return self._content_hasher.digest_name
 
     @override
     def compute(self) -> hashing.Digest:
@@ -140,92 +132,17 @@ class SimpleFileHasher(FileHasher):
     @property
     @override
     def digest_size(self) -> int:
-        """The size, in bytes, of the digests produced by the engine."""
         return self._content_hasher.digest_size
 
 
-class OpenedFileHasher(FileHasher):
-    """File hasher using `hashlib.file_digest` to operate on opened files.
-
-    This also supports other file-like objects opened for reading in binary
-    mode, e.g., BytesIO, SocketIO.
-
-    Since the `hashlib.file_digest` may bypass Python's I/O, this could be
-    faster than `SimpleFileHasher`, at the cost of having the file descriptor
-    maintained by the caller, according to `hashlib.file_digest` requirements.
-    """
-
-    def __init__(
-        self,
-        # https://github.com/python/typeshed/issues/2166
-        file_descriptor: BinaryIO,
-        *,
-        algorithm: str = "sha256",
-        digest_name_override: Optional[str] = None,
-    ):
-        """Initializes an instance to hash a file with a specific algorithm.
-
-        Args:
-            file_descriptor: Descriptor to the opened file.
-            algorithm: a hashing algorithm that can be passed as argument to
-              `hashlib.new`. By default, this is "sha256".
-            digest_name_override: Optional string to allow overriding the
-              `digest_name` property to support shorter, standardized names.
-        """
-        self._fd = file_descriptor
-        self._algorithm = algorithm
-        self._digest_name_override = digest_name_override
-
-    def set_file_descriptor(
-        self,
-        # https://github.com/python/typeshed/issues/2166
-        file_descriptor: BinaryIO,
-    ) -> None:
-        """Redefines the file_descriptor to be hashed in `compute`."""
-        self._fd = file_descriptor
-
-    @property
-    @override
-    def digest_name(self) -> str:
-        if self._digest_name_override is not None:
-            return self._digest_name_override
-        return f"file-fd-{self._algorithm}"
-
-    @override
-    def compute(self) -> hashing.Digest:
-        if sys.version_info >= (3, 11):
-            # https://github.com/python/typeshed/issues/2166
-            # pytype: disable=wrong-arg-types
-            digest = hashlib.file_digest(self._fd, self._algorithm)
-            # pytype: enable=wrong-arg-types
-            return hashing.Digest(self.digest_name, digest.digest())
-
-        # Polyfill for Python 3.10
-        # https://github.com/python/cpython/blob/4deb32a992/Lib/hashlib.py#L195
-        hasher = hashlib.new(self._algorithm)
-        buffer = bytearray(2**18)
-        view = memoryview(buffer)
-        while True:
-            size = self._fd.readinto(buffer)
-            if size == 0:
-                break
-            hasher.update(view[:size])
-        return hashing.Digest(self.digest_name, hasher.digest())
-
-    @property
-    @override
-    def digest_size(self) -> int:
-        """The size, in bytes, of the digests produced by the engine."""
-        return hashlib.new(self._algorithm).digest_size
-
-
 class ShardedFileHasher(SimpleFileHasher):
-    """File hash engine that can be invoked in parallel.
+    """File hash engine that hashes a portion (shard) of the file.
 
-    To efficiently support hashing large files, this class provides an ability
-    to compute the digest over a shard of the file. It is the responsibility of
-    the user to compose the digests of each shard into a single digest for the
-    entire file.
+    By invoking this engine in parallel across disjoint shards, we can speed up
+    hashing a single file. However, the hash output depends on the shard size.
+
+    It is the responsibility of the user to compose the digests of each shard
+    into a single digest for the entire file.
     """
 
     def __init__(
@@ -235,7 +152,7 @@ class ShardedFileHasher(SimpleFileHasher):
         *,
         start: int,
         end: int,
-        chunk_size: int = 1048576,
+        chunk_size: int = 1_048_576,
         shard_size: int = 1_000_000_000,
         digest_name_override: Optional[str] = None,
     ):
@@ -244,12 +161,12 @@ class ShardedFileHasher(SimpleFileHasher):
         Args:
             file: The file to hash. Use `set_file` to reset it.
             content_hasher: A `hashing.HashEngine` instance used to compute the
-              digest of the file.
+              digest of the file shard.
             start: The file offset to start reading from. Must be valid. Reset
               with `set_shard`.
-            end: The file offset to start reading from. Must be stricly greater
-              than start. If past the file size, or -1, it will be trimmed.
-              Reset with `set_shard`.
+            end: The file offset to stop reading at. Must be stricly greater
+              than start. The entire shard length must be less than the
+              configured `shard_size`. Reset with `set_shard`.
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
@@ -273,7 +190,14 @@ class ShardedFileHasher(SimpleFileHasher):
         self.set_shard(start=start, end=end)
 
     def set_shard(self, *, start: int, end: int) -> None:
-        """Redefines the file shard to be hashed in `compute`."""
+        """Redefines the file shard to be hashed in `compute`.
+
+        Args:
+            start: The file offset to start reading from. Must be valid.
+            end: The file offset to stop reading at. Must be stricly greater
+              than start. The entire shard length must be less than the
+              configured `shard_size`.
+        """
         if start < 0:
             raise ValueError(
                 f"File start offset must be non-negative, got {start}."
@@ -319,4 +243,4 @@ class ShardedFileHasher(SimpleFileHasher):
     def digest_name(self) -> str:
         if self._digest_name_override is not None:
             return self._digest_name_override
-        return f"file-{self._content_hasher.digest_name}-{self.shard_size}"
+        return f"{self._content_hasher.digest_name}-sharded-{self.shard_size}"

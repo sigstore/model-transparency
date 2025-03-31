@@ -16,7 +16,7 @@ import pathlib
 
 import pytest
 
-from model_signing.hashing import hashing
+from model_signing._hashing import hashing
 from model_signing.manifest import manifest
 
 

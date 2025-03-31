@@ -18,7 +18,7 @@ import sys
 import pytest
 from typing_extensions import override
 
-from model_signing.hashing import hashing
+from model_signing._hashing import hashing
 from model_signing.manifest import manifest
 from model_signing.signing import empty_signing
 from model_signing.signing import signing
