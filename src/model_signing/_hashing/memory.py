@@ -39,13 +39,18 @@ import hashlib
 
 from typing_extensions import override
 
-from model_signing.hashing import hashing
+from model_signing._hashing import hashing
 
 
 class SHA256(hashing.StreamingHashEngine):
     """A wrapper around `hashlib.sha256`."""
 
     def __init__(self, initial_data: bytes = b""):
+        """Initializes an instance of a SHA256 hash engine.
+
+        Args:
+            initial_data: Optional initial data to hash.
+        """
         self._hasher = hashlib.sha256(initial_data)
 
     @override

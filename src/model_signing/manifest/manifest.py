@@ -59,7 +59,7 @@ import sys
 
 from typing_extensions import override
 
-from model_signing.hashing import hashing
+from model_signing._hashing import hashing
 
 
 if sys.version_info >= (3, 11):

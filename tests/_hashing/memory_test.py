@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from model_signing.hashing import memory
+from model_signing._hashing import memory
 
 
 class TestSHA256:

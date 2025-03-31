@@ -22,8 +22,8 @@ import click
 
 import model_signing
 from model_signing import model
-from model_signing.hashing import file
-from model_signing.hashing import memory
+from model_signing._hashing import file
+from model_signing._hashing import memory
 from model_signing.serialization import serialize_by_file
 from model_signing.signature import key
 from model_signing.signature import pki

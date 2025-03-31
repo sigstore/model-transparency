@@ -19,9 +19,9 @@ from collections.abc import Callable
 import pathlib
 from typing import Optional
 
-from model_signing.hashing import file
-from model_signing.hashing import hashing
-from model_signing.hashing import memory
+from model_signing._hashing import file
+from model_signing._hashing import hashing
+from model_signing._hashing import memory
 from model_signing.serialization import serialize_by_file
 from model_signing.serialization import serialize_by_file_shard
 from model_signing.signing import in_toto
