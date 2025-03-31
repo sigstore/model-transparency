@@ -18,8 +18,8 @@ import sys
 import pytest
 from typing_extensions import override
 
+from model_signing import _manifest
 from model_signing._hashing import hashing
-from model_signing.manifest import manifest
 from model_signing.signing import empty_signing
 from model_signing.signing import signing
 from tests import test_support
@@ -32,24 +32,16 @@ else:
 
 
 class TestEmptySigningPayload:
-    def test_build_from_digest_manifest(self):
-        digest = hashing.Digest("test", b"test_digest")
-        manifest_file = manifest.DigestManifest(digest)
-
-        payload = empty_signing.EmptySigningPayload.from_manifest(manifest_file)
-
-        assert payload == empty_signing.EmptySigningPayload()
-
     def test_build_from_itemized_manifest(self):
         path1 = pathlib.PurePath("file1")
         digest1 = hashing.Digest("test", b"abcd")
-        item1 = manifest.FileManifestItem(path=path1, digest=digest1)
+        item1 = _manifest.FileManifestItem(path=path1, digest=digest1)
 
         path2 = pathlib.PurePath("file2")
         digest2 = hashing.Digest("test", b"efgh")
-        item2 = manifest.FileManifestItem(path=path2, digest=digest2)
+        item2 = _manifest.FileManifestItem(path=path2, digest=digest2)
 
-        manifest_file = manifest.FileLevelManifest([item1, item2])
+        manifest_file = _manifest.Manifest([item1, item2])
         payload = empty_signing.EmptySigningPayload.from_manifest(manifest_file)
 
         assert payload == empty_signing.EmptySigningPayload()

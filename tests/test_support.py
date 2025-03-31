@@ -17,7 +17,7 @@
 import itertools
 import pathlib
 
-from model_signing.manifest import manifest
+from model_signing import _manifest
 
 
 # Model contents
@@ -78,9 +78,7 @@ def get_first_file(path: pathlib.Path) -> pathlib.Path:
     return [f for f in path.iterdir() if f.is_file()][0]
 
 
-def extract_digests_from_manifest(
-    manifest: manifest.FileLevelManifest,
-) -> list[str]:
+def extract_digests_from_manifest(manifest: _manifest.Manifest) -> list[str]:
     """Extracts the hex digest for every subject in a manifest.
 
     Used in multiple tests to check that we obtained the expected digests.
@@ -88,9 +86,7 @@ def extract_digests_from_manifest(
     return [d.digest_hex for d in manifest._item_to_digest.values()]
 
 
-def extract_items_from_manifest(
-    manifest: manifest.FileLevelManifest,
-) -> dict[str, str]:
+def extract_items_from_manifest(manifest: _manifest.Manifest) -> dict[str, str]:
     """Builds a dictionary representation of the items in a manifest.
 
     Every item is mapped to its digest.

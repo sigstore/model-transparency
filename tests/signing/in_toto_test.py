@@ -27,66 +27,11 @@ from in_toto_attestation.v1 import statement_pb2
 import pytest
 
 from model_signing._hashing import file
-from model_signing._hashing import hashing
 from model_signing._hashing import memory
-from model_signing.manifest import manifest as manifest_module
 from model_signing.serialization import serialize_by_file
 from model_signing.serialization import serialize_by_file_shard
 from model_signing.signing import in_toto
 from tests import test_support
-
-
-class TestSingleDigestIntotoPayload:
-    def _hasher_factory(self, path: pathlib.Path) -> file.FileHasher:
-        return file.SimpleFileHasher(path, memory.SHA256())
-
-    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
-    def test_known_models(self, request, model_fixture_name):
-        # Set up variables (arrange)
-        testdata_path = request.path.parent / "testdata"
-        test_path = testdata_path / "in_toto"
-        test_class_path = test_path / "TestSingleDigestIntotoPayload"
-        golden_path = test_class_path / model_fixture_name
-        should_update = request.config.getoption("update_goldens")
-        model = request.getfixturevalue(model_fixture_name)
-
-        # Compute payload (act)
-        serializer = serialize_by_file.DigestSerializer(
-            self._hasher_factory, memory.SHA256(), allow_symlinks=True
-        )
-        manifest = serializer.serialize(model)
-        payload = in_toto.SingleDigestIntotoPayload.from_manifest(manifest)
-
-        # Compare with golden, or write to golden (approximately "assert")
-        if should_update:
-            with open(golden_path, "w", encoding="utf-8") as f:
-                f.write(f"{json_format.MessageToJson(payload.statement.pb)}\n")
-        else:
-            with open(golden_path, "r", encoding="utf-8") as f:
-                json_contents = f.read()
-                expected_proto = json_format.Parse(
-                    json_contents, statement_pb2.Statement()
-                )
-
-            assert payload.statement.pb == expected_proto
-
-    def test_produces_valid_statements(self):
-        digest = hashing.Digest("test", b"test_digest")
-        manifest = manifest_module.DigestManifest(digest)
-
-        payload = in_toto.SingleDigestIntotoPayload.from_manifest(manifest)
-
-        payload.statement.validate()
-
-    def test_only_runs_on_expected_manifest_types(self, sample_model_folder):
-        serializer = serialize_by_file.ManifestSerializer(
-            lambda f: file.SimpleFileHasher(f, memory.SHA256()),
-            allow_symlinks=True,
-        )
-        manifest = serializer.serialize(sample_model_folder)
-
-        with pytest.raises(TypeError, match="Only DigestManifest is supported"):
-            in_toto.SingleDigestIntotoPayload.from_manifest(manifest)
 
 
 class TestDigestOfDigestsIntotoPayload:
@@ -132,15 +77,6 @@ class TestDigestOfDigestsIntotoPayload:
         payload = in_toto.DigestOfDigestsIntotoPayload.from_manifest(manifest)
 
         payload.statement.validate()
-
-    def test_only_runs_on_expected_manifest_types(self):
-        digest = hashing.Digest("test", b"test_digest")
-        manifest = manifest_module.DigestManifest(digest)
-
-        with pytest.raises(
-            TypeError, match="Only FileLevelManifest is supported"
-        ):
-            in_toto.DigestOfDigestsIntotoPayload.from_manifest(manifest)
 
 
 class TestDigestOfShardDigestsIntotoPayload:
@@ -195,15 +131,6 @@ class TestDigestOfShardDigestsIntotoPayload:
 
         payload.statement.validate()
 
-    def test_only_runs_on_expected_manifest_types(self):
-        digest = hashing.Digest("test", b"test_digest")
-        manifest = manifest_module.DigestManifest(digest)
-
-        with pytest.raises(
-            TypeError, match="Only ShardLevelManifest is supported"
-        ):
-            in_toto.DigestOfShardDigestsIntotoPayload.from_manifest(manifest)
-
 
 class TestDigestsIntotoPayload:
     def _hasher_factory(self, path: pathlib.Path) -> file.FileHasher:
@@ -248,15 +175,6 @@ class TestDigestsIntotoPayload:
         payload = in_toto.DigestsIntotoPayload.from_manifest(manifest)
 
         payload.statement.validate()
-
-    def test_only_runs_on_expected_manifest_types(self):
-        digest = hashing.Digest("test", b"test_digest")
-        manifest = manifest_module.DigestManifest(digest)
-
-        with pytest.raises(
-            TypeError, match="Only FileLevelManifest is supported"
-        ):
-            in_toto.DigestsIntotoPayload.from_manifest(manifest)
 
 
 class TestShardDigestsIntotoPayload:
@@ -306,12 +224,3 @@ class TestShardDigestsIntotoPayload:
         payload = in_toto.ShardDigestsIntotoPayload.from_manifest(manifest)
 
         payload.statement.validate()
-
-    def test_only_runs_on_expected_manifest_types(self):
-        digest = hashing.Digest("test", b"test_digest")
-        manifest = manifest_module.DigestManifest(digest)
-
-        with pytest.raises(
-            TypeError, match="Only ShardLevelManifest is supported"
-        ):
-            in_toto.ShardDigestsIntotoPayload.from_manifest(manifest)

@@ -25,7 +25,7 @@ import sys
 
 from typing_extensions import override
 
-from model_signing.manifest import manifest
+from model_signing import _manifest
 from model_signing.signing import signing
 
 
@@ -40,7 +40,7 @@ class EmptySigningPayload(signing.SigningPayload):
 
     @classmethod
     @override
-    def from_manifest(cls, manifest: manifest.Manifest) -> Self:
+    def from_manifest(cls, manifest: _manifest.Manifest) -> Self:
         """Converts a manifest to the signing payload used for signing.
 
         Args:
@@ -130,7 +130,7 @@ class EmptyVerifier(signing.Verifier):
     """
 
     @override
-    def verify(self, signature: signing.Signature) -> manifest.Manifest:
+    def verify(self, signature: signing.Signature) -> _manifest.Manifest:
         """Verifies the signature.
 
         Args:

@@ -29,10 +29,10 @@ import pathlib
 import sys
 from typing import Literal, Optional
 
+from model_signing import _manifest
 from model_signing._hashing import file
 from model_signing._hashing import hashing
 from model_signing._hashing import memory
-from model_signing.manifest import manifest
 from model_signing.serialization import serialize_by_file
 from model_signing.serialization import serialize_by_file_shard
 
@@ -43,7 +43,7 @@ else:
     from typing_extensions import Self
 
 
-def hash(model_path: os.PathLike) -> manifest.Manifest:
+def hash(model_path: os.PathLike) -> _manifest.Manifest:
     """Hashes a model using the default configuration.
 
     We use a separate method and configuration for hashing as it needs to be
@@ -67,11 +67,9 @@ def hash(model_path: os.PathLike) -> manifest.Manifest:
 class Config:
     """Configuration to use when hashing models.
 
-    Hashing a model results in a `manifest.Manifest` object. This may contain a
-    single digest for the entire model, or be a pairing between model components
-    (e.g., files, file shards, etc.) and their corresponding hash.
-
-    This configuration class allows selecting the serialization method to
+    Hashing a model results in a manifest object. This is a pairing between
+    model components (e.g., files, file shards, etc.) and their corresponding
+    hash. This configuration class allows selecting the serialization method to
     generate the desired manifest format.
 
     This configuration class also allows configuring files from within the model
@@ -96,7 +94,7 @@ class Config:
             self._build_file_hasher_factory(), allow_symlinks=False
         )
 
-    def hash(self, model_path: os.PathLike) -> manifest.Manifest:
+    def hash(self, model_path: os.PathLike) -> _manifest.Manifest:
         """Hashes a model using the current configuration."""
         return self._serializer.serialize(
             pathlib.Path(model_path), ignore_paths=self._ignored_paths
@@ -215,47 +213,6 @@ class Config:
         )
         return self
 
-    def set_serialize_by_file_to_digest(
-        self,
-        *,
-        hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
-        merge_algorithm: Literal["sha256", "blake2"] = "sha256",
-        chunk_size: int = 1048576,
-        max_workers: Optional[int] = None,
-        allow_symlinks: bool = False,
-    ) -> Self:
-        """Configures serialization to a single digest, at file granularity.
-
-        The serialization method in this configuration is changed to one where
-        every file in the model is paired with its digest and then a single
-        digest is computed over this pairing.
-
-        Args:
-            hashing_algorithm: the hashing algorithm to use to hash a file
-            merge_algorithm: the hashing algorithm to use when computing the
-              final digest over all the (file, digest) pairings
-            chunk_size: The amount of file to read at once. Default is 1MB. A
-              special value of 0 signals to attempt to read everything in a
-              single call.
-            max_workers: Maximum number of workers to use in parallel. Default
-              is to defer to the `concurrent.futures` library.
-            allow_symlinks: Controls whether symbolic links are included. If a
-              symlink is present but the flag is `False` (default) the
-              serialization would raise an error.
-
-        Returns:
-            The new hashing configuration with the new serialization method.
-        """
-        self._serializer = serialize_by_file.DigestSerializer(
-            self._build_file_hasher_factory(
-                hashing_algorithm, chunk_size=chunk_size
-            ),
-            self._build_stream_hasher(merge_algorithm),
-            max_workers=max_workers,
-            allow_symlinks=allow_symlinks,
-        )
-        return self
-
     def set_serialize_by_file_shard_to_manifest(
         self,
         *,
@@ -291,50 +248,6 @@ class Config:
             self._build_sharded_file_hasher_factory(
                 hashing_algorithm, chunk_size, shard_size
             ),
-            max_workers=max_workers,
-            allow_symlinks=allow_symlinks,
-        )
-        return self
-
-    def set_serialize_by_file_shard_to_digest(
-        self,
-        *,
-        hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
-        merge_algorithm: Literal["sha256", "blake2"] = "sha256",
-        chunk_size: int = 1048576,
-        shard_size: int = 1_000_000_000,
-        max_workers: Optional[int] = None,
-        allow_symlinks: bool = False,
-    ) -> Self:
-        """Configures serialization to a single digest, at shard granularity.
-
-        The serialization method in this configuration is changed to one where
-        every file shard in the model is paired with its digest and then a
-        single digest is computed over all entries in this pairing.
-
-        Args:
-            hashing_algorithm: the hashing algorithm to use to hash a file shard
-            merge_algorithm: the hashing algorithm to use when computing the
-              final digest over all the (file, digest) pairings
-            chunk_size: The amount of file to read at once. Default is 1MB. A
-              special value of 0 signals to attempt to read everything in a
-              single call.
-            shard_size: The size of a file shard. Default is 1 GB.
-            max_workers: Maximum number of workers to use in parallel. Default
-              is to defer to the `concurrent.futures` library.
-            allow_symlinks: Controls whether symbolic links are included. If a
-              symlink is present but the flag is `False` (default) the
-              serialization would raise an error.
-
-        Returns:
-            The new hashing configuration with the new serialization method.
-        """
-        merge_hasher = self._build_stream_hasher(merge_algorithm)
-        self._serializer = serialize_by_file_shard.DigestSerializer(
-            self._build_sharded_file_hasher_factory(
-                hashing_algorithm, chunk_size, shard_size
-            ),
-            merge_hasher,
             max_workers=max_workers,
             allow_symlinks=allow_symlinks,
         )

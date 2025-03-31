@@ -12,17 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Machinery for serializing ML models.
-
-Currently we have only one serializer that performs a DFS traversal of the model
-directory, but more serializers are coming soon.
-"""
+"""Machinery for serializing ML models."""
 
 import abc
 from collections.abc import Iterable
 import pathlib
 
-from model_signing.manifest import manifest
+from model_signing import _manifest
 
 
 class Serializer(metaclass=abc.ABCMeta):
@@ -34,7 +30,7 @@ class Serializer(metaclass=abc.ABCMeta):
         model_path: pathlib.Path,
         *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
-    ) -> manifest.Manifest:
+    ) -> _manifest.Manifest:
         """Serializes the model given by the `model_path` argument.
 
         Args:
@@ -44,6 +40,5 @@ class Serializer(metaclass=abc.ABCMeta):
               ignored.
 
         Returns:
-            The model's serialized `manifest.Manifest`
+            The model's serialized manifest.
         """
-        pass
