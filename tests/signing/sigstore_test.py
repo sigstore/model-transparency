@@ -23,8 +23,8 @@ import pytest
 
 from model_signing._hashing import file
 from model_signing._hashing import memory
-from model_signing.serialization import serialize_by_file
-from model_signing.serialization import serialize_by_file_shard
+from model_signing._serialization import serialize_by_file
+from model_signing._serialization import serialize_by_file_shard
 from model_signing.signing import empty_signing
 from model_signing.signing import in_toto
 from model_signing.signing import sign_sigstore as sigstore

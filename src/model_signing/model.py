@@ -18,7 +18,7 @@ import pathlib
 from typing import TypeAlias
 
 from model_signing import manifest
-from model_signing.serialization import serialization
+from model_signing._serialization import serialization
 from model_signing.signature import verifying
 from model_signing.signing import signing
 
