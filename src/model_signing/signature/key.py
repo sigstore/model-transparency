@@ -17,7 +17,6 @@ from typing import Optional
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.hashes import SHA256
 from google.protobuf import json_format
 from in_toto_attestation.v1 import statement
 from in_toto_attestation.v1 import statement_pb2 as statement_pb
@@ -27,6 +26,8 @@ from sigstore_protobuf_specs.io import intoto as intoto_pb
 
 from model_signing.signature import encoding
 from model_signing.signature.signing import Signer
+from model_signing.signature.utils import check_supported_ec_key
+from model_signing.signature.utils import get_ec_key_params
 from model_signing.signature.verifying import VerificationError
 from model_signing.signature.verifying import Verifier
 
@@ -52,11 +53,17 @@ class ECKeySigner(Signer):
     @classmethod
     def from_path(cls, private_key_path: str, password: Optional[str] = None):
         private_key = load_ec_private_key(private_key_path, password)
+        check_supported_ec_key(private_key.public_key())
         return cls(private_key)
 
     def sign(self, stmnt: statement.Statement) -> bundle_pb.Bundle:
         pae = encoding.pae(stmnt.pb)
-        sig = self._private_key.sign(pae, ec.ECDSA(SHA256()))
+
+        public_key = self._private_key.public_key()
+
+        hash_alg, key_details = get_ec_key_params(public_key)
+
+        sig = self._private_key.sign(pae, ec.ECDSA(hash_alg))
         env = intoto_pb.Envelope(
             payload=json_format.MessageToJson(stmnt.pb).encode(),
             payload_type=encoding.PAYLOAD_TYPE,
@@ -66,11 +73,11 @@ class ECKeySigner(Signer):
             media_type="application/vnd.dev.sigstore.bundle.v0.3+json",
             verification_material=bundle_pb.VerificationMaterial(
                 public_key=common_pb.PublicKey(
-                    raw_bytes=self._private_key.public_key().public_bytes(
+                    raw_bytes=public_key.public_bytes(
                         encoding=serialization.Encoding.PEM,
                         format=serialization.PublicFormat.SubjectPublicKeyInfo,
                     ),
-                    key_details=common_pb.PublicKeyDetails.PKIX_ECDSA_P256_SHA_256,
+                    key_details=key_details,
                 )
             ),
             dsse_envelope=env,
@@ -98,9 +105,12 @@ class ECKeyVerifier(Verifier):
             statement_pb.Statement(),  # pylint: disable=no-member
         )
         pae = encoding.pae(statement)
+
+        hash_alg, _ = get_ec_key_params(self._public_key)
+
         try:
             self._public_key.verify(
-                bundle.dsse_envelope.signatures[0].sig, pae, ec.ECDSA(SHA256())
+                bundle.dsse_envelope.signatures[0].sig, pae, ec.ECDSA(hash_alg)
             )
         except Exception as e:
             raise VerificationError(
