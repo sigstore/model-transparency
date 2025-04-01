@@ -127,7 +127,7 @@ def run(args: argparse.Namespace) -> Optional[in_toto.IntotoPayload]:
     serializer = serializer_factory(hasher, max_workers=args.max_workers)
 
     # 3. Signing layer
-    in_toto_builder = in_toto.DigestsIntotoPayload
+    in_toto_builder = in_toto.IntotoPayload
 
     # Put everything together
     if not args.dry_run:

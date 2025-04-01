@@ -33,7 +33,7 @@ from model_signing.signing import in_toto
 from tests import test_support
 
 
-class TestDigestsIntotoPayload:
+class TestIntotoPayload:
     def _hasher_factory(self, path: pathlib.Path) -> io.FileHasher:
         return io.SimpleFileHasher(path, memory.SHA256())
 
@@ -42,7 +42,7 @@ class TestDigestsIntotoPayload:
         # Set up variables (arrange)
         testdata_path = request.path.parent / "testdata"
         test_path = testdata_path / "in_toto"
-        test_class_path = test_path / "TestDigestsIntotoPayload"
+        test_class_path = test_path / "TestIntotoPayload"
         golden_path = test_class_path / model_fixture_name
         should_update = request.config.getoption("update_goldens")
         model = request.getfixturevalue(model_fixture_name)
@@ -50,7 +50,7 @@ class TestDigestsIntotoPayload:
         # Compute payload (act)
         serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
         manifest = serializer.serialize(model)
-        payload = in_toto.DigestsIntotoPayload.from_manifest(manifest)
+        payload = in_toto.IntotoPayload.from_manifest(manifest)
 
         # Compare with golden, or write to golden (approximately "assert")
         if should_update:
@@ -69,6 +69,6 @@ class TestDigestsIntotoPayload:
         serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
         manifest = serializer.serialize(sample_model_folder)
 
-        payload = in_toto.DigestsIntotoPayload.from_manifest(manifest)
+        payload = in_toto.IntotoPayload.from_manifest(manifest)
 
         payload.statement.validate()

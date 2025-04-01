@@ -37,44 +37,6 @@ else:
     from typing_extensions import Self
 
 
-class IntotoPayload(signing.SigningPayload):
-    """A generic payload in in-toto format.
-
-    This class is abstract for now as we will support multiple payload formats
-    below.
-
-    Each subclass defines a constant for the predicate type class attribute
-    defined below.
-    """
-
-    predicate_type: Final[str]
-    statement: Final[statement.Statement]
-
-    @classmethod
-    def manifest_from_payload(
-        cls, payload: dict[str, Any]
-    ) -> manifest_module.Manifest:
-        """Builds a manifest from an in-memory in-toto payload.
-
-        Delegates to all known subclasses until one matches the provided
-        `predicateType` (matching `predicate_type` class attribute).
-
-        Args:
-            payload: the in memory in-toto payload to build a manifest from.
-
-        Returns:
-            A manifest that can be converted back to the same payload.
-
-        Raises:
-            ValueError: If the payload cannot be converted.
-        """
-        predicate_type = payload["predicateType"]
-        if predicate_type == DigestsIntotoPayload.predicate_type:
-            return DigestsIntotoPayload.manifest_from_payload(payload)
-
-        raise ValueError(f"Unknown in-toto predicate type {predicate_type}")
-
-
 def _convert_descriptors_to_direct_statement(
     manifest: manifest_module.Manifest, predicate_type: str
 ) -> statement.Statement:
@@ -101,7 +63,7 @@ def _convert_descriptors_to_direct_statement(
     )
 
 
-class DigestsIntotoPayload(IntotoPayload):
+class IntotoPayload(signing.SigningPayload):
     """In-toto payload where the subjects are the model files themselves.
 
     This payload is supposed to be used for manifests where every file in the
@@ -167,6 +129,7 @@ class DigestsIntotoPayload(IntotoPayload):
     """
 
     predicate_type: Final[str] = "https://model_signing/Digests/v0.1"
+    statement: Final[statement.Statement]
 
     def __init__(self, statement: statement.Statement):
         """Builds an instance of this in-toto payload.
@@ -190,14 +153,8 @@ class DigestsIntotoPayload(IntotoPayload):
             manifest: the manifest to convert to signing payload.
 
         Returns:
-            An instance of `DigestOfDigestsIntotoPayload`.
-
-        Raises:
-            TypeError: If the manifest is not `Manifest`.
+            An instance of this class.
         """
-        if not isinstance(manifest, manifest_module.Manifest):
-            raise TypeError("Only Manifest is supported")
-
         statement = _convert_descriptors_to_direct_statement(
             manifest, predicate_type=cls.predicate_type
         )
@@ -215,10 +172,6 @@ class DigestsIntotoPayload(IntotoPayload):
 
         Returns:
             A manifest that can be converted back to the same payload.
-
-        Raises:
-            ValueError: If the payload does not match the expected payload
-              format for this class. See `from_manifest`.
         """
         subjects = payload["subject"]
 

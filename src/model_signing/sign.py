@@ -61,7 +61,7 @@ class Config:
     def __init__(self):
         """Initializes the default configuration for signing."""
         self._hashing_config = hash.Config()
-        self._payload_generator = in_toto.DigestsIntotoPayload.from_manifest
+        self._payload_generator = in_toto.IntotoPayload.from_manifest
         self._signer = sigstore.SigstoreSigner(
             use_ambient_credentials=False, use_staging=False
         )

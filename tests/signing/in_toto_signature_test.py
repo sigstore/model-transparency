@@ -34,7 +34,7 @@ class TestIntotoSignature:
         )
         file_manifest = file_serializer.serialize(sample_model_folder)
 
-        payload = in_toto.DigestsIntotoPayload.from_manifest(file_manifest)
+        payload = in_toto.IntotoPayload.from_manifest(file_manifest)
         sig = signer.sign(payload)
         verifier.verify(sig)
         manifest = sig.to_manifest()
