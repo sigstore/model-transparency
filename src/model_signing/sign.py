@@ -62,7 +62,7 @@ class Config:
         """Initializes the default configuration for signing."""
         self._hashing_config = hash.Config()
         self._payload_generator = in_toto.DigestsIntotoPayload.from_manifest
-        self._signer = sigstore.SigstoreDSSESigner(
+        self._signer = sigstore.SigstoreSigner(
             use_ambient_credentials=False, use_staging=False
         )
 
@@ -138,7 +138,7 @@ class Config:
         Return:
             The new signing configuration.
         """
-        self._signer = sigstore.SigstoreDSSESigner(
+        self._signer = sigstore.SigstoreSigner(
             oidc_issuer=oidc_issuer,
             use_ambient_credentials=use_ambient_credentials,
             use_staging=use_staging,

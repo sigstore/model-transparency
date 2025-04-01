@@ -236,7 +236,7 @@ def _sign_sigstore(
     Passing the `--use_staging` flag would use that instance instead of the
     production one.
     """
-    signer = sigstore.SigstoreDSSESigner(
+    signer = sigstore.SigstoreSigner(
         use_ambient_credentials=use_ambient_credentials,
         use_staging=use_staging,
         identity_token=identity_token,
@@ -416,7 +416,7 @@ def _verify_sigstore(
     provider for the signature. If these don't match what is provided in the
     signature, verification would fail.
     """
-    verifier = sigstore.SigstoreDSSEVerifier(
+    verifier = sigstore.SigstoreVerifier(
         identity=identity, oidc_issuer=identity_provider
     )
     signature_contents = sigstore.SigstoreSignature.read(signature)

@@ -195,7 +195,7 @@ class TestSigstoreSigning:
 
     def _verify_dsse_signature(self, signature_path, use_staging=True):
         signature = sigstore.SigstoreSignature.read(signature_path)
-        verifier = sigstore.SigstoreDSSEVerifier(
+        verifier = sigstore.SigstoreVerifier(
             identity="test", oidc_issuer="test", use_staging=use_staging
         )
         return verifier.verify(signature)
@@ -213,7 +213,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestOfDigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
         )
 
         # Read signature and check against expected serialization
@@ -233,7 +233,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
         )
 
         # Read signature and check against expected serialization
@@ -253,7 +253,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestOfShardDigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
         )
 
         # Read signature and check against expected serialization
@@ -273,7 +273,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.ShardDigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
         )
 
         # Read signature and check against expected serialization
@@ -293,7 +293,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
             use_staging=False,
         )
 
@@ -316,7 +316,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
             use_staging=False,
             oidc_issuer="test",
         )
@@ -346,7 +346,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
         )
 
         # Read signature and check against expected serialization
@@ -354,11 +354,11 @@ class TestSigstoreSigning:
         assert expected_manifest == manifest
 
     def test_sign_identity_token_precedence(self, mocked_oidc_provider):
-        signer = sigstore.SigstoreDSSESigner(identity_token="provided_token")
+        signer = sigstore.SigstoreSigner(identity_token="provided_token")
         token = signer._get_identity_token()
         assert token == "provided_token"
 
-        signer = sigstore.SigstoreDSSESigner()
+        signer = sigstore.SigstoreSigner()
         token = signer._get_identity_token()
         assert token == "fake_token"
 
@@ -380,7 +380,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
         )
 
         with pytest.raises(ValueError, match="Expected DSSE payload"):
@@ -398,7 +398,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
         )
 
         correct_signature = signature_path.read_text()
@@ -422,7 +422,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
         )
 
         correct_signature = signature_path.read_text()
@@ -446,7 +446,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestOfDigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
         )
 
         correct_signature = signature_path.read_text()
@@ -470,7 +470,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestOfDigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
         )
 
         correct_signature = signature_path.read_text()
@@ -494,7 +494,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestOfShardDigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
         )
 
         correct_signature = signature_path.read_text()
@@ -518,7 +518,7 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestOfShardDigestsIntotoPayload,
-            sigstore.SigstoreDSSESigner,
+            sigstore.SigstoreSigner,
         )
 
         correct_signature = signature_path.read_text()
