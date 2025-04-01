@@ -27,7 +27,7 @@ from sigstore import sign as sigstore_signer
 from sigstore import verify as sigstore_verifier
 from typing_extensions import override
 
-from model_signing.manifest import manifest
+from model_signing import _manifest
 from model_signing.signing import in_toto
 from model_signing.signing import signing
 
@@ -234,7 +234,7 @@ class SigstoreDSSEVerifier(SigstoreVerifier):
     """
 
     @override
-    def verify(self, signature: signing.Signature) -> manifest.Manifest:
+    def verify(self, signature: signing.Signature) -> _manifest.Manifest:
         """Verifies the signature.
 
         Args:

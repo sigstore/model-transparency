@@ -17,14 +17,14 @@ from collections.abc import Callable, Iterable
 import pathlib
 from typing import TypeAlias
 
-from model_signing.manifest import manifest
+from model_signing import _manifest
 from model_signing.serialization import serialization
 from model_signing.signature import verifying
 from model_signing.signing import signing
 
 
 PayloadGeneratorFunc: TypeAlias = Callable[
-    [manifest.Manifest], signing.SigningPayload
+    [_manifest.Manifest], signing.SigningPayload
 ]
 
 

@@ -25,8 +25,8 @@ import pathlib
 import sys
 from typing import Optional
 
+from model_signing import _manifest
 from model_signing import hash
-from model_signing.manifest import manifest
 from model_signing.signing import in_toto
 from model_signing.signing import sign_sigstore as sigstore
 from model_signing.signing import signing
@@ -53,9 +53,9 @@ class Config:
 
     The signing configuration is used to decouple between serialization formats
     and signing types. This configuration class allows setting up the
-    serialization format, the method to convert a `manifest.Manifest` to a
-    signing payload and the engine used for signing (currently, only supporting
-    Sigstore at this level).
+    serialization format, the method to convert a manifest to a signing payload
+    and the engine used for signing (currently, only supporting Sigstore at this
+    level).
     """
 
     def __init__(self):
@@ -91,7 +91,7 @@ class Config:
         return self
 
     def set_payload_generator(
-        self, generator: Callable[[manifest.Manifest], signing.SigningPayload]
+        self, generator: Callable[[_manifest.Manifest], signing.SigningPayload]
     ) -> Self:
         """Sets the conversion from manifest to signing payload.
 
@@ -100,8 +100,7 @@ class Config:
         between the two.
 
         Args:
-            generator: the conversion function from a `manifest.Manifest` to a
-              `signing.SigningPayload` payload.
+            generator: the conversion from a manifest to a signing payload.
 
         Return:
             The new signing configuration.

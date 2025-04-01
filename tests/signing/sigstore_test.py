@@ -203,26 +203,6 @@ class TestSigstoreSigning:
         )
         return verifier.verify(signature)
 
-    def test_sign_verify_dsse_single_digest(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        # Serialize and sign model
-        serializer = serialize_by_file.DigestSerializer(
-            self._file_hasher_factory, memory.SHA256(), allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            in_toto.SingleDigestIntotoPayload,
-            sigstore.SigstoreDSSESigner,
-        )
-
-        # Read signature and check against expected serialization
-        expected_manifest = self._verify_dsse_signature(signature_path)
-        assert expected_manifest == manifest
-
     def test_sign_verify_dsse_digest_of_digests(
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
@@ -464,30 +444,6 @@ class TestSigstoreSigning:
         signature_path.write_text(invalid_signature)
 
         with pytest.raises(ValueError, match="Unknown in-toto predicate type"):
-            self._verify_dsse_signature(signature_path)
-
-    def test_verify_intoto_single_digest_more_than_one_digests(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        serializer = serialize_by_file.DigestSerializer(
-            self._file_hasher_factory, memory.SHA256(), allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            in_toto.SingleDigestIntotoPayload,
-            sigstore.SigstoreDSSESigner,
-        )
-
-        correct_signature = signature_path.read_text()
-        json_signature = json.loads(correct_signature)
-        json_signature["subject"].extend(json_signature["subject"])
-        invalid_signature = json.dumps(json_signature)
-        signature_path.write_text(invalid_signature)
-
-        with pytest.raises(ValueError, match="Expected one single subject"):
             self._verify_dsse_signature(signature_path)
 
     def test_verify_intoto_digest_of_digests_more_than_one_digests(

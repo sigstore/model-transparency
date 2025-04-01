@@ -26,9 +26,9 @@ from typing import Any, Final
 from in_toto_attestation.v1 import statement
 from typing_extensions import override
 
+from model_signing import _manifest
 from model_signing._hashing import hashing
 from model_signing._hashing import memory
-from model_signing.manifest import manifest as manifest_module
 from model_signing.signing import signing
 
 
@@ -54,7 +54,7 @@ class IntotoPayload(signing.SigningPayload):
     @classmethod
     def manifest_from_payload(
         cls, payload: dict[str, Any]
-    ) -> manifest_module.Manifest:
+    ) -> _manifest.Manifest:
         """Builds a manifest from an in-memory in-toto payload.
 
         Delegates to all known subclasses until one matches the provided
@@ -71,7 +71,6 @@ class IntotoPayload(signing.SigningPayload):
         """
         predicate_type = payload["predicateType"]
         subclasses = [
-            SingleDigestIntotoPayload,
             DigestOfDigestsIntotoPayload,
             DigestOfShardDigestsIntotoPayload,
             DigestsIntotoPayload,
@@ -85,120 +84,8 @@ class IntotoPayload(signing.SigningPayload):
         raise ValueError(f"Unknown in-toto predicate type {predicate_type}")
 
 
-class SingleDigestIntotoPayload(IntotoPayload):
-    """In-toto payload where the model is serialized to just one digest.
-
-    In this case, we encode the model as the only subject of the statement. We
-    set the name field to ".", and use the digest as the one resulting from the
-    model serialization.
-
-    However, since we use custom hashing algorithms, but these are not supported
-    by existing tools, we claim that the digest algorithm is sha-256 and include
-    the real digest in the predicate.
-
-    Example:
-    ```json
-    {
-      "_type": "https://in-toto.io/Statement/v1",
-      "subject": [
-        {
-          "name": ".",
-          "digest": {
-            "sha256": "3aab065c...."
-          }
-        }
-      ],
-      "predicateType": "https://model_signing/Digest/v0.1",
-      "predicate": {
-        "actual_hash_algorithm": "file-sha256"
-      }
-    }
-    ```
-
-    If the predicate is missing (or does not set "actual_hash_algorithm"), it
-    should be assumed that the digest is actually computed via the algorithm
-    present in the resource descriptor (i.e., sha256).
-
-    See also https://github.com/sigstore/sigstore-python/issues/1018.
-    """
-
-    predicate_type: Final[str] = "https://model_signing/Digest/v0.1"
-
-    def __init__(self, *, digest_hex: str, digest_algorithm: str):
-        """Builds an instance of this in-toto payload.
-
-        Don't call this directly in production. Use `from_manifest()` instead.
-
-        Args:
-            digest_hex: the hexadecimal, human readable, digest of the subject.
-            digest_algorithm: the algorithm used to compute the digest.
-        """
-        digest = {"sha256": digest_hex}
-        descriptor = statement.ResourceDescriptor(name=".", digest=digest).pb
-
-        self.statement = statement.Statement(
-            subjects=[descriptor],
-            predicate_type=self.predicate_type,
-            predicate={"actual_hash_algorithm": digest_algorithm},
-        )
-
-    @classmethod
-    @override
-    def from_manifest(cls, manifest: manifest_module.Manifest) -> Self:
-        """Converts a manifest to the signing payload used for signing.
-
-        The manifest must be a `DigestManifest` instance.
-
-        Args:
-            manifest: the manifest to convert to signing payload.
-
-        Returns:
-            An instance of `SingleDigestIntotoPayload`.
-
-        Raises:
-            TypeError: If the manifest is not `DigestManifest`.
-        """
-        if not isinstance(manifest, manifest_module.DigestManifest):
-            raise TypeError("Only DigestManifest is supported")
-
-        # guaranteed to have exactly one item
-        subject = list(manifest.resource_descriptors())[0]
-        digest = subject.digest
-        return cls(
-            digest_hex=digest.digest_hex, digest_algorithm=digest.algorithm
-        )
-
-    @classmethod
-    @override
-    def manifest_from_payload(
-        cls, payload: dict[str, Any]
-    ) -> manifest_module.DigestManifest:
-        """Builds a manifest from an in-memory in-toto payload.
-
-        Args:
-            payload: the in memory in-toto payload to build a manifest from.
-
-        Returns:
-            A manifest that can be converted back to the same payload.
-
-        Raises:
-            ValueError: If the payload does not match the expected payload
-              format for this class. See `from_manifest`.
-        """
-        subjects = payload["subject"]
-        predicate = payload["predicate"]
-
-        if len(subjects) != 1:
-            raise ValueError(f"Expected one single subject, got {subjects}")
-
-        algorithm = predicate["actual_hash_algorithm"]
-        digest_value = bytes.fromhex(subjects[0]["digest"]["sha256"])
-        digest = hashing.Digest(algorithm, digest_value)
-        return manifest_module.DigestManifest(digest)
-
-
 def _convert_descriptors_to_hashed_statement(
-    manifest: manifest_module.Manifest,
+    manifest: _manifest.Manifest,
     *,
     predicate_type: str,
     predicate_top_level_name: str,
@@ -304,11 +191,11 @@ class DigestOfDigestsIntotoPayload(IntotoPayload):
 
     @classmethod
     @override
-    def from_manifest(cls, manifest: manifest_module.Manifest) -> Self:
+    def from_manifest(cls, manifest: _manifest.Manifest) -> Self:
         """Converts a manifest to the signing payload used for signing.
 
         The manifest must be one where every model file is paired with its own
-        digest. Currently, this is only `FileLevelManifest`.
+        digest. Currently, this is only `Manifest`.
 
         Args:
             manifest: the manifest to convert to signing payload.
@@ -317,10 +204,10 @@ class DigestOfDigestsIntotoPayload(IntotoPayload):
             An instance of `DigestOfDigestsIntotoPayload`.
 
         Raises:
-            TypeError: If the manifest is not `FileLevelManifest`.
+            TypeError: If the manifest is not `Manifest`.
         """
-        if not isinstance(manifest, manifest_module.FileLevelManifest):
-            raise TypeError("Only FileLevelManifest is supported")
+        if not isinstance(manifest, _manifest.Manifest):
+            raise TypeError("Only Manifest is supported")
 
         statement = _convert_descriptors_to_hashed_statement(
             manifest,
@@ -333,7 +220,7 @@ class DigestOfDigestsIntotoPayload(IntotoPayload):
     @override
     def manifest_from_payload(
         cls, payload: dict[str, Any]
-    ) -> manifest_module.FileLevelManifest:
+    ) -> _manifest.Manifest:
         """Builds a manifest from an in-memory in-toto payload.
 
         Args:
@@ -359,7 +246,7 @@ class DigestOfDigestsIntotoPayload(IntotoPayload):
             digest = hashing.Digest(
                 file["algorithm"], bytes.fromhex(file["digest"])
             )
-            item = manifest_module.FileManifestItem(path=path, digest=digest)
+            item = _manifest.FileManifestItem(path=path, digest=digest)
             items.append(item)
             hasher.update(digest.digest_value)
 
@@ -371,7 +258,7 @@ class DigestOfDigestsIntotoPayload(IntotoPayload):
                 f"Expected {expected_digest}, got {obtained_digest}"
             )
 
-        return manifest_module.FileLevelManifest(items)
+        return _manifest.Manifest(items)
 
 
 class DigestOfShardDigestsIntotoPayload(IntotoPayload):
@@ -447,11 +334,11 @@ class DigestOfShardDigestsIntotoPayload(IntotoPayload):
 
     @classmethod
     @override
-    def from_manifest(cls, manifest: manifest_module.Manifest) -> Self:
+    def from_manifest(cls, manifest: _manifest.Manifest) -> Self:
         """Converts a manifest to the signing payload used for signing.
 
         The manifest must be one where every model shard is paired with its own
-        digest. Currently, this is only `ShardLevelManifest`.
+        digest. Currently, this is only `Manifest`.
 
         Args:
             manifest: the manifest to convert to signing payload.
@@ -460,10 +347,10 @@ class DigestOfShardDigestsIntotoPayload(IntotoPayload):
             An instance of `DigestOfDigestsIntotoPayload`.
 
         Raises:
-            TypeError: If the manifest is not `ShardLevelManifest`.
+            TypeError: If the manifest is not `Manifest`.
         """
-        if not isinstance(manifest, manifest_module.ShardLevelManifest):
-            raise TypeError("Only ShardLevelManifest is supported")
+        if not isinstance(manifest, _manifest.Manifest):
+            raise TypeError("Only Manifest is supported")
 
         statement = _convert_descriptors_to_hashed_statement(
             manifest,
@@ -476,7 +363,7 @@ class DigestOfShardDigestsIntotoPayload(IntotoPayload):
     @override
     def manifest_from_payload(
         cls, payload: dict[str, Any]
-    ) -> manifest_module.ShardLevelManifest:
+    ) -> _manifest.Manifest:
         """Builds a manifest from an in-memory in-toto payload.
 
         Args:
@@ -498,11 +385,11 @@ class DigestOfShardDigestsIntotoPayload(IntotoPayload):
         hasher = memory.SHA256()
         items = []
         for entry in predicate["shards"]:
-            shard = manifest_module.Shard.from_str(entry["name"])
+            shard = _manifest.Shard.from_str(entry["name"])
             digest = hashing.Digest(
                 entry["algorithm"], bytes.fromhex(entry["digest"])
             )
-            item = manifest_module.ShardedFileManifestItem(
+            item = _manifest.ShardedFileManifestItem(
                 path=shard.path, start=shard.start, end=shard.end, digest=digest
             )
             items.append(item)
@@ -516,11 +403,11 @@ class DigestOfShardDigestsIntotoPayload(IntotoPayload):
                 f"Expected {expected_digest}, got {obtained_digest}"
             )
 
-        return manifest_module.ShardLevelManifest(items)
+        return _manifest.Manifest(items)
 
 
 def _convert_descriptors_to_direct_statement(
-    manifest: manifest_module.Manifest, predicate_type: str
+    manifest: _manifest.Manifest, predicate_type: str
 ) -> statement.Statement:
     """Converts manifest descriptors to an in-toto statement, as subjects.
 
@@ -624,11 +511,11 @@ class DigestsIntotoPayload(IntotoPayload):
 
     @classmethod
     @override
-    def from_manifest(cls, manifest: manifest_module.Manifest) -> Self:
+    def from_manifest(cls, manifest: _manifest.Manifest) -> Self:
         """Converts a manifest to the signing payload used for signing.
 
         The manifest must be one where every model file is paired with its own
-        digest. Currently, this is only `FileLevelManifest`.
+        digest. Currently, this is only `Manifest`.
 
         Args:
             manifest: the manifest to convert to signing payload.
@@ -637,10 +524,10 @@ class DigestsIntotoPayload(IntotoPayload):
             An instance of `DigestOfDigestsIntotoPayload`.
 
         Raises:
-            TypeError: If the manifest is not `FileLevelManifest`.
+            TypeError: If the manifest is not `Manifest`.
         """
-        if not isinstance(manifest, manifest_module.FileLevelManifest):
-            raise TypeError("Only FileLevelManifest is supported")
+        if not isinstance(manifest, _manifest.Manifest):
+            raise TypeError("Only Manifest is supported")
 
         statement = _convert_descriptors_to_direct_statement(
             manifest, predicate_type=cls.predicate_type
@@ -651,7 +538,7 @@ class DigestsIntotoPayload(IntotoPayload):
     @override
     def manifest_from_payload(
         cls, payload: dict[str, Any]
-    ) -> manifest_module.FileLevelManifest:
+    ) -> _manifest.Manifest:
         """Builds a manifest from an in-memory in-toto payload.
 
         Args:
@@ -672,10 +559,10 @@ class DigestsIntotoPayload(IntotoPayload):
             algorithm = subject["annotations"]["actual_hash_algorithm"]
             digest_value = subject["digest"]["sha256"]
             digest = hashing.Digest(algorithm, bytes.fromhex(digest_value))
-            item = manifest_module.FileManifestItem(path=path, digest=digest)
+            item = _manifest.FileManifestItem(path=path, digest=digest)
             items.append(item)
 
-        return manifest_module.FileLevelManifest(items)
+        return _manifest.Manifest(items)
 
 
 class ShardDigestsIntotoPayload(IntotoPayload):
@@ -757,11 +644,11 @@ class ShardDigestsIntotoPayload(IntotoPayload):
 
     @classmethod
     @override
-    def from_manifest(cls, manifest: manifest_module.Manifest) -> Self:
+    def from_manifest(cls, manifest: _manifest.Manifest) -> Self:
         """Converts a manifest to the signing payload used for signing.
 
         The manifest must be one where every model shard is paired with its own
-        digest. Currently, this is only `ShardLevelManifest`.
+        digest. Currently, this is only `Manifest`.
 
         Args:
             manifest: the manifest to convert to signing payload.
@@ -770,10 +657,10 @@ class ShardDigestsIntotoPayload(IntotoPayload):
             An instance of `DigestOfDigestsIntotoPayload`.
 
         Raises:
-            TypeError: If the manifest is not `ShardLevelManifest`.
+            TypeError: If the manifest is not `Manifest`.
         """
-        if not isinstance(manifest, manifest_module.ShardLevelManifest):
-            raise TypeError("Only ShardLevelManifest is supported")
+        if not isinstance(manifest, _manifest.Manifest):
+            raise TypeError("Only Manifest is supported")
 
         statement = _convert_descriptors_to_direct_statement(
             manifest, predicate_type=cls.predicate_type
@@ -784,7 +671,7 @@ class ShardDigestsIntotoPayload(IntotoPayload):
     @override
     def manifest_from_payload(
         cls, payload: dict[str, Any]
-    ) -> manifest_module.ShardLevelManifest:
+    ) -> _manifest.Manifest:
         """Builds a manifest from an in-memory in-toto payload.
 
         Args:
@@ -801,13 +688,13 @@ class ShardDigestsIntotoPayload(IntotoPayload):
 
         items = []
         for subject in subjects:
-            shard = manifest_module.Shard.from_str(subject["name"])
+            shard = _manifest.Shard.from_str(subject["name"])
             algorithm = subject["annotations"]["actual_hash_algorithm"]
             digest_value = subject["digest"]["sha256"]
             digest = hashing.Digest(algorithm, bytes.fromhex(digest_value))
-            item = manifest_module.ShardedFileManifestItem(
+            item = _manifest.ShardedFileManifestItem(
                 path=shard.path, start=shard.start, end=shard.end, digest=digest
             )
             items.append(item)
 
-        return manifest_module.ShardLevelManifest(items)
+        return _manifest.Manifest(items)

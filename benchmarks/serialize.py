@@ -119,41 +119,25 @@ def run(args: argparse.Namespace) -> Optional[in_toto.IntotoPayload]:
         hasher = get_file_hasher_factory(args.hash_method, args.chunk)
 
     # 2. Serialization layer
-    if args.skip_manifest or args.single_digest:
-        merge_hasher_factory = get_hash_engine_factory(args.merge_hasher)
-        if args.use_shards:
-            serializer_factory = serialize_by_file_shard.DigestSerializer
-        else:
-            serializer_factory = serialize_by_file.DigestSerializer
-
-        serializer = serializer_factory(
-            hasher,
-            merge_hasher_factory(),  # pytype: disable=not-instantiable
-            max_workers=args.max_workers,
-        )
+    if args.use_shards:
+        serializer_factory = serialize_by_file_shard.ManifestSerializer
     else:
-        if args.use_shards:
-            serializer_factory = serialize_by_file_shard.ManifestSerializer
-        else:
-            serializer_factory = serialize_by_file.ManifestSerializer
+        serializer_factory = serialize_by_file.ManifestSerializer
 
-        serializer = serializer_factory(hasher, max_workers=args.max_workers)
+    serializer = serializer_factory(hasher, max_workers=args.max_workers)
 
     # 3. Signing layer
-    if args.single_digest:
-        in_toto_builder = in_toto.SingleDigestIntotoPayload
-    else:
-        # TODO: Once Python 3.9 support is deprecated revert to `match`
-        if args.digest_of_digests:
-            if args.use_shards:
-                in_toto_builder = in_toto.DigestOfShardDigestsIntotoPayload
-            else:
-                in_toto_builder = in_toto.DigestOfDigestsIntotoPayload
+    # TODO: Once Python 3.9 support is deprecated revert to `match`
+    if args.digest_of_digests:
+        if args.use_shards:
+            in_toto_builder = in_toto.DigestOfShardDigestsIntotoPayload
         else:
-            if args.use_shards:
-                in_toto_builder = in_toto.ShardDigestsIntotoPayload
-            else:
-                in_toto_builder = in_toto.DigestsIntotoPayload
+            in_toto_builder = in_toto.DigestOfDigestsIntotoPayload
+    else:
+        if args.use_shards:
+            in_toto_builder = in_toto.ShardDigestsIntotoPayload
+        else:
+            in_toto_builder = in_toto.DigestsIntotoPayload
 
     # Put everything together
     if not args.dry_run:

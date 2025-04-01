@@ -21,310 +21,20 @@ models. If the golden tests are failing, regenerate the golden files with
 """
 
 import pathlib
+from typing import cast
 
 import pytest
 
+from model_signing import _manifest
 from model_signing._hashing import file
 from model_signing._hashing import memory
-from model_signing.manifest import manifest
 from model_signing.serialization import serialize_by_file_shard
 from tests import test_support
 
 
-class TestDigestSerializer:
-    def _hasher_factory(
-        self, path: pathlib.Path, start: int, end: int
-    ) -> file.ShardedFileHasher:
-        return file.ShardedFileHasher(
-            path, memory.SHA256(), start=start, end=end
-        )
-
-    def _hasher_factory_small_shards(
-        self, path: pathlib.Path, start: int, end: int
-    ) -> file.ShardedFileHasher:
-        return file.ShardedFileHasher(
-            path, memory.SHA256(), start=start, end=end, shard_size=2
-        )
-
-    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
-    def test_known_models(self, request, model_fixture_name):
-        # Set up variables (arrange)
-        testdata_path = request.path.parent / "testdata"
-        test_path = testdata_path / "serialize_by_file_shard"
-        test_class_path = test_path / "TestDigestSerializer"
-        golden_path = test_class_path / model_fixture_name
-        should_update = request.config.getoption("update_goldens")
-        model = request.getfixturevalue(model_fixture_name)
-
-        # Compute model manifest (act)
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256(), allow_symlinks=True
-        )
-        manifest = serializer.serialize(model)
-
-        # Compare with golden, or write to golden (approximately "assert")
-        if should_update:
-            with open(golden_path, "w", encoding="utf-8") as f:
-                f.write(f"{manifest.digest.digest_hex}\n")
-        else:
-            with open(golden_path, "r", encoding="utf-8") as f:
-                expected_digest = f.read().strip()
-
-            assert manifest.digest.digest_hex == expected_digest
-
-    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
-    def test_known_models_small_shards(self, request, model_fixture_name):
-        # Set up variables (arrange)
-        testdata_path = request.path.parent / "testdata"
-        test_path = testdata_path / "serialize_by_file_shard"
-        test_class_path = test_path / "TestDigestSerializer"
-        golden_path = test_class_path / f"{model_fixture_name}_small_shards"
-        should_update = request.config.getoption("update_goldens")
-        model = request.getfixturevalue(model_fixture_name)
-
-        # Compute model manifest (act)
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory_small_shards,
-            memory.SHA256(),
-            allow_symlinks=True,
-        )
-        manifest = serializer.serialize(model)
-
-        # Compare with golden, or write to golden (approximately "assert")
-        if should_update:
-            with open(golden_path, "w", encoding="utf-8") as f:
-                f.write(f"{manifest.digest.digest_hex}\n")
-        else:
-            with open(golden_path, "r", encoding="utf-8") as f:
-                expected_digest = f.read().strip()
-
-            assert manifest.digest.digest_hex == expected_digest
-
-    def test_file_hash_is_not_same_as_hash_of_content(self, sample_model_file):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-
-        manifest = serializer.serialize(sample_model_file)
-        digest = memory.SHA256(test_support.KNOWN_MODEL_TEXT).compute()
-
-        assert manifest.digest.digest_hex != digest.digest_hex
-
-    def test_file_manifest_unchanged_when_model_moved(self, sample_model_file):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest = serializer.serialize(sample_model_file)
-
-        new_name = sample_model_file.with_name("new-file")
-        new_file = sample_model_file.rename(new_name)
-        new_manifest = serializer.serialize(new_file)
-
-        assert manifest == new_manifest
-
-    def test_file_model_hash_changes_if_content_changes(
-        self, sample_model_file
-    ):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest = serializer.serialize(sample_model_file)
-
-        sample_model_file.write_bytes(test_support.ANOTHER_MODEL_TEXT)
-        new_manifest = serializer.serialize(sample_model_file)
-
-        assert manifest.digest.algorithm == new_manifest.digest.algorithm
-        assert manifest.digest.digest_value != new_manifest.digest.digest_value
-
-    def test_directory_model_with_only_known_file(self, sample_model_file):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest_file = serializer.serialize(sample_model_file)
-        content_digest = memory.SHA256(test_support.KNOWN_MODEL_TEXT).compute()
-
-        manifest = serializer.serialize(sample_model_file.parent)
-
-        assert manifest_file != manifest
-        assert manifest.digest.digest_hex != content_digest.digest_hex
-
-    def test_folder_model_hash_is_same_if_model_is_moved(
-        self, sample_model_folder
-    ):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest = serializer.serialize(sample_model_folder)
-
-        new_name = sample_model_folder.with_name("new-root")
-        new_model = sample_model_folder.rename(new_name)
-        new_manifest = serializer.serialize(new_model)
-
-        assert manifest == new_manifest
-
-    def test_folder_model_empty_folder_not_included(self, sample_model_folder):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest = serializer.serialize(sample_model_folder)
-
-        altered_dir = test_support.get_first_directory(sample_model_folder)
-        new_empty_dir = altered_dir / "empty"
-        new_empty_dir.mkdir()
-        new_manifest = serializer.serialize(sample_model_folder)
-
-        assert manifest == new_manifest
-
-    def test_folder_model_empty_file_not_included(self, sample_model_folder):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest = serializer.serialize(sample_model_folder)
-
-        altered_dir = test_support.get_first_directory(sample_model_folder)
-        new_empty_file = altered_dir / "empty"
-        new_empty_file.write_text("")
-        new_manifest = serializer.serialize(sample_model_folder)
-
-        assert manifest == new_manifest
-
-    def test_folder_model_rename_file(self, sample_model_folder):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest = serializer.serialize(sample_model_folder)
-
-        altered_dir = test_support.get_first_directory(sample_model_folder)
-        file_to_rename = test_support.get_first_file(altered_dir)
-        new_name = file_to_rename.with_name("new-file")
-        file_to_rename.rename(new_name)
-        new_manifest = serializer.serialize(sample_model_folder)
-
-        assert manifest != new_manifest
-
-    def test_folder_model_rename_dir(self, sample_model_folder):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest = serializer.serialize(sample_model_folder)
-
-        dir_to_rename = test_support.get_first_directory(sample_model_folder)
-        new_name = dir_to_rename.with_name("new-dir")
-        dir_to_rename.rename(new_name)
-        new_manifest = serializer.serialize(sample_model_folder)
-
-        assert manifest != new_manifest
-
-    def test_folder_model_replace_file_empty_folder(self, sample_model_folder):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest = serializer.serialize(sample_model_folder)
-
-        altered_dir = test_support.get_first_directory(sample_model_folder)
-        file_to_replace = test_support.get_first_file(altered_dir)
-        file_to_replace.unlink()
-        file_to_replace.mkdir()
-        new_manifest = serializer.serialize(sample_model_folder)
-
-        assert manifest != new_manifest
-
-    def test_folder_model_change_file(self, sample_model_folder):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest = serializer.serialize(sample_model_folder)
-
-        altered_dir = test_support.get_first_directory(sample_model_folder)
-        file_to_change = test_support.get_first_file(altered_dir)
-        file_to_change.write_bytes(test_support.KNOWN_MODEL_TEXT)
-        new_manifest = serializer.serialize(sample_model_folder)
-
-        assert manifest != new_manifest
-
-    def test_empty_folder_hashes_same_as_empty_file(
-        self, empty_model_file, empty_model_folder
-    ):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-
-        folder_manifest = serializer.serialize(empty_model_folder)
-        file_manifest = serializer.serialize(empty_model_file)
-
-        assert folder_manifest == file_manifest
-
-    def test_model_with_empty_folder_hashes_same_as_with_empty_file(
-        self, sample_model_folder
-    ):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-
-        # Compute digest of model with empty folder
-        altered_dir = test_support.get_first_directory(sample_model_folder)
-        new_empty_dir = altered_dir / "empty"
-        new_empty_dir.mkdir()
-        folder_manifest = serializer.serialize(sample_model_folder)
-
-        # Compute digest of model with empty file
-        new_empty_dir.rmdir()
-        new_empty_file = altered_dir / "empty"
-        new_empty_file.write_text("")
-        file_manifest = serializer.serialize(sample_model_folder)
-
-        assert folder_manifest == file_manifest
-
-    def test_max_workers_does_not_change_digest(self, sample_model_folder):
-        serializer1 = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest1 = serializer1.serialize(sample_model_folder)
-
-        serializer2 = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256(), max_workers=2
-        )
-        manifest2 = serializer2.serialize(sample_model_folder)
-
-        assert manifest1 == manifest2
-
-    def test_shard_size_changes_digests(self, sample_model_folder):
-        serializer1 = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest1 = serializer1.serialize(sample_model_folder)
-
-        serializer2 = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory_small_shards, memory.SHA256()
-        )
-        manifest2 = serializer2.serialize(sample_model_folder)
-
-        assert manifest1.digest.digest_value != manifest2.digest.digest_value
-
-    def test_symlinks_disallowed_by_default(self, symlink_model_folder):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        with pytest.raises(
-            ValueError, match="Cannot use '.+' because it is a symlink."
-        ):
-            _ = serializer.serialize(symlink_model_folder)
-
-    def test_ignore_list_respects_directories(self, sample_model_folder):
-        serializer = serialize_by_file_shard.DigestSerializer(
-            self._hasher_factory, memory.SHA256()
-        )
-        manifest1 = serializer.serialize(sample_model_folder)
-        ignore_path = test_support.get_first_directory(sample_model_folder)
-        manifest2 = serializer.serialize(
-            sample_model_folder, ignore_paths=[ignore_path]
-        )
-        assert manifest1 != manifest2
-
-
 def _extract_shard_items_from_manifest(
-    manifest: manifest.ShardLevelManifest,
-) -> dict[manifest.Shard, str]:
+    manifest: _manifest.Manifest,
+) -> dict[_manifest.ManifestKey, str]:
     """Builds a dictionary representation of the items in a manifest.
 
     Every item is mapped to its digest.
@@ -337,7 +47,7 @@ def _extract_shard_items_from_manifest(
     }
 
 
-def _parse_shard_and_digest(line: str) -> tuple[manifest.Shard, str]:
+def _parse_shard_and_digest(line: str) -> tuple[_manifest.Shard, str]:
     """Reads a file shard and its digest from a line in the golden file.
 
     Args:
@@ -347,7 +57,7 @@ def _parse_shard_and_digest(line: str) -> tuple[manifest.Shard, str]:
         The shard tuple and the digest corresponding to the line that was read.
     """
     path, start, end, digest = line.strip().split(":")
-    shard = manifest.Shard(pathlib.PurePosixPath(path), int(start), int(end))
+    shard = _manifest.Shard(pathlib.PurePosixPath(path), int(start), int(end))
     return shard, digest
 
 
@@ -389,7 +99,7 @@ class TestManifestSerializer:
                 for shard, digest in sorted(items.items()):
                     f.write(f"{shard}:{digest}\n")
         else:
-            found_items: dict[manifest.Shard, str] = {}
+            found_items: dict[_manifest.Shard, str] = {}
             with open(golden_path, "r", encoding="utf-8") as f:
                 for line in f:
                     shard, digest = _parse_shard_and_digest(line)
@@ -420,7 +130,7 @@ class TestManifestSerializer:
                 for shard, digest in sorted(items.items()):
                     f.write(f"{shard}:{digest}\n")
         else:
-            found_items: dict[manifest.Shard, str] = {}
+            found_items: dict[_manifest.Shard, str] = {}
             with open(golden_path, "r", encoding="utf-8") as f:
                 for line in f:
                     shard, digest = _parse_shard_and_digest(line)
@@ -514,8 +224,8 @@ class TestManifestSerializer:
 
     def _check_manifests_match_except_on_renamed_file(
         self,
-        old_manifest: manifest.ShardLevelManifest,
-        new_manifest: manifest.ShardLevelManifest,
+        old_manifest: _manifest.Manifest,
+        new_manifest: _manifest.Manifest,
         new_name: str,
         old_name: pathlib.PurePath,
     ):
@@ -527,9 +237,10 @@ class TestManifestSerializer:
         assert len(new_manifest._item_to_digest) == len(
             old_manifest._item_to_digest
         )
-        for shard, digest in new_manifest._item_to_digest.items():
+        for key, digest in new_manifest._item_to_digest.items():
+            shard = cast(_manifest.Shard, key)
             if shard.path.name == new_name:
-                old_shard = manifest.Shard(old_name, shard.start, shard.end)
+                old_shard = _manifest.Shard(old_name, shard.start, shard.end)
                 assert old_manifest._item_to_digest[old_shard] == digest
             else:
                 assert old_manifest._item_to_digest[shard] == digest
@@ -556,8 +267,8 @@ class TestManifestSerializer:
 
     def _check_manifests_match_except_on_renamed_dir(
         self,
-        old_manifest: manifest.ShardLevelManifest,
-        new_manifest: manifest.ShardLevelManifest,
+        old_manifest: _manifest.Manifest,
+        new_manifest: _manifest.Manifest,
         new_name: str,
         old_name: str,
     ):
@@ -570,13 +281,14 @@ class TestManifestSerializer:
         assert len(new_manifest._item_to_digest) == len(
             old_manifest._item_to_digest
         )
-        for shard, digest in new_manifest._item_to_digest.items():
+        for key, digest in new_manifest._item_to_digest.items():
+            shard = cast(_manifest.Shard, key)
             if new_name in shard.path.parts:
                 parts = [
                     old_name if part == new_name else part
                     for part in shard.path.parts
                 ]
-                old = manifest.Shard(
+                old = _manifest.Shard(
                     pathlib.PurePosixPath(*parts), shard.start, shard.end
                 )
                 assert old_manifest._item_to_digest[old] == digest
@@ -623,8 +335,8 @@ class TestManifestSerializer:
 
     def _check_manifests_match_except_on_entry(
         self,
-        old_manifest: manifest.ShardLevelManifest,
-        new_manifest: manifest.ShardLevelManifest,
+        old_manifest: _manifest.Manifest,
+        new_manifest: _manifest.Manifest,
         expected_mismatch_path: pathlib.PurePath,
     ):
         """Checks that the manifests match, except for given path."""
@@ -632,11 +344,12 @@ class TestManifestSerializer:
         assert len(new_manifest._item_to_digest) == len(
             old_manifest._item_to_digest
         )
-        for shard, digest in new_manifest._item_to_digest.items():
+        for key, digest in new_manifest._item_to_digest.items():
+            shard = cast(_manifest.Shard, key)
             if shard.path == expected_mismatch_path:
                 # Note that the file size changes
-                item = manifest.Shard(shard.path, 0, 23)
-                assert old_manifest._item_to_digest[item] != digest
+                key = _manifest.Shard(shard.path, 0, 23)
+                assert old_manifest._item_to_digest[key] != digest
             else:
                 assert old_manifest._item_to_digest[shard] == digest
 
@@ -686,7 +399,7 @@ class TestManifestSerializer:
 
     def test_shard_to_string(self):
         """Ensure the shard's `__str__` method behaves as assumed."""
-        shard = manifest.Shard(pathlib.PurePosixPath("a"), 0, 42)
+        shard = _manifest.Shard(pathlib.PurePosixPath("a"), 0, 42)
         assert str(shard) == "a:0:42"
 
     def test_ignore_list_respects_directories(self, sample_model_folder):
