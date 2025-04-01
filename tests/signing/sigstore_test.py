@@ -24,7 +24,6 @@ import pytest
 from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
-from model_signing._serialization import file_shard
 from model_signing.signing import in_toto
 from model_signing.signing import sign_sigstore as sigstore
 
@@ -200,26 +199,6 @@ class TestSigstoreSigning:
         )
         return verifier.verify(signature)
 
-    def test_sign_verify_dsse_digest_of_digests(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        # Serialize and sign model
-        serializer = file.Serializer(
-            self._file_hasher_factory, allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            in_toto.DigestOfDigestsIntotoPayload,
-            sigstore.SigstoreSigner,
-        )
-
-        # Read signature and check against expected serialization
-        expected_manifest = self._verify_dsse_signature(signature_path)
-        assert expected_manifest == manifest
-
     def test_sign_verify_dsse_digests(
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
@@ -233,46 +212,6 @@ class TestSigstoreSigning:
             manifest,
             signature_path,
             in_toto.DigestsIntotoPayload,
-            sigstore.SigstoreSigner,
-        )
-
-        # Read signature and check against expected serialization
-        expected_manifest = self._verify_dsse_signature(signature_path)
-        assert expected_manifest == manifest
-
-    def test_sign_verify_dsse_digest_of_digests_sharded(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        # Serialize and sign model
-        serializer = file_shard.Serializer(
-            self._shard_hasher_factory, allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            in_toto.DigestOfShardDigestsIntotoPayload,
-            sigstore.SigstoreSigner,
-        )
-
-        # Read signature and check against expected serialization
-        expected_manifest = self._verify_dsse_signature(signature_path)
-        assert expected_manifest == manifest
-
-    def test_sign_verify_dsse_digests_sharded(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        # Serialize and sign model
-        serializer = file_shard.Serializer(
-            self._shard_hasher_factory, allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            in_toto.ShardDigestsIntotoPayload,
             sigstore.SigstoreSigner,
         )
 
@@ -432,100 +371,4 @@ class TestSigstoreSigning:
         signature_path.write_text(invalid_signature)
 
         with pytest.raises(ValueError, match="Unknown in-toto predicate type"):
-            self._verify_dsse_signature(signature_path)
-
-    def test_verify_intoto_digest_of_digests_more_than_one_digests(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        serializer = file.Serializer(
-            self._file_hasher_factory, allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            in_toto.DigestOfDigestsIntotoPayload,
-            sigstore.SigstoreSigner,
-        )
-
-        correct_signature = signature_path.read_text()
-        json_signature = json.loads(correct_signature)
-        json_signature["subject"].extend(json_signature["subject"])
-        invalid_signature = json.dumps(json_signature)
-        signature_path.write_text(invalid_signature)
-
-        with pytest.raises(ValueError, match="Expected one single subject"):
-            self._verify_dsse_signature(signature_path)
-
-    def test_verify_intoto_digest_of_digests_invalid_root_digest(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        serializer = file.Serializer(
-            self._file_hasher_factory, allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            in_toto.DigestOfDigestsIntotoPayload,
-            sigstore.SigstoreSigner,
-        )
-
-        correct_signature = signature_path.read_text()
-        json_signature = json.loads(correct_signature)
-        json_signature["subject"][0]["digest"]["sha256"] = "invalid"
-        invalid_signature = json.dumps(json_signature)
-        signature_path.write_text(invalid_signature)
-
-        with pytest.raises(ValueError, match="Verification failed"):
-            self._verify_dsse_signature(signature_path)
-
-    def test_verify_intoto_digest_of_shard_digests_more_than_one_digests(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        serializer = file_shard.Serializer(
-            self._shard_hasher_factory, allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            in_toto.DigestOfShardDigestsIntotoPayload,
-            sigstore.SigstoreSigner,
-        )
-
-        correct_signature = signature_path.read_text()
-        json_signature = json.loads(correct_signature)
-        json_signature["subject"].extend(json_signature["subject"])
-        invalid_signature = json.dumps(json_signature)
-        signature_path.write_text(invalid_signature)
-
-        with pytest.raises(ValueError, match="Expected one single subject"):
-            self._verify_dsse_signature(signature_path)
-
-    def test_verify_intoto_digest_of_shard_digests_invalid_root_digest(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        serializer = file_shard.Serializer(
-            self._shard_hasher_factory, allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            in_toto.DigestOfShardDigestsIntotoPayload,
-            sigstore.SigstoreSigner,
-        )
-
-        correct_signature = signature_path.read_text()
-        json_signature = json.loads(correct_signature)
-        json_signature["subject"][0]["digest"]["sha256"] = "invalid"
-        invalid_signature = json.dumps(json_signature)
-        signature_path.write_text(invalid_signature)
-
-        with pytest.raises(ValueError, match="Verification failed"):
             self._verify_dsse_signature(signature_path)
