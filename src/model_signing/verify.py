@@ -128,7 +128,7 @@ class Config:
         Return:
             The new verification configuration.
         """
-        self._verifier = sigstore.SigstoreDSSEVerifier(
+        self._verifier = sigstore.SigstoreVerifier(
             identity=identity, oidc_issuer=oidc_issuer, use_staging=use_staging
         )
         return self
