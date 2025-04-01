@@ -62,7 +62,9 @@ def check_file_or_directory(
         )
 
 
-def _ignored(path: pathlib.Path, ignore_paths: Iterable[pathlib.Path]) -> bool:
+def should_ignore(
+    path: pathlib.Path, ignore_paths: Iterable[pathlib.Path]
+) -> bool:
     """Determines if the provided path should be ignored.
 
     Args:
@@ -136,7 +138,7 @@ class FilesSerializer(serialization.Serializer):
         # improvement.
         for path in itertools.chain((model_path,), model_path.glob("**/*")):
             check_file_or_directory(path, allow_symlinks=self._allow_symlinks)
-            if path.is_file() and not _ignored(path, ignore_paths):
+            if path.is_file() and not should_ignore(path, ignore_paths):
                 paths.append(path)
 
         manifest_items = []

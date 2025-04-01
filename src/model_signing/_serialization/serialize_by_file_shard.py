@@ -125,7 +125,7 @@ class ShardedFilesSerializer(serialization.Serializer):
             serialize_by_file.check_file_or_directory(
                 path, allow_symlinks=self._allow_symlinks
             )
-            if path.is_file() and not serialize_by_file._ignored(
+            if path.is_file() and not serialize_by_file.should_ignore(
                 path, ignore_paths
             ):
                 shards.extend(self._get_shards(path))
