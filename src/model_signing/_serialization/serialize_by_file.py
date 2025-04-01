@@ -27,7 +27,7 @@ from model_signing._hashing import file
 from model_signing._serialization import serialization
 
 
-class ManifestSerializer(serialization.Serializer):
+class Serializer(serialization.Serializer):
     """Model serializer that produces a manifest recording every file.
 
     Traverses the model directory and creates digests for every file found,

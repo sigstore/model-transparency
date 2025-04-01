@@ -49,7 +49,7 @@ def _endpoints(step: int, end: int) -> Iterable[int]:
     yield end
 
 
-class ManifestSerializer(serialization.Serializer):
+class Serializer(serialization.Serializer):
     """Model serializers that produces a manifest recording every file shard.
 
     Traverses the model directory and creates digests for every file found,

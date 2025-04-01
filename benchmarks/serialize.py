@@ -120,9 +120,9 @@ def run(args: argparse.Namespace) -> Optional[in_toto.IntotoPayload]:
 
     # 2. Serialization layer
     if args.use_shards:
-        serializer_factory = serialize_by_file_shard.ManifestSerializer
+        serializer_factory = serialize_by_file_shard.Serializer
     else:
-        serializer_factory = serialize_by_file.ManifestSerializer
+        serializer_factory = serialize_by_file.Serializer
 
     serializer = serializer_factory(hasher, max_workers=args.max_workers)
 

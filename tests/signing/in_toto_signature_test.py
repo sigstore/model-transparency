@@ -37,7 +37,7 @@ class TestIntotoSignature:
     def test_sign_and_verify_sharded_manifest(self, sample_model_folder):
         signer = in_toto_signature.IntotoSigner(fake.FakeSigner())
         verifier = in_toto_signature.IntotoVerifier(fake.FakeVerifier())
-        shard_serializer = serialize_by_file_shard.ManifestSerializer(
+        shard_serializer = serialize_by_file_shard.Serializer(
             self._shard_hasher_factory, allow_symlinks=True
         )
         shard_manifest = shard_serializer.serialize(sample_model_folder)
@@ -53,7 +53,7 @@ class TestIntotoSignature:
     def test_sign_and_verify_digest_sharded_manifest(self, sample_model_folder):
         signer = in_toto_signature.IntotoSigner(fake.FakeSigner())
         verifier = in_toto_signature.IntotoVerifier(fake.FakeVerifier())
-        shard_serializer = serialize_by_file_shard.ManifestSerializer(
+        shard_serializer = serialize_by_file_shard.Serializer(
             self._shard_hasher_factory, allow_symlinks=True
         )
         shard_manifest = shard_serializer.serialize(sample_model_folder)
@@ -71,7 +71,7 @@ class TestIntotoSignature:
     ):
         signer = in_toto_signature.IntotoSigner(fake.FakeSigner())
         verifier = in_toto_signature.IntotoVerifier(fake.FakeVerifier())
-        file_serializer = serialize_by_file.ManifestSerializer(
+        file_serializer = serialize_by_file.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         file_manifest = file_serializer.serialize(sample_model_folder)
@@ -87,7 +87,7 @@ class TestIntotoSignature:
     def test_sign_and_verify_digest_manifest(self, sample_model_folder):
         signer = in_toto_signature.IntotoSigner(fake.FakeSigner())
         verifier = in_toto_signature.IntotoVerifier(fake.FakeVerifier())
-        file_serializer = serialize_by_file.ManifestSerializer(
+        file_serializer = serialize_by_file.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         file_manifest = file_serializer.serialize(sample_model_folder)

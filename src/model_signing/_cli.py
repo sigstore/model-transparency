@@ -347,7 +347,7 @@ def _serialize_and_sign(
             file=file_path, content_hasher=memory.SHA256()
         )
 
-    serializer = serialize_by_file.ManifestSerializer(
+    serializer = serialize_by_file.Serializer(
         file_hasher_factory=hasher_factory
     )
 
@@ -535,7 +535,7 @@ def _serialize_and_verify(
             file=file_path, content_hasher=memory.SHA256()
         )
 
-    serializer = serialize_by_file.ManifestSerializer(
+    serializer = serialize_by_file.Serializer(
         file_hasher_factory=hasher_factory
     )
 

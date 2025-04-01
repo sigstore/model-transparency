@@ -61,7 +61,7 @@ def _parse_shard_and_digest(line: str) -> tuple[manifest.Shard, str]:
     return shard, digest
 
 
-class TestManifestSerializer:
+class TestSerializer:
     def _hasher_factory(
         self, path: pathlib.Path, start: int, end: int
     ) -> file.ShardedFileHasher:
@@ -81,13 +81,13 @@ class TestManifestSerializer:
         # Set up variables (arrange)
         testdata_path = request.path.parent / "testdata"
         test_path = testdata_path / "serialize_by_file_shard"
-        test_class_path = test_path / "TestManifestSerializer"
+        test_class_path = test_path / "TestSerializer"
         golden_path = test_class_path / model_fixture_name
         should_update = request.config.getoption("update_goldens")
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute model manifest (act)
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest_file = serializer.serialize(model)
@@ -112,13 +112,13 @@ class TestManifestSerializer:
         # Set up variables (arrange)
         testdata_path = request.path.parent / "testdata"
         test_path = testdata_path / "serialize_by_file_shard"
-        test_class_path = test_path / "TestManifestSerializer"
+        test_class_path = test_path / "TestSerializer"
         golden_path = test_class_path / f"{model_fixture_name}_small_shards"
         should_update = request.config.getoption("update_goldens")
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute model manifest (act)
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory_small_shards, allow_symlinks=True
         )
         manifest_file = serializer.serialize(model)
@@ -139,7 +139,7 @@ class TestManifestSerializer:
             assert items == found_items
 
     def test_file_manifest_unchanged_when_model_moved(self, sample_model_file):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
         manifest = serializer.serialize(sample_model_file)
@@ -151,7 +151,7 @@ class TestManifestSerializer:
         assert manifest == new_manifest
 
     def test_file_manifest_changes_if_content_changes(self, sample_model_file):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
         manifest = serializer.serialize(sample_model_file)
@@ -168,7 +168,7 @@ class TestManifestSerializer:
         assert digests != new_digests
 
     def test_directory_model_with_only_known_file(self, sample_model_file):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
         manifest_file = serializer.serialize(sample_model_file)
@@ -185,7 +185,7 @@ class TestManifestSerializer:
     def test_folder_model_hash_is_same_if_model_is_moved(
         self, sample_model_folder
     ):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -197,7 +197,7 @@ class TestManifestSerializer:
         assert manifest == new_manifest
 
     def test_folder_model_empty_folder_not_included(self, sample_model_folder):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -210,7 +210,7 @@ class TestManifestSerializer:
         assert manifest == new_manifest
 
     def test_folder_model_empty_file_not_included(self, sample_model_folder):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -248,7 +248,7 @@ class TestManifestSerializer:
     def test_folder_model_rename_file_only_changes_path_part(
         self, sample_model_folder
     ):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -298,7 +298,7 @@ class TestManifestSerializer:
     def test_folder_model_rename_dir_only_changes_path_part(
         self, sample_model_folder
     ):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -314,7 +314,7 @@ class TestManifestSerializer:
         )
 
     def test_folder_model_replace_file_empty_folder(self, sample_model_folder):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -354,7 +354,7 @@ class TestManifestSerializer:
                 assert old_manifest._item_to_digest[shard] == digest
 
     def test_folder_model_change_file(self, sample_model_folder):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -371,13 +371,13 @@ class TestManifestSerializer:
         )
 
     def test_max_workers_does_not_change_digest(self, sample_model_folder):
-        serializer1 = serialize_by_file_shard.ManifestSerializer(
+        serializer1 = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
-        serializer2 = serialize_by_file_shard.ManifestSerializer(
+        serializer2 = serialize_by_file_shard.Serializer(
             self._hasher_factory, max_workers=1
         )
-        serializer3 = serialize_by_file_shard.ManifestSerializer(
+        serializer3 = serialize_by_file_shard.Serializer(
             self._hasher_factory, max_workers=3
         )
 
@@ -389,7 +389,7 @@ class TestManifestSerializer:
         assert manifest1 == manifest3
 
     def test_symlinks_disallowed_by_default(self, symlink_model_folder):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
         with pytest.raises(
@@ -403,7 +403,7 @@ class TestManifestSerializer:
         assert str(shard) == "a:0:42"
 
     def test_ignore_list_respects_directories(self, sample_model_folder):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory
         )
         manifest1 = serializer.serialize(sample_model_folder)

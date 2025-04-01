@@ -49,7 +49,7 @@ class TestDigestOfDigestsIntotoPayload:
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute payload (act)
-        serializer = serialize_by_file.ManifestSerializer(
+        serializer = serialize_by_file.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(model)
@@ -69,7 +69,7 @@ class TestDigestOfDigestsIntotoPayload:
             assert payload.statement.pb == expected_proto
 
     def test_produces_valid_statements(self, sample_model_folder):
-        serializer = serialize_by_file.ManifestSerializer(
+        serializer = serialize_by_file.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -98,7 +98,7 @@ class TestDigestOfShardDigestsIntotoPayload:
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute payload (act)
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(model)
@@ -120,7 +120,7 @@ class TestDigestOfShardDigestsIntotoPayload:
             assert payload.statement.pb == expected_proto
 
     def test_produces_valid_statements(self, sample_model_folder):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -147,7 +147,7 @@ class TestDigestsIntotoPayload:
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute payload (act)
-        serializer = serialize_by_file.ManifestSerializer(
+        serializer = serialize_by_file.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(model)
@@ -167,7 +167,7 @@ class TestDigestsIntotoPayload:
             assert payload.statement.pb == expected_proto
 
     def test_produces_valid_statements(self, sample_model_folder):
-        serializer = serialize_by_file.ManifestSerializer(
+        serializer = serialize_by_file.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -196,7 +196,7 @@ class TestShardDigestsIntotoPayload:
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute payload (act)
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(model)
@@ -216,7 +216,7 @@ class TestShardDigestsIntotoPayload:
             assert payload.statement.pb == proto
 
     def test_produces_valid_statements(self, sample_model_folder):
-        serializer = serialize_by_file_shard.ManifestSerializer(
+        serializer = serialize_by_file_shard.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)

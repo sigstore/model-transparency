@@ -90,7 +90,7 @@ class Config:
         symbolic link in the model directory results in an error.
         """
         self._ignored_paths = frozenset()
-        self._serializer = serialize_by_file.ManifestSerializer(
+        self._serializer = serialize_by_file.Serializer(
             self._build_file_hasher_factory(), allow_symlinks=False
         )
 
@@ -206,7 +206,7 @@ class Config:
         Returns:
             The new hashing configuration with the new serialization method.
         """
-        self._serializer = serialize_by_file.ManifestSerializer(
+        self._serializer = serialize_by_file.Serializer(
             self._build_file_hasher_factory(hashing_algorithm, chunk_size),
             max_workers=max_workers,
             allow_symlinks=allow_symlinks,
@@ -244,7 +244,7 @@ class Config:
         Returns:
             The new hashing configuration with the new serialization method.
         """
-        self._serializer = serialize_by_file_shard.ManifestSerializer(
+        self._serializer = serialize_by_file_shard.Serializer(
             self._build_sharded_file_hasher_factory(
                 hashing_algorithm, chunk_size, shard_size
             ),
