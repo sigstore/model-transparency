@@ -15,7 +15,6 @@
 """Model serializers that operated at file shard level of granularity."""
 
 import abc
-import base64
 from collections.abc import Callable, Iterable
 import concurrent.futures
 import itertools
@@ -28,26 +27,6 @@ from model_signing import manifest
 from model_signing._hashing import file
 from model_signing._serialization import serialization
 from model_signing._serialization import serialize_by_file
-
-
-def _build_header(*, name: str, start: int, end: int) -> bytes:
-    """Builds a header to encode a path with given name and shard range.
-
-    Args:
-        entry_name: The name of the entry to build the header for.
-        start: Offset for the start of the path shard.
-        end: Offset for the end of the path shard.
-
-    Returns:
-        A sequence of bytes that encodes all arguments as a sequence of UTF-8
-        bytes. Each argument is separated by dots and the last byte is also a
-        dot (so the file digest can be appended unambiguously).
-    """
-    # Prevent confusion if name has a "." inside by encoding to base64.
-    encoded_name = base64.b64encode(name.encode("utf-8"))
-    encoded_range = f"{start}-{end}".encode("utf-8")
-    # Note: empty string at the end, to terminate header with a "."
-    return b".".join([encoded_name, encoded_range, b""])
 
 
 def _endpoints(step: int, end: int) -> Iterable[int]:

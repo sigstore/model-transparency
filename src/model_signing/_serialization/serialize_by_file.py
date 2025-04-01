@@ -15,7 +15,6 @@
 """Model serializers that operated at file level granularity."""
 
 import abc
-import base64
 from collections.abc import Callable, Iterable
 import concurrent.futures
 import itertools
@@ -61,23 +60,6 @@ def check_file_or_directory(
             " special file, it could be missing, or there might be a"
             " permission issue."
         )
-
-
-def _build_header(*, entry_name: str) -> bytes:
-    """Builds a header to encode a path with given name.
-
-    Args:
-        entry_name: The name of the entry to build the header for.
-
-    Returns:
-        A sequence of bytes that encodes all arguments as a sequence of UTF-8
-        bytes. Each argument is separated by dots and the last byte is also a
-        dot (so the file digest can be appended unambiguously).
-    """
-    # Prevent confusion if name has a "." inside by encoding to base64.
-    encoded_name = base64.b64encode(entry_name.encode("utf-8"))
-    # Note: empty string at the end, to terminate header with a "."
-    return b".".join([encoded_name, b""])
 
 
 def _ignored(path: pathlib.Path, ignore_paths: Iterable[pathlib.Path]) -> bool:
