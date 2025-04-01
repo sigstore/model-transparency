@@ -19,8 +19,8 @@ from collections.abc import Callable
 import pathlib
 from typing import Optional
 
-from model_signing._hashing import file_hashing
 from model_signing._hashing import hashing
+from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
 from model_signing._serialization import file_shard
@@ -52,7 +52,7 @@ def get_hash_engine_factory(
 
 def get_sharded_file_hasher_factory(
     hash_algorithm: str, chunk_size: int, shard_size: int
-) -> Callable[[pathlib.Path, int, int], file_hashing.ShardedFileHasher]:
+) -> Callable[[pathlib.Path, int, int], io.ShardedFileHasher]:
     """Returns a hasher factory for sharded serialization.
 
     Args:
@@ -67,8 +67,8 @@ def get_sharded_file_hasher_factory(
 
     def _hasher_factory(
         path: pathlib.Path, start: int, end: int
-    ) -> file_hashing.ShardedFileHasher:
-        return file_hashing.ShardedFileHasher(
+    ) -> io.ShardedFileHasher:
+        return io.ShardedFileHasher(
             path,
             hash_engine(),  # pytype: disable=not-instantiable
             start=start,
@@ -82,7 +82,7 @@ def get_sharded_file_hasher_factory(
 
 def get_file_hasher_factory(
     hash_algorithm: str, chunk_size: int
-) -> Callable[[pathlib.Path], file_hashing.FileHasher]:
+) -> Callable[[pathlib.Path], io.FileHasher]:
     """Returns a hasher factory for file serialization.
 
     Args:
@@ -94,8 +94,8 @@ def get_file_hasher_factory(
     """
     hash_engine = get_hash_engine_factory(hash_algorithm)
 
-    def _hasher_factory(path: pathlib.Path) -> file_hashing.FileHasher:
-        return file_hashing.SimpleFileHasher(
+    def _hasher_factory(path: pathlib.Path) -> io.FileHasher:
+        return io.SimpleFileHasher(
             path,
             hash_engine(),  # pytype: disable=not-instantiable
             chunk_size=chunk_size,

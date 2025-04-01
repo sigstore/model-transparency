@@ -14,7 +14,7 @@
 
 import pathlib
 
-from model_signing._hashing import file_hashing
+from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
 from model_signing._serialization import file_shard
@@ -26,13 +26,11 @@ from model_signing.signing import in_toto_signature
 class TestIntotoSignature:
     def _shard_hasher_factory(
         self, path: pathlib.Path, start: int, end: int
-    ) -> file_hashing.ShardedFileHasher:
-        return file_hashing.ShardedFileHasher(
-            path, memory.SHA256(), start=start, end=end
-        )
+    ) -> io.ShardedFileHasher:
+        return io.ShardedFileHasher(path, memory.SHA256(), start=start, end=end)
 
-    def _hasher_factory(self, path: pathlib.Path) -> file_hashing.FileHasher:
-        return file_hashing.SimpleFileHasher(path, memory.SHA256())
+    def _hasher_factory(self, path: pathlib.Path) -> io.FileHasher:
+        return io.SimpleFileHasher(path, memory.SHA256())
 
     def test_sign_and_verify_sharded_manifest(self, sample_model_folder):
         signer = in_toto_signature.IntotoSigner(fake.FakeSigner())

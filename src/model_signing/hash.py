@@ -30,8 +30,8 @@ import sys
 from typing import Literal, Optional
 
 from model_signing import manifest
-from model_signing._hashing import file_hashing
 from model_signing._hashing import hashing
+from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
 from model_signing._serialization import file_shard
@@ -123,7 +123,7 @@ class Config:
         self,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 1048576,
-    ) -> Callable[[pathlib.Path], file_hashing.SimpleFileHasher]:
+    ) -> Callable[[pathlib.Path], io.SimpleFileHasher]:
         """Builds the hasher factory for a serialization by file.
 
         Args:
@@ -137,11 +137,9 @@ class Config:
             method.
         """
 
-        def factory(path: pathlib.Path) -> file_hashing.SimpleFileHasher:
+        def factory(path: pathlib.Path) -> io.SimpleFileHasher:
             hasher = self._build_stream_hasher(hashing_algorithm)
-            return file_hashing.SimpleFileHasher(
-                path, hasher, chunk_size=chunk_size
-            )
+            return io.SimpleFileHasher(path, hasher, chunk_size=chunk_size)
 
         return factory
 
@@ -150,7 +148,7 @@ class Config:
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 1048576,
         shard_size: int = 1_000_000_000,
-    ) -> Callable[[pathlib.Path, int, int], file_hashing.ShardedFileHasher]:
+    ) -> Callable[[pathlib.Path, int, int], io.ShardedFileHasher]:
         """Builds the hasher factory for a serialization by file shards.
 
         Args:
@@ -168,8 +166,8 @@ class Config:
 
         def factory(
             path: pathlib.Path, start: int, end: int
-        ) -> file_hashing.ShardedFileHasher:
-            return file_hashing.ShardedFileHasher(
+        ) -> io.ShardedFileHasher:
+            return io.ShardedFileHasher(
                 path,
                 algorithm,
                 start=start,

@@ -26,7 +26,7 @@ from typing import cast
 import pytest
 
 from model_signing import manifest
-from model_signing._hashing import file_hashing
+from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file_shard
 from tests import test_support
@@ -64,15 +64,13 @@ def _parse_shard_and_digest(line: str) -> tuple[manifest.Shard, str]:
 class TestSerializer:
     def _hasher_factory(
         self, path: pathlib.Path, start: int, end: int
-    ) -> file_hashing.ShardedFileHasher:
-        return file_hashing.ShardedFileHasher(
-            path, memory.SHA256(), start=start, end=end
-        )
+    ) -> io.ShardedFileHasher:
+        return io.ShardedFileHasher(path, memory.SHA256(), start=start, end=end)
 
     def _hasher_factory_small_shards(
         self, path: pathlib.Path, start: int, end: int
-    ) -> file_hashing.ShardedFileHasher:
-        return file_hashing.ShardedFileHasher(
+    ) -> io.ShardedFileHasher:
+        return io.ShardedFileHasher(
             path, memory.SHA256(), start=start, end=end, shard_size=8
         )
 
