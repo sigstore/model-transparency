@@ -29,7 +29,6 @@ import pytest
 from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
-from model_signing._serialization import file_shard
 from model_signing.signing import in_toto
 from tests import test_support
 

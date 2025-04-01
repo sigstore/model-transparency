@@ -28,7 +28,6 @@ from typing_extensions import override
 
 from model_signing import manifest as manifest_module
 from model_signing._hashing import hashing
-from model_signing._hashing import memory
 from model_signing.signing import signing
 
 
