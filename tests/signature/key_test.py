@@ -14,6 +14,9 @@
 # flake8: noqa: E712
 import pathlib
 
+from cryptography.hazmat.primitives.serialization.base import (
+    load_pem_public_key,
+)
 from in_toto_attestation.v1 import resource_descriptor as res_desc
 from in_toto_attestation.v1 import statement
 import pytest
@@ -24,14 +27,14 @@ from model_signing.signature.verifying import VerificationError
 
 
 _PRIV_KEY_1 = b"""-----BEGIN EC PRIVATE KEY-----
-MHQCAQEEIDcpvDIigb10Ys3SbkoAd+yquWkiu/GW4Qx495pnsZh4oAcGBSuBBAAK
-oUQDQgAEU+HLGtq3jwrv3i3oT7pq3NAMnfoWBuPOeeiZOl32+7dpuhkbXs4nTDSC
-kUd2RjIbO7kAeFjJfMpmZEgMwkH/dw==
+MHcCAQEEIFcw5db1a1azLGwJaawU+n1dh+Wj5BfeZrJhZ/JP8hqJoAoGCCqGSM49
+AwEHoUQDQgAEL8phBNVmtxDpvDIddL8HweqpzjcBUL15HESpzhFK+9Uy//Rclvwj
+evHmjyMtsKfBPUCWNJLJ4/0FhcnYGcj9YQ==
 -----END EC PRIVATE KEY-----
 """
 _PUB_KEY_1 = b"""-----BEGIN PUBLIC KEY-----
-MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEU+HLGtq3jwrv3i3oT7pq3NAMnfoWBuPO
-eeiZOl32+7dpuhkbXs4nTDSCkUd2RjIbO7kAeFjJfMpmZEgMwkH/dw==
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEL8phBNVmtxDpvDIddL8HweqpzjcB
+UL15HESpzhFK+9Uy//RclvwjevHmjyMtsKfBPUCWNJLJ4/0FhcnYGcj9YQ==
 -----END PUBLIC KEY-----
 """
 _PUB_KEY_2 = b"""-----BEGIN PUBLIC KEY-----
@@ -100,7 +103,7 @@ def test_key_signature_wrong_key(tmp_path: pathlib.Path):
     stmnt = __get_stmnt()
 
     signer = ECKeySigner.from_path(priv_key_path)
-    verifier = ECKeyVerifier(_PUB_KEY_2)
+    verifier = ECKeyVerifier(load_pem_public_key(_PUB_KEY_2))
 
     bdl = signer.sign(stmnt)
 

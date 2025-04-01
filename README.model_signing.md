@@ -81,14 +81,14 @@ $ source .venv/bin/activate
 ```bash
 $ MODEL_PATH='/path/to/your/model'
 $ SIG_PATH='./model.sig'
-$ openssl ecparam -name secp256k1 -genkey -noout -out ec-secp256k1-priv-key.pem
-$ openssl ec -in ec-secp256k1-priv-key.pem -pubout > ec-secp256k1-pub-key.pem
+$ openssl ecparam -name secp256r1 -genkey -noout -out ec-secp256r1-priv-key.pem
+$ openssl ec -in ec-secp256r1-priv-key.pem -pubout > ec-secp256r1-pub-key.pem
 $ source .venv/bin/activate
 # SIGN
-(.venv) $ python3 -m model_signing sign key --signature ${SIG_PATH} --private_key ec-secp256k1-priv-key.pem ${MODEL_PATH}
+(.venv) $ python3 -m model_signing sign key --signature ${SIG_PATH} --private_key ec-secp256r1-priv-key.pem ${MODEL_PATH}
 ...
 #VERIFY
-(.venv) $ python3 -m model_signing verify key --signature ${SIG_PATH} --public_key ec-secp256k1-pub-key.pem ${MODEL_PATH}
+(.venv) $ python3 -m model_signing verify key --signature ${SIG_PATH} --public_key ec-secp256r1-pub-key.pem ${MODEL_PATH}
 ...
 ```
 
