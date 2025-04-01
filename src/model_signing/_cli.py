@@ -27,7 +27,6 @@ from model_signing._hashing import memory
 from model_signing._serialization import file
 from model_signing.signature import key
 from model_signing.signature import pki
-from model_signing.signing import in_toto
 from model_signing.signing import in_toto_signature
 from model_signing.signing import sign_sigstore as sigstore
 from model_signing.signing import signing
@@ -352,7 +351,7 @@ def _serialize_and_sign(
     signing_result = model.sign(
         model_path=model_path,
         signer=signer,
-        payload_generator=in_toto.DigestsIntotoPayload.from_manifest,
+        payload_generator=signing.SigningPayload.from_manifest,
         serializer=serializer,
         ignore_paths=_expand_paths_to_ignore(
             model_path, signature, ignore_paths, ignore_git_paths

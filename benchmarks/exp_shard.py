@@ -22,7 +22,7 @@ from typing import Final
 from google.protobuf import json_format
 import serialize
 
-from model_signing.signing import in_toto
+from model_signing.signing import signing
 
 
 KB: Final[int] = 1000
@@ -79,7 +79,7 @@ if __name__ == "__main__":
             en = time.time()
             times.append(en - st)
 
-            if not isinstance(payload, in_toto.IntotoPayload):
+            if not isinstance(payload, signing.SigningPayload):
                 raise TypeError("IntotoPayloads expected")
 
             if not manifest_size:

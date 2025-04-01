@@ -24,8 +24,8 @@ import pytest
 from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
-from model_signing.signing import in_toto
 from model_signing.signing import sign_sigstore as sigstore
+from model_signing.signing import signing
 
 
 if sys.version_info >= (3, 11):
@@ -211,7 +211,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            in_toto.DigestsIntotoPayload,
+            signing.SigningPayload,
             sigstore.SigstoreSigner,
         )
 
@@ -231,7 +231,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            in_toto.DigestsIntotoPayload,
+            signing.SigningPayload,
             sigstore.SigstoreSigner,
             use_staging=False,
         )
@@ -254,7 +254,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            in_toto.DigestsIntotoPayload,
+            signing.SigningPayload,
             sigstore.SigstoreSigner,
             use_staging=False,
             oidc_issuer="test",
@@ -284,7 +284,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            in_toto.DigestsIntotoPayload,
+            signing.SigningPayload,
             sigstore.SigstoreSigner,
         )
 
@@ -318,7 +318,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            in_toto.DigestsIntotoPayload,
+            signing.SigningPayload,
             sigstore.SigstoreSigner,
         )
 
@@ -336,7 +336,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            in_toto.DigestsIntotoPayload,
+            signing.SigningPayload,
             sigstore.SigstoreSigner,
         )
 
@@ -347,28 +347,4 @@ class TestSigstoreSigning:
         signature_path.write_text(invalid_signature)
 
         with pytest.raises(ValueError, match="Expected in-toto .* payload"):
-            self._verify_dsse_signature(signature_path)
-
-    def test_verify_intoto_predicate_not_matched(
-        self, sample_model_folder, mocked_sigstore, tmp_path
-    ):
-        serializer = file.Serializer(
-            self._file_hasher_factory, allow_symlinks=True
-        )
-        manifest = serializer.serialize(sample_model_folder)
-        signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            in_toto.DigestsIntotoPayload,
-            sigstore.SigstoreSigner,
-        )
-
-        correct_signature = signature_path.read_text()
-        json_signature = json.loads(correct_signature)
-        json_signature["predicateType"] = "Invalid"
-        invalid_signature = json.dumps(json_signature)
-        signature_path.write_text(invalid_signature)
-
-        with pytest.raises(ValueError, match="Unknown in-toto predicate type"):
             self._verify_dsse_signature(signature_path)

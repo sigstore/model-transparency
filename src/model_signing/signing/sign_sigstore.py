@@ -28,7 +28,6 @@ from sigstore import verify as sigstore_verifier
 from typing_extensions import override
 
 from model_signing import manifest
-from model_signing.signing import in_toto
 from model_signing.signing import signing
 
 
@@ -155,13 +154,7 @@ class SigstoreSigner(signing.Signer):
 
         Returns:
             A `SigstoreSignature` object.
-
-        Raises:
-            TypeError: If the `payload` type is not `in_toto.IntotoPayload`.
         """
-        if not isinstance(payload, in_toto.IntotoPayload):
-            raise TypeError("Only `IntotoPayload` payloads are supported")
-
         # We need to convert from in-toto statement to Sigstore's DSSE
         # version. They both contain the same contents, but there is no way
         # to coerce one type to the other.
@@ -241,4 +234,4 @@ class SigstoreVerifier(signing.Verifier):
                 f"but got {payload['_type']}"
             )
 
-        return in_toto.IntotoPayload.manifest_from_payload(payload)
+        return signing.SigningPayload.manifest_from_payload(payload)

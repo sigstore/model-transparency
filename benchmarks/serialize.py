@@ -24,7 +24,7 @@ from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
 from model_signing._serialization import file_shard
-from model_signing.signing import in_toto
+from model_signing.signing import signing
 
 
 def get_hash_engine_factory(
@@ -104,7 +104,7 @@ def get_file_hasher_factory(
     return _hasher_factory
 
 
-def run(args: argparse.Namespace) -> Optional[in_toto.IntotoPayload]:
+def run(args: argparse.Namespace) -> Optional[signing.SigningPayload]:
     """Performs the benchmark.
 
     Args:
@@ -127,7 +127,7 @@ def run(args: argparse.Namespace) -> Optional[in_toto.IntotoPayload]:
     serializer = serializer_factory(hasher, max_workers=args.max_workers)
 
     # 3. Signing layer
-    in_toto_builder = in_toto.DigestsIntotoPayload
+    in_toto_builder = signing.SigningPayload
 
     # Put everything together
     if not args.dry_run:
