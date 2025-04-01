@@ -127,17 +127,7 @@ def run(args: argparse.Namespace) -> Optional[in_toto.IntotoPayload]:
     serializer = serializer_factory(hasher, max_workers=args.max_workers)
 
     # 3. Signing layer
-    # TODO: Once Python 3.9 support is deprecated revert to `match`
-    if args.digest_of_digests:
-        if args.use_shards:
-            in_toto_builder = in_toto.DigestOfShardDigestsIntotoPayload
-        else:
-            in_toto_builder = in_toto.DigestOfDigestsIntotoPayload
-    else:
-        if args.use_shards:
-            in_toto_builder = in_toto.ShardDigestsIntotoPayload
-        else:
-            in_toto_builder = in_toto.DigestsIntotoPayload
+    in_toto_builder = in_toto.DigestsIntotoPayload
 
     # Put everything together
     if not args.dry_run:
