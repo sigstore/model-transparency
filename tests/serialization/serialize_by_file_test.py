@@ -26,7 +26,7 @@ from typing import cast
 
 import pytest
 
-from model_signing import _manifest
+from model_signing import manifest
 from model_signing._hashing import file
 from model_signing._hashing import memory
 from model_signing.serialization import serialize_by_file
@@ -148,8 +148,8 @@ class TestManifestSerializer:
 
     def _check_manifests_match_except_on_renamed_file(
         self,
-        old_manifest: _manifest.Manifest,
-        new_manifest: _manifest.Manifest,
+        old_manifest: manifest.Manifest,
+        new_manifest: manifest.Manifest,
         new_name: str,
         old_name: pathlib.PurePath,
     ):
@@ -162,11 +162,11 @@ class TestManifestSerializer:
             old_manifest._item_to_digest
         )
         for key, digest in new_manifest._item_to_digest.items():
-            path = cast(_manifest.File, key).path
+            path = cast(manifest.File, key).path
             if path.name == new_name:
-                key = _manifest.File(old_name)
+                key = manifest.File(old_name)
             else:
-                key = _manifest.File(path)
+                key = manifest.File(path)
             assert old_manifest._item_to_digest[key] == digest
 
     def test_folder_model_rename_file_only_changes_path_part(
@@ -189,8 +189,8 @@ class TestManifestSerializer:
 
     def _check_manifests_match_except_on_renamed_dir(
         self,
-        old_manifest: _manifest.Manifest,
-        new_manifest: _manifest.Manifest,
+        old_manifest: manifest.Manifest,
+        new_manifest: manifest.Manifest,
         new_name: str,
         old_name: str,
     ):
@@ -204,17 +204,17 @@ class TestManifestSerializer:
             old_manifest._item_to_digest
         )
         for key, digest in new_manifest._item_to_digest.items():
-            path = cast(_manifest.File, key).path
+            path = cast(manifest.File, key).path
             if new_name in path.parts:
                 parts = [
                     old_name if part == new_name else part
                     for part in path.parts
                 ]
                 old = pathlib.PurePosixPath(*parts)
-                key = _manifest.File(old)
+                key = manifest.File(old)
                 assert old_manifest._item_to_digest[key] == digest
             else:
-                key = _manifest.File(path)
+                key = manifest.File(path)
                 assert old_manifest._item_to_digest[key] == digest
 
     def test_folder_model_rename_dir_only_changes_path_part(
@@ -253,8 +253,8 @@ class TestManifestSerializer:
 
     def _check_manifests_match_except_on_entry(
         self,
-        old_manifest: _manifest.Manifest,
-        new_manifest: _manifest.Manifest,
+        old_manifest: manifest.Manifest,
+        new_manifest: manifest.Manifest,
         expected_mismatch_path: pathlib.PurePath,
     ):
         """Checks that the manifests match, except for given path."""
@@ -263,7 +263,7 @@ class TestManifestSerializer:
             old_manifest._item_to_digest
         )
         for key, digest in new_manifest._item_to_digest.items():
-            path = cast(_manifest.File, key).path
+            path = cast(manifest.File, key).path
             if path == expected_mismatch_path:
                 assert old_manifest._item_to_digest[key] != digest
             else:

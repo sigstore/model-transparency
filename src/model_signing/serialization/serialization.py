@@ -18,7 +18,7 @@ import abc
 from collections.abc import Iterable
 import pathlib
 
-from model_signing import _manifest
+from model_signing import manifest
 
 
 class Serializer(metaclass=abc.ABCMeta):
@@ -30,7 +30,7 @@ class Serializer(metaclass=abc.ABCMeta):
         model_path: pathlib.Path,
         *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
-    ) -> _manifest.Manifest:
+    ) -> manifest.Manifest:
         """Serializes the model given by the `model_path` argument.
 
         Args:

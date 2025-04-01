@@ -25,7 +25,7 @@ from typing import cast
 
 import pytest
 
-from model_signing import _manifest
+from model_signing import manifest
 from model_signing._hashing import file
 from model_signing._hashing import memory
 from model_signing.serialization import serialize_by_file_shard
@@ -33,8 +33,8 @@ from tests import test_support
 
 
 def _extract_shard_items_from_manifest(
-    manifest: _manifest.Manifest,
-) -> dict[_manifest.ManifestKey, str]:
+    manifest: manifest.Manifest,
+) -> dict[manifest.ManifestKey, str]:
     """Builds a dictionary representation of the items in a manifest.
 
     Every item is mapped to its digest.
@@ -47,7 +47,7 @@ def _extract_shard_items_from_manifest(
     }
 
 
-def _parse_shard_and_digest(line: str) -> tuple[_manifest.Shard, str]:
+def _parse_shard_and_digest(line: str) -> tuple[manifest.Shard, str]:
     """Reads a file shard and its digest from a line in the golden file.
 
     Args:
@@ -57,7 +57,7 @@ def _parse_shard_and_digest(line: str) -> tuple[_manifest.Shard, str]:
         The shard tuple and the digest corresponding to the line that was read.
     """
     path, start, end, digest = line.strip().split(":")
-    shard = _manifest.Shard(pathlib.PurePosixPath(path), int(start), int(end))
+    shard = manifest.Shard(pathlib.PurePosixPath(path), int(start), int(end))
     return shard, digest
 
 
@@ -99,7 +99,7 @@ class TestManifestSerializer:
                 for shard, digest in sorted(items.items()):
                     f.write(f"{shard}:{digest}\n")
         else:
-            found_items: dict[_manifest.Shard, str] = {}
+            found_items: dict[manifest.Shard, str] = {}
             with open(golden_path, "r", encoding="utf-8") as f:
                 for line in f:
                     shard, digest = _parse_shard_and_digest(line)
@@ -130,7 +130,7 @@ class TestManifestSerializer:
                 for shard, digest in sorted(items.items()):
                     f.write(f"{shard}:{digest}\n")
         else:
-            found_items: dict[_manifest.Shard, str] = {}
+            found_items: dict[manifest.Shard, str] = {}
             with open(golden_path, "r", encoding="utf-8") as f:
                 for line in f:
                     shard, digest = _parse_shard_and_digest(line)
@@ -224,8 +224,8 @@ class TestManifestSerializer:
 
     def _check_manifests_match_except_on_renamed_file(
         self,
-        old_manifest: _manifest.Manifest,
-        new_manifest: _manifest.Manifest,
+        old_manifest: manifest.Manifest,
+        new_manifest: manifest.Manifest,
         new_name: str,
         old_name: pathlib.PurePath,
     ):
@@ -238,9 +238,9 @@ class TestManifestSerializer:
             old_manifest._item_to_digest
         )
         for key, digest in new_manifest._item_to_digest.items():
-            shard = cast(_manifest.Shard, key)
+            shard = cast(manifest.Shard, key)
             if shard.path.name == new_name:
-                old_shard = _manifest.Shard(old_name, shard.start, shard.end)
+                old_shard = manifest.Shard(old_name, shard.start, shard.end)
                 assert old_manifest._item_to_digest[old_shard] == digest
             else:
                 assert old_manifest._item_to_digest[shard] == digest
@@ -267,8 +267,8 @@ class TestManifestSerializer:
 
     def _check_manifests_match_except_on_renamed_dir(
         self,
-        old_manifest: _manifest.Manifest,
-        new_manifest: _manifest.Manifest,
+        old_manifest: manifest.Manifest,
+        new_manifest: manifest.Manifest,
         new_name: str,
         old_name: str,
     ):
@@ -282,13 +282,13 @@ class TestManifestSerializer:
             old_manifest._item_to_digest
         )
         for key, digest in new_manifest._item_to_digest.items():
-            shard = cast(_manifest.Shard, key)
+            shard = cast(manifest.Shard, key)
             if new_name in shard.path.parts:
                 parts = [
                     old_name if part == new_name else part
                     for part in shard.path.parts
                 ]
-                old = _manifest.Shard(
+                old = manifest.Shard(
                     pathlib.PurePosixPath(*parts), shard.start, shard.end
                 )
                 assert old_manifest._item_to_digest[old] == digest
@@ -335,8 +335,8 @@ class TestManifestSerializer:
 
     def _check_manifests_match_except_on_entry(
         self,
-        old_manifest: _manifest.Manifest,
-        new_manifest: _manifest.Manifest,
+        old_manifest: manifest.Manifest,
+        new_manifest: manifest.Manifest,
         expected_mismatch_path: pathlib.PurePath,
     ):
         """Checks that the manifests match, except for given path."""
@@ -345,10 +345,10 @@ class TestManifestSerializer:
             old_manifest._item_to_digest
         )
         for key, digest in new_manifest._item_to_digest.items():
-            shard = cast(_manifest.Shard, key)
+            shard = cast(manifest.Shard, key)
             if shard.path == expected_mismatch_path:
                 # Note that the file size changes
-                key = _manifest.Shard(shard.path, 0, 23)
+                key = manifest.Shard(shard.path, 0, 23)
                 assert old_manifest._item_to_digest[key] != digest
             else:
                 assert old_manifest._item_to_digest[shard] == digest
@@ -399,7 +399,7 @@ class TestManifestSerializer:
 
     def test_shard_to_string(self):
         """Ensure the shard's `__str__` method behaves as assumed."""
-        shard = _manifest.Shard(pathlib.PurePosixPath("a"), 0, 42)
+        shard = manifest.Shard(pathlib.PurePosixPath("a"), 0, 42)
         assert str(shard) == "a:0:42"
 
     def test_ignore_list_respects_directories(self, sample_model_folder):
