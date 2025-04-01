@@ -17,10 +17,10 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize]
+    paths-ignore:
+      - '**/*.md'
+      - '*.md'
   workflow_dispatch:
-  paths-ignore:
-     - '**/*.md'
-     - '*.md'
 
 permissions: {}
 
