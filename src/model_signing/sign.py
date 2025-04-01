@@ -25,8 +25,8 @@ import pathlib
 import sys
 from typing import Optional
 
-from model_signing import _manifest
 from model_signing import hash
+from model_signing import manifest
 from model_signing.signing import in_toto
 from model_signing.signing import sign_sigstore as sigstore
 from model_signing.signing import signing
@@ -91,7 +91,7 @@ class Config:
         return self
 
     def set_payload_generator(
-        self, generator: Callable[[_manifest.Manifest], signing.SigningPayload]
+        self, generator: Callable[[manifest.Manifest], signing.SigningPayload]
     ) -> Self:
         """Sets the conversion from manifest to signing payload.
 

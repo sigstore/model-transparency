@@ -29,7 +29,7 @@ import pathlib
 import sys
 from typing import Literal, Optional
 
-from model_signing import _manifest
+from model_signing import manifest
 from model_signing._hashing import file
 from model_signing._hashing import hashing
 from model_signing._hashing import memory
@@ -43,7 +43,7 @@ else:
     from typing_extensions import Self
 
 
-def hash(model_path: os.PathLike) -> _manifest.Manifest:
+def hash(model_path: os.PathLike) -> manifest.Manifest:
     """Hashes a model using the default configuration.
 
     We use a separate method and configuration for hashing as it needs to be
@@ -94,7 +94,7 @@ class Config:
             self._build_file_hasher_factory(), allow_symlinks=False
         )
 
-    def hash(self, model_path: os.PathLike) -> _manifest.Manifest:
+    def hash(self, model_path: os.PathLike) -> manifest.Manifest:
         """Hashes a model using the current configuration."""
         return self._serializer.serialize(
             pathlib.Path(model_path), ignore_paths=self._ignored_paths

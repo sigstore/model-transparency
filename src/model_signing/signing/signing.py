@@ -45,7 +45,7 @@ import abc
 import pathlib
 import sys
 
-from model_signing import _manifest
+from model_signing import manifest
 
 
 if sys.version_info >= (3, 11):
@@ -59,7 +59,7 @@ class SigningPayload(metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractmethod
-    def from_manifest(cls, manifest: _manifest.Manifest) -> Self:
+    def from_manifest(cls, manifest: manifest.Manifest) -> Self:
         """Converts a manifest to the signing payload used for signing.
 
         Args:
@@ -144,7 +144,7 @@ class Verifier(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def verify(self, signature: Signature) -> _manifest.Manifest:
+    def verify(self, signature: Signature) -> manifest.Manifest:
         """Verifies the signature.
 
         Args:
