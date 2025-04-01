@@ -14,12 +14,11 @@
 
 """Model serializers that operated at file shard level of granularity."""
 
-import abc
 from collections.abc import Callable, Iterable
 import concurrent.futures
 import itertools
 import pathlib
-from typing import Optional, cast
+from typing import Optional
 
 from typing_extensions import override
 
@@ -50,15 +49,11 @@ def _endpoints(step: int, end: int) -> Iterable[int]:
     yield end
 
 
-class ShardedFilesSerializer(serialization.Serializer):
-    """Generic file shard serializer.
+class ManifestSerializer(serialization.Serializer):
+    """Model serializers that produces a manifest recording every file shard.
 
     Traverses the model directory and creates digests for every file found,
     sharding the file in equal shards and computing the digests in parallel.
-
-    Subclasses can then create a manifest with these digests, either listing
-    them item by item, combining them into file digests, or combining all of
-    them into a single digest.
     """
 
     def __init__(
@@ -109,7 +104,7 @@ class ShardedFilesSerializer(serialization.Serializer):
               ignored.
 
         Returns:
-            The model's serialized `manifest.Manifest`
+            The model's serialized manifest.
 
         Raises:
             ValueError: The model contains a symbolic link, but the serializer
@@ -140,7 +135,7 @@ class ShardedFilesSerializer(serialization.Serializer):
             for future in concurrent.futures.as_completed(futures):
                 manifest_items.append(future.result())
 
-        return self._build_manifest(manifest_items)
+        return manifest.Manifest(manifest_items)
 
     def _get_shards(
         self, path: pathlib.Path
@@ -175,59 +170,3 @@ class ShardedFilesSerializer(serialization.Serializer):
         return manifest.ShardedFileManifestItem(
             path=relative_path, digest=digest, start=start, end=end
         )
-
-    @abc.abstractmethod
-    def _build_manifest(
-        self, items: Iterable[manifest.ShardedFileManifestItem]
-    ) -> manifest.Manifest:
-        """Builds an itemized manifest from a given list of items.
-
-        Every subclass needs to implement this method to determine the format of
-        the manifest.
-        """
-        pass
-
-
-class ManifestSerializer(ShardedFilesSerializer):
-    """Model serializers that produces an itemized manifest, at shard level.
-
-    Since the manifest lists each item individually, this will also enable
-    support for incremental updates (to be added later).
-    """
-
-    @override
-    def serialize(
-        self,
-        model_path: pathlib.Path,
-        *,
-        ignore_paths: Iterable[pathlib.Path] = frozenset(),
-    ) -> manifest.Manifest:
-        """Serializes the model given by the `model_path` argument.
-
-        The only reason for the override is to change the return type, to be
-        more restrictive. This is to signal that the only manifests that can be
-        returned are `manifest.Manifest` instances.
-
-        Args:
-            model_path: The path to the model.
-            ignore_paths: The paths to ignore during serialization. If a
-              provided path is a directory, all children of the directory are
-              ignored.
-
-        Returns:
-            The model's serialized `manifest.Manifest`
-
-        Raises:
-            ValueError: The model contains a symbolic link, but the serializer
-              was not initialized with `allow_symlinks=True`.
-        """
-        return cast(
-            manifest.Manifest,
-            super().serialize(model_path, ignore_paths=ignore_paths),
-        )
-
-    @override
-    def _build_manifest(
-        self, items: Iterable[manifest.ShardedFileManifestItem]
-    ) -> manifest.Manifest:
-        return manifest.Manifest(items)
