@@ -21,10 +21,10 @@ from unittest import mock
 
 import pytest
 
-from model_signing._hashing import file
+from model_signing._hashing import file_hashing
 from model_signing._hashing import memory
-from model_signing._serialization import serialize_by_file
-from model_signing._serialization import serialize_by_file_shard
+from model_signing._serialization import file
+from model_signing._serialization import file_shard
 from model_signing.signing import empty_signing
 from model_signing.signing import in_toto
 from model_signing.signing import sign_sigstore as sigstore
@@ -172,13 +172,15 @@ def mocked_sigstore(
 
 
 class TestSigstoreSigning:
-    def _file_hasher_factory(self, path: pathlib.Path) -> file.FileHasher:
-        return file.SimpleFileHasher(path, memory.SHA256())
+    def _file_hasher_factory(
+        self, path: pathlib.Path
+    ) -> file_hashing.FileHasher:
+        return file_hashing.SimpleFileHasher(path, memory.SHA256())
 
     def _shard_hasher_factory(
         self, path: pathlib.Path, start: int, end: int
-    ) -> file.ShardedFileHasher:
-        return file.ShardedFileHasher(
+    ) -> file_hashing.ShardedFileHasher:
+        return file_hashing.ShardedFileHasher(
             path, memory.SHA256(), start=start, end=end
         )
 
@@ -207,7 +209,7 @@ class TestSigstoreSigning:
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
         # Serialize and sign model
-        serializer = serialize_by_file.Serializer(
+        serializer = file.Serializer(
             self._file_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -227,7 +229,7 @@ class TestSigstoreSigning:
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
         # Serialize and sign model
-        serializer = serialize_by_file.Serializer(
+        serializer = file.Serializer(
             self._file_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -247,7 +249,7 @@ class TestSigstoreSigning:
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
         # Serialize and sign model
-        serializer = serialize_by_file_shard.Serializer(
+        serializer = file_shard.Serializer(
             self._shard_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -267,7 +269,7 @@ class TestSigstoreSigning:
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
         # Serialize and sign model
-        serializer = serialize_by_file_shard.Serializer(
+        serializer = file_shard.Serializer(
             self._shard_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -287,7 +289,7 @@ class TestSigstoreSigning:
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
         # Serialize and sign model
-        serializer = serialize_by_file.Serializer(
+        serializer = file.Serializer(
             self._file_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -310,7 +312,7 @@ class TestSigstoreSigning:
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
         # Serialize and sign model
-        serializer = serialize_by_file.Serializer(
+        serializer = file.Serializer(
             self._file_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -340,7 +342,7 @@ class TestSigstoreSigning:
         tmp_path,
     ):
         # Serialize and sign model
-        serializer = serialize_by_file.Serializer(
+        serializer = file.Serializer(
             self._file_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -383,7 +385,7 @@ class TestSigstoreSigning:
         mocked_sigstore_verifier_bad_payload,
         tmp_path,
     ):
-        serializer = serialize_by_file.Serializer(
+        serializer = file.Serializer(
             self._file_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -401,7 +403,7 @@ class TestSigstoreSigning:
     def test_verify_not_intoto_statement(
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
-        serializer = serialize_by_file.Serializer(
+        serializer = file.Serializer(
             self._file_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -425,7 +427,7 @@ class TestSigstoreSigning:
     def test_verify_intoto_predicate_not_matched(
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
-        serializer = serialize_by_file.Serializer(
+        serializer = file.Serializer(
             self._file_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -449,7 +451,7 @@ class TestSigstoreSigning:
     def test_verify_intoto_digest_of_digests_more_than_one_digests(
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
-        serializer = serialize_by_file.Serializer(
+        serializer = file.Serializer(
             self._file_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -473,7 +475,7 @@ class TestSigstoreSigning:
     def test_verify_intoto_digest_of_digests_invalid_root_digest(
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
-        serializer = serialize_by_file.Serializer(
+        serializer = file.Serializer(
             self._file_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -497,7 +499,7 @@ class TestSigstoreSigning:
     def test_verify_intoto_digest_of_shard_digests_more_than_one_digests(
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
-        serializer = serialize_by_file_shard.Serializer(
+        serializer = file_shard.Serializer(
             self._shard_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -521,7 +523,7 @@ class TestSigstoreSigning:
     def test_verify_intoto_digest_of_shard_digests_invalid_root_digest(
         self, sample_model_folder, mocked_sigstore, tmp_path
     ):
-        serializer = serialize_by_file_shard.Serializer(
+        serializer = file_shard.Serializer(
             self._shard_hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)

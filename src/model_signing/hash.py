@@ -30,11 +30,11 @@ import sys
 from typing import Literal, Optional
 
 from model_signing import manifest
-from model_signing._hashing import file
+from model_signing._hashing import file_hashing
 from model_signing._hashing import hashing
 from model_signing._hashing import memory
-from model_signing._serialization import serialize_by_file
-from model_signing._serialization import serialize_by_file_shard
+from model_signing._serialization import file
+from model_signing._serialization import file_shard
 
 
 if sys.version_info >= (3, 11):
@@ -90,7 +90,7 @@ class Config:
         symbolic link in the model directory results in an error.
         """
         self._ignored_paths = frozenset()
-        self._serializer = serialize_by_file.Serializer(
+        self._serializer = file.Serializer(
             self._build_file_hasher_factory(), allow_symlinks=False
         )
 
@@ -123,7 +123,7 @@ class Config:
         self,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 1048576,
-    ) -> Callable[[pathlib.Path], file.SimpleFileHasher]:
+    ) -> Callable[[pathlib.Path], file_hashing.SimpleFileHasher]:
         """Builds the hasher factory for a serialization by file.
 
         Args:
@@ -137,9 +137,11 @@ class Config:
             method.
         """
 
-        def factory(path: pathlib.Path) -> file.SimpleFileHasher:
+        def factory(path: pathlib.Path) -> file_hashing.SimpleFileHasher:
             hasher = self._build_stream_hasher(hashing_algorithm)
-            return file.SimpleFileHasher(path, hasher, chunk_size=chunk_size)
+            return file_hashing.SimpleFileHasher(
+                path, hasher, chunk_size=chunk_size
+            )
 
         return factory
 
@@ -148,7 +150,7 @@ class Config:
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 1048576,
         shard_size: int = 1_000_000_000,
-    ) -> Callable[[pathlib.Path, int, int], file.ShardedFileHasher]:
+    ) -> Callable[[pathlib.Path, int, int], file_hashing.ShardedFileHasher]:
         """Builds the hasher factory for a serialization by file shards.
 
         Args:
@@ -166,8 +168,8 @@ class Config:
 
         def factory(
             path: pathlib.Path, start: int, end: int
-        ) -> file.ShardedFileHasher:
-            return file.ShardedFileHasher(
+        ) -> file_hashing.ShardedFileHasher:
+            return file_hashing.ShardedFileHasher(
                 path,
                 algorithm,
                 start=start,
@@ -206,7 +208,7 @@ class Config:
         Returns:
             The new hashing configuration with the new serialization method.
         """
-        self._serializer = serialize_by_file.Serializer(
+        self._serializer = file.Serializer(
             self._build_file_hasher_factory(hashing_algorithm, chunk_size),
             max_workers=max_workers,
             allow_symlinks=allow_symlinks,
@@ -244,7 +246,7 @@ class Config:
         Returns:
             The new hashing configuration with the new serialization method.
         """
-        self._serializer = serialize_by_file_shard.Serializer(
+        self._serializer = file_shard.Serializer(
             self._build_sharded_file_hasher_factory(
                 hashing_algorithm, chunk_size, shard_size
             ),

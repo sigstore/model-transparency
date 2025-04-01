@@ -19,11 +19,11 @@ from collections.abc import Callable
 import pathlib
 from typing import Optional
 
-from model_signing._hashing import file
+from model_signing._hashing import file_hashing
 from model_signing._hashing import hashing
 from model_signing._hashing import memory
-from model_signing.serialization import serialize_by_file
-from model_signing.serialization import serialize_by_file_shard
+from model_signing._serialization import file
+from model_signing._serialization import file_shard
 from model_signing.signing import in_toto
 
 
@@ -52,7 +52,7 @@ def get_hash_engine_factory(
 
 def get_sharded_file_hasher_factory(
     hash_algorithm: str, chunk_size: int, shard_size: int
-) -> Callable[[pathlib.Path, int, int], file.ShardedFileHasher]:
+) -> Callable[[pathlib.Path, int, int], file_hashing.ShardedFileHasher]:
     """Returns a hasher factory for sharded serialization.
 
     Args:
@@ -67,8 +67,8 @@ def get_sharded_file_hasher_factory(
 
     def _hasher_factory(
         path: pathlib.Path, start: int, end: int
-    ) -> file.ShardedFileHasher:
-        return file.ShardedFileHasher(
+    ) -> file_hashing.ShardedFileHasher:
+        return file_hashing.ShardedFileHasher(
             path,
             hash_engine(),  # pytype: disable=not-instantiable
             start=start,
@@ -82,7 +82,7 @@ def get_sharded_file_hasher_factory(
 
 def get_file_hasher_factory(
     hash_algorithm: str, chunk_size: int
-) -> Callable[[pathlib.Path], file.FileHasher]:
+) -> Callable[[pathlib.Path], file_hashing.FileHasher]:
     """Returns a hasher factory for file serialization.
 
     Args:
@@ -94,8 +94,8 @@ def get_file_hasher_factory(
     """
     hash_engine = get_hash_engine_factory(hash_algorithm)
 
-    def _hasher_factory(path: pathlib.Path) -> file.FileHasher:
-        return file.SimpleFileHasher(
+    def _hasher_factory(path: pathlib.Path) -> file_hashing.FileHasher:
+        return file_hashing.SimpleFileHasher(
             path,
             hash_engine(),  # pytype: disable=not-instantiable
             chunk_size=chunk_size,
@@ -120,9 +120,9 @@ def run(args: argparse.Namespace) -> Optional[in_toto.IntotoPayload]:
 
     # 2. Serialization layer
     if args.use_shards:
-        serializer_factory = serialize_by_file_shard.Serializer
+        serializer_factory = file_shard.Serializer
     else:
-        serializer_factory = serialize_by_file.Serializer
+        serializer_factory = file.Serializer
 
     serializer = serializer_factory(hasher, max_workers=args.max_workers)
 

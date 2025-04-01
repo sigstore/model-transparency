@@ -26,17 +26,17 @@ from google.protobuf import json_format
 from in_toto_attestation.v1 import statement_pb2
 import pytest
 
-from model_signing._hashing import file
+from model_signing._hashing import file_hashing
 from model_signing._hashing import memory
-from model_signing._serialization import serialize_by_file
-from model_signing._serialization import serialize_by_file_shard
+from model_signing._serialization import file
+from model_signing._serialization import file_shard
 from model_signing.signing import in_toto
 from tests import test_support
 
 
 class TestDigestOfDigestsIntotoPayload:
-    def _hasher_factory(self, path: pathlib.Path) -> file.FileHasher:
-        return file.SimpleFileHasher(path, memory.SHA256())
+    def _hasher_factory(self, path: pathlib.Path) -> file_hashing.FileHasher:
+        return file_hashing.SimpleFileHasher(path, memory.SHA256())
 
     @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
     def test_known_models(self, request, model_fixture_name):
@@ -49,9 +49,7 @@ class TestDigestOfDigestsIntotoPayload:
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute payload (act)
-        serializer = serialize_by_file.Serializer(
-            self._hasher_factory, allow_symlinks=True
-        )
+        serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
         manifest = serializer.serialize(model)
         payload = in_toto.DigestOfDigestsIntotoPayload.from_manifest(manifest)
 
@@ -69,9 +67,7 @@ class TestDigestOfDigestsIntotoPayload:
             assert payload.statement.pb == expected_proto
 
     def test_produces_valid_statements(self, sample_model_folder):
-        serializer = serialize_by_file.Serializer(
-            self._hasher_factory, allow_symlinks=True
-        )
+        serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
         manifest = serializer.serialize(sample_model_folder)
 
         payload = in_toto.DigestOfDigestsIntotoPayload.from_manifest(manifest)
@@ -82,8 +78,8 @@ class TestDigestOfDigestsIntotoPayload:
 class TestDigestOfShardDigestsIntotoPayload:
     def _hasher_factory(
         self, path: pathlib.Path, start: int, end: int
-    ) -> file.ShardedFileHasher:
-        return file.ShardedFileHasher(
+    ) -> file_hashing.ShardedFileHasher:
+        return file_hashing.ShardedFileHasher(
             path, memory.SHA256(), start=start, end=end
         )
 
@@ -98,7 +94,7 @@ class TestDigestOfShardDigestsIntotoPayload:
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute payload (act)
-        serializer = serialize_by_file_shard.Serializer(
+        serializer = file_shard.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(model)
@@ -120,7 +116,7 @@ class TestDigestOfShardDigestsIntotoPayload:
             assert payload.statement.pb == expected_proto
 
     def test_produces_valid_statements(self, sample_model_folder):
-        serializer = serialize_by_file_shard.Serializer(
+        serializer = file_shard.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)
@@ -133,8 +129,8 @@ class TestDigestOfShardDigestsIntotoPayload:
 
 
 class TestDigestsIntotoPayload:
-    def _hasher_factory(self, path: pathlib.Path) -> file.FileHasher:
-        return file.SimpleFileHasher(path, memory.SHA256())
+    def _hasher_factory(self, path: pathlib.Path) -> file_hashing.FileHasher:
+        return file_hashing.SimpleFileHasher(path, memory.SHA256())
 
     @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
     def test_known_models(self, request, model_fixture_name):
@@ -147,9 +143,7 @@ class TestDigestsIntotoPayload:
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute payload (act)
-        serializer = serialize_by_file.Serializer(
-            self._hasher_factory, allow_symlinks=True
-        )
+        serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
         manifest = serializer.serialize(model)
         payload = in_toto.DigestsIntotoPayload.from_manifest(manifest)
 
@@ -167,9 +161,7 @@ class TestDigestsIntotoPayload:
             assert payload.statement.pb == expected_proto
 
     def test_produces_valid_statements(self, sample_model_folder):
-        serializer = serialize_by_file.Serializer(
-            self._hasher_factory, allow_symlinks=True
-        )
+        serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
         manifest = serializer.serialize(sample_model_folder)
 
         payload = in_toto.DigestsIntotoPayload.from_manifest(manifest)
@@ -180,8 +172,8 @@ class TestDigestsIntotoPayload:
 class TestShardDigestsIntotoPayload:
     def _hasher_factory(
         self, path: pathlib.Path, start: int, end: int
-    ) -> file.ShardedFileHasher:
-        return file.ShardedFileHasher(
+    ) -> file_hashing.ShardedFileHasher:
+        return file_hashing.ShardedFileHasher(
             path, memory.SHA256(), start=start, end=end
         )
 
@@ -196,7 +188,7 @@ class TestShardDigestsIntotoPayload:
         model = request.getfixturevalue(model_fixture_name)
 
         # Compute payload (act)
-        serializer = serialize_by_file_shard.Serializer(
+        serializer = file_shard.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(model)
@@ -216,7 +208,7 @@ class TestShardDigestsIntotoPayload:
             assert payload.statement.pb == proto
 
     def test_produces_valid_statements(self, sample_model_folder):
-        serializer = serialize_by_file_shard.Serializer(
+        serializer = file_shard.Serializer(
             self._hasher_factory, allow_symlinks=True
         )
         manifest = serializer.serialize(sample_model_folder)

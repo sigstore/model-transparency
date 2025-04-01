@@ -22,9 +22,9 @@ import click
 
 import model_signing
 from model_signing import model
-from model_signing._hashing import file
+from model_signing._hashing import file_hashing
 from model_signing._hashing import memory
-from model_signing._serialization import serialize_by_file
+from model_signing._serialization import file
 from model_signing.signature import key
 from model_signing.signature import pki
 from model_signing.signing import in_toto
@@ -342,14 +342,12 @@ def _serialize_and_sign(
 ) -> None:
     """Serialize a model and sign it with the provided signer."""
 
-    def hasher_factory(file_path: pathlib.Path) -> file.FileHasher:
-        return file.SimpleFileHasher(
+    def hasher_factory(file_path: pathlib.Path) -> file_hashing.FileHasher:
+        return file_hashing.SimpleFileHasher(
             file=file_path, content_hasher=memory.SHA256()
         )
 
-    serializer = serialize_by_file.Serializer(
-        file_hasher_factory=hasher_factory
-    )
+    serializer = file.Serializer(file_hasher_factory=hasher_factory)
 
     signing_result = model.sign(
         model_path=model_path,
@@ -530,14 +528,12 @@ def _serialize_and_verify(
 ) -> None:
     """Serialize a model and verify it with the provided verifier."""
 
-    def hasher_factory(file_path: pathlib.Path) -> file.FileHasher:
-        return file.SimpleFileHasher(
+    def hasher_factory(file_path: pathlib.Path) -> file_hashing.FileHasher:
+        return file_hashing.SimpleFileHasher(
             file=file_path, content_hasher=memory.SHA256()
         )
 
-    serializer = serialize_by_file.Serializer(
-        file_hasher_factory=hasher_factory
-    )
+    serializer = file.Serializer(file_hasher_factory=hasher_factory)
 
     try:
         model.verify(
