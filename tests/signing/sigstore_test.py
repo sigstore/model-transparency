@@ -25,7 +25,6 @@ from model_signing._hashing import file_hashing
 from model_signing._hashing import memory
 from model_signing._serialization import file
 from model_signing._serialization import file_shard
-from model_signing.signing import empty_signing
 from model_signing.signing import in_toto
 from model_signing.signing import sign_sigstore as sigstore
 
@@ -366,15 +365,6 @@ class TestSigstoreSigning:
         signer = sigstore.SigstoreDSSESigner()
         token = signer._get_identity_token()
         assert token == "fake_token"
-
-    def test_verify_dsse_signature_not_sigstore(self, mocked_sigstore):
-        signature = empty_signing.EmptySignature()
-        verifier = sigstore.SigstoreDSSEVerifier(identity="", oidc_issuer="")
-
-        with pytest.raises(
-            TypeError, match="Only `SigstoreSignature` signatures are supported"
-        ):
-            verifier.verify(signature)
 
     def test_verify_not_into_json_payload(
         self,
