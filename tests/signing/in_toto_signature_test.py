@@ -18,8 +18,8 @@ from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
 from model_signing.signature import fake
-from model_signing.signing import in_toto
 from model_signing.signing import in_toto_signature
+from model_signing.signing import signing
 
 
 class TestIntotoSignature:
@@ -34,7 +34,7 @@ class TestIntotoSignature:
         )
         file_manifest = file_serializer.serialize(sample_model_folder)
 
-        payload = in_toto.IntotoPayload.from_manifest(file_manifest)
+        payload = signing.SigningPayload.from_manifest(file_manifest)
         sig = signer.sign(payload)
         verifier.verify(sig)
         manifest = sig.to_manifest()

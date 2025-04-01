@@ -24,8 +24,8 @@ import pytest
 from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
-from model_signing.signing import in_toto
 from model_signing.signing import sign_sigstore as sigstore
+from model_signing.signing import signing
 
 
 if sys.version_info >= (3, 11):
@@ -211,7 +211,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            in_toto.IntotoPayload,
+            signing.SigningPayload,
             sigstore.SigstoreSigner,
         )
 
@@ -231,7 +231,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            in_toto.IntotoPayload,
+            signing.SigningPayload,
             sigstore.SigstoreSigner,
             use_staging=False,
         )
@@ -254,7 +254,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            in_toto.IntotoPayload,
+            signing.SigningPayload,
             sigstore.SigstoreSigner,
             use_staging=False,
             oidc_issuer="test",
@@ -284,7 +284,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            in_toto.IntotoPayload,
+            signing.SigningPayload,
             sigstore.SigstoreSigner,
         )
 
@@ -318,7 +318,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            in_toto.IntotoPayload,
+            signing.SigningPayload,
             sigstore.SigstoreSigner,
         )
 
@@ -336,7 +336,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            in_toto.IntotoPayload,
+            signing.SigningPayload,
             sigstore.SigstoreSigner,
         )
 

@@ -24,7 +24,6 @@ from typing_extensions import override
 from model_signing import manifest
 from model_signing.signature import signing as signature_signing
 from model_signing.signature import verifying as signature_verifying
-from model_signing.signing import in_toto
 from model_signing.signing import signing
 
 
@@ -50,7 +49,7 @@ class IntotoSignature(signing.Signature):
 
     def to_manifest(self) -> manifest.Manifest:
         payload = json.loads(self._bundle.dsse_envelope.payload)
-        return in_toto.IntotoPayload.manifest_from_payload(payload)
+        return signing.SigningPayload.manifest_from_payload(payload)
 
 
 class IntotoSigner(signing.Signer):
@@ -59,8 +58,6 @@ class IntotoSigner(signing.Signer):
 
     @override
     def sign(self, payload: signing.SigningPayload) -> IntotoSignature:
-        if not isinstance(payload, in_toto.IntotoPayload):
-            raise TypeError("only IntotoPayloads are supported")
         bundle = self._sig_signer.sign(payload.statement)
         return IntotoSignature(bundle)
 
