@@ -29,6 +29,7 @@ import pytest
 from model_signing import manifest
 from model_signing._hashing import file
 from model_signing._hashing import memory
+from model_signing._serialization import serialization
 from model_signing._serialization import serialize_by_file
 from tests import test_support
 
@@ -333,4 +334,4 @@ class TestUtilities:
         with pytest.raises(
             ValueError, match="Cannot use .* as file or directory"
         ):
-            serialize_by_file.check_file_or_directory(pipe)
+            serialization.check_file_or_directory(pipe)

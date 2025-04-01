@@ -26,7 +26,6 @@ from typing_extensions import override
 from model_signing import manifest
 from model_signing._hashing import file
 from model_signing._serialization import serialization
-from model_signing._serialization import serialize_by_file
 
 
 def _endpoints(step: int, end: int) -> Iterable[int]:
@@ -122,10 +121,10 @@ class ShardedFilesSerializer(serialization.Serializer):
         # with `pathlib.Path.walk` for a clearer interface, and some speed
         # improvement.
         for path in itertools.chain((model_path,), model_path.glob("**/*")):
-            serialize_by_file.check_file_or_directory(
+            serialization.check_file_or_directory(
                 path, allow_symlinks=self._allow_symlinks
             )
-            if path.is_file() and not serialize_by_file.should_ignore(
+            if path.is_file() and not serialization.should_ignore(
                 path, ignore_paths
             ):
                 shards.extend(self._get_shards(path))
