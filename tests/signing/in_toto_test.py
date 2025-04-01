@@ -26,7 +26,7 @@ from google.protobuf import json_format
 from in_toto_attestation.v1 import statement_pb2
 import pytest
 
-from model_signing._hashing import file_hashing
+from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
 from model_signing._serialization import file_shard
@@ -35,8 +35,8 @@ from tests import test_support
 
 
 class TestDigestOfDigestsIntotoPayload:
-    def _hasher_factory(self, path: pathlib.Path) -> file_hashing.FileHasher:
-        return file_hashing.SimpleFileHasher(path, memory.SHA256())
+    def _hasher_factory(self, path: pathlib.Path) -> io.FileHasher:
+        return io.SimpleFileHasher(path, memory.SHA256())
 
     @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
     def test_known_models(self, request, model_fixture_name):
@@ -78,10 +78,8 @@ class TestDigestOfDigestsIntotoPayload:
 class TestDigestOfShardDigestsIntotoPayload:
     def _hasher_factory(
         self, path: pathlib.Path, start: int, end: int
-    ) -> file_hashing.ShardedFileHasher:
-        return file_hashing.ShardedFileHasher(
-            path, memory.SHA256(), start=start, end=end
-        )
+    ) -> io.ShardedFileHasher:
+        return io.ShardedFileHasher(path, memory.SHA256(), start=start, end=end)
 
     @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
     def test_known_models(self, request, model_fixture_name):
@@ -129,8 +127,8 @@ class TestDigestOfShardDigestsIntotoPayload:
 
 
 class TestDigestsIntotoPayload:
-    def _hasher_factory(self, path: pathlib.Path) -> file_hashing.FileHasher:
-        return file_hashing.SimpleFileHasher(path, memory.SHA256())
+    def _hasher_factory(self, path: pathlib.Path) -> io.FileHasher:
+        return io.SimpleFileHasher(path, memory.SHA256())
 
     @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
     def test_known_models(self, request, model_fixture_name):
@@ -172,10 +170,8 @@ class TestDigestsIntotoPayload:
 class TestShardDigestsIntotoPayload:
     def _hasher_factory(
         self, path: pathlib.Path, start: int, end: int
-    ) -> file_hashing.ShardedFileHasher:
-        return file_hashing.ShardedFileHasher(
-            path, memory.SHA256(), start=start, end=end
-        )
+    ) -> io.ShardedFileHasher:
+        return io.ShardedFileHasher(path, memory.SHA256(), start=start, end=end)
 
     @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
     def test_known_models(self, request, model_fixture_name):

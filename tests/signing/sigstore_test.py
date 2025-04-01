@@ -21,7 +21,7 @@ from unittest import mock
 
 import pytest
 
-from model_signing._hashing import file_hashing
+from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
 from model_signing._serialization import file_shard
@@ -172,17 +172,13 @@ def mocked_sigstore(
 
 
 class TestSigstoreSigning:
-    def _file_hasher_factory(
-        self, path: pathlib.Path
-    ) -> file_hashing.FileHasher:
-        return file_hashing.SimpleFileHasher(path, memory.SHA256())
+    def _file_hasher_factory(self, path: pathlib.Path) -> io.FileHasher:
+        return io.SimpleFileHasher(path, memory.SHA256())
 
     def _shard_hasher_factory(
         self, path: pathlib.Path, start: int, end: int
-    ) -> file_hashing.ShardedFileHasher:
-        return file_hashing.ShardedFileHasher(
-            path, memory.SHA256(), start=start, end=end
-        )
+    ) -> io.ShardedFileHasher:
+        return io.ShardedFileHasher(path, memory.SHA256(), start=start, end=end)
 
     def _sign_manifest(
         self,

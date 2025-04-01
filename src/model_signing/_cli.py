@@ -22,7 +22,7 @@ import click
 
 import model_signing
 from model_signing import model
-from model_signing._hashing import file_hashing
+from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
 from model_signing.signature import key
@@ -342,8 +342,8 @@ def _serialize_and_sign(
 ) -> None:
     """Serialize a model and sign it with the provided signer."""
 
-    def hasher_factory(file_path: pathlib.Path) -> file_hashing.FileHasher:
-        return file_hashing.SimpleFileHasher(
+    def hasher_factory(file_path: pathlib.Path) -> io.FileHasher:
+        return io.SimpleFileHasher(
             file=file_path, content_hasher=memory.SHA256()
         )
 
@@ -528,8 +528,8 @@ def _serialize_and_verify(
 ) -> None:
     """Serialize a model and verify it with the provided verifier."""
 
-    def hasher_factory(file_path: pathlib.Path) -> file_hashing.FileHasher:
-        return file_hashing.SimpleFileHasher(
+    def hasher_factory(file_path: pathlib.Path) -> io.FileHasher:
+        return io.SimpleFileHasher(
             file=file_path, content_hasher=memory.SHA256()
         )
 

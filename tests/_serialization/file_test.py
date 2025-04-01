@@ -27,7 +27,7 @@ from typing import cast
 import pytest
 
 from model_signing import manifest
-from model_signing._hashing import file_hashing
+from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
 from model_signing._serialization import serialization
@@ -35,8 +35,8 @@ from tests import test_support
 
 
 class TestSerializer:
-    def _hasher_factory(self, path: pathlib.Path) -> file_hashing.FileHasher:
-        return file_hashing.SimpleFileHasher(path, memory.SHA256())
+    def _hasher_factory(self, path: pathlib.Path) -> io.FileHasher:
+        return io.SimpleFileHasher(path, memory.SHA256())
 
     @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
     def test_known_models(self, request, model_fixture_name):

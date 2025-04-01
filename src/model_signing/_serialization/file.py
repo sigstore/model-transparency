@@ -23,7 +23,7 @@ from typing import Optional
 from typing_extensions import override
 
 from model_signing import manifest
-from model_signing._hashing import file_hashing
+from model_signing._hashing import io
 from model_signing._serialization import serialization
 
 
@@ -36,7 +36,7 @@ class Serializer(serialization.Serializer):
 
     def __init__(
         self,
-        file_hasher_factory: Callable[[pathlib.Path], file_hashing.FileHasher],
+        file_hasher_factory: Callable[[pathlib.Path], io.FileHasher],
         *,
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
