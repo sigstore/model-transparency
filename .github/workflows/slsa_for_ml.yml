@@ -33,6 +33,13 @@ on:
     paths-ignore:
       - '**/*.md'
       - '*.md'
+      # TODO: We only want to run this workflow only for SLSA changes
+      # For now, just disable it from any other location, but in the future
+      # when we restart the work on SLSA we will need to be more accurate here.
+      - 'src/'
+      - 'tests/'
+      - 'docs/'
+      - 'benchmarks/'
 
 permissions: {}
 
