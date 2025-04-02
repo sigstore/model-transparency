@@ -97,6 +97,15 @@ _certificate_root_of_trust_option = click.option(
 )
 
 
+# Decorator for the commonly used option to use Sigstore's staging instance.
+_sigstore_staging_option = click.option(
+    "--use_staging",
+    type=bool,
+    is_flag=True,
+    help="Use Sigstore's staging instance.",
+)
+
+
 def _collect_git_related_files(model_path: pathlib.Path) -> list[pathlib.Path]:
     """Expand to all git related files in the model directory."""
     return [pathlib.Path(p) for p in list(model_path.glob("**/.git*"))]
@@ -189,6 +198,7 @@ def _sign() -> None:
 @_ignore_paths_option
 @_ignore_git_paths_option
 @_write_signature_option
+@_sigstore_staging_option
 @click.option(
     "--use_ambient_credentials",
     type=bool,
@@ -203,12 +213,6 @@ def _sign() -> None:
         "Fixed OIDC identity token to use instead of obtaining credentials "
         "from OIDC flow or from the environment."
     ),
-)
-@click.option(
-    "--use_staging",
-    type=bool,
-    is_flag=True,
-    help="Use Sigstore's staging instance.",
 )
 def _sign_sigstore(
     model_path: pathlib.Path,
@@ -383,6 +387,7 @@ def _verify() -> None:
 @_read_signature_option
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_sigstore_staging_option
 @click.option(
     "--identity",
     type=str,
@@ -404,6 +409,7 @@ def _verify_sigstore(
     ignore_git_paths: bool,
     identity: str,
     identity_provider: str,
+    use_staging: bool,
 ) -> None:
     """Verify using Sigstore (DEFAULT verification method).
 
@@ -416,7 +422,9 @@ def _verify_sigstore(
     signature, verification would fail.
     """
     verifier = sigstore.SigstoreVerifier(
-        identity=identity, oidc_issuer=identity_provider
+        identity=identity,
+        oidc_issuer=identity_provider,
+        use_staging=use_staging,
     )
     signature_contents = sigstore.SigstoreSignature.read(signature)
     _serialize_and_verify(
@@ -547,4 +555,4 @@ def _serialize_and_verify(
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
     else:
-        click.echo("Verification succeeeded")
+        click.echo("Verification succeeded")
