@@ -35,9 +35,7 @@ def pae(
     enc_payload = json_format.MessageToJson(statement).encode()
     payload_len = len(enc_payload)
     pae = (
-        "DSSEV1"
-        f" {len(PAYLOAD_TYPE)} {PAYLOAD_TYPE}"
-        f" {payload_len} {enc_payload}"
+        f"DSSEV1 {len(PAYLOAD_TYPE)} {PAYLOAD_TYPE} {payload_len} {enc_payload}"
     )
     pae = pae.encode()
     return pae
