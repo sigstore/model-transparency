@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import pathlib
 import shutil
+import subprocess
 import sys
+from typing import Optional
 
 import pytest
 
+import model_signing
 from model_signing._signing.pkcs11uri import Pkcs11URI
 from model_signing._signing.pkcs11uri import escape
 
@@ -265,3 +269,53 @@ class TestPkcs11URI:
 
             uri.set_allowed_module_paths(MODULE_PATHS)
             uri.get_module()
+
+
+class TestPkcs11SoftHSMSigning:
+    def run_softhsm_setup(self, cmd: str) -> Optional[bytes]:
+        curr_dir = os.path.dirname(os.path.realpath(__file__))
+        softhsm_setup = os.path.join(
+            curr_dir, "../../scripts/pkcs11-tests/softhsm_setup"
+        )
+        result = subprocess.run([softhsm_setup, cmd], stdout=subprocess.PIPE)
+        return result.stdout
+
+    @pytest.mark.integration
+    def test_softhsm(self, tmp_path: pathlib.Path) -> None:
+        if shutil.which("softhsm2-util") is None:
+            return
+
+        stdout_b = self.run_softhsm_setup("setup")
+        if stdout_b is None:
+            return
+
+        try:
+            stdout = str(stdout_b.rstrip())
+            i = stdout.index("pkcs11:")
+            pkcs11_uri = stdout[i:].rstrip("'")
+
+            stdout = self.run_softhsm_setup("getpubkey")
+
+            pub_key_file = tmp_path.joinpath("pubkey.pem")
+            pub_key_file.write_bytes(stdout)
+
+            model_path = tmp_path
+            signature = tmp_path.joinpath("model.sig")
+
+            model_signing.signing.Config().use_pkcs11_signer(
+                pkcs11_uri=pkcs11_uri, module_paths=MODULE_PATHS
+            ).set_hashing_config(
+                model_signing.hashing.Config().set_ignored_paths(
+                    paths=[signature]
+                )
+            ).sign(model_path, signature)
+
+            model_signing.verifying.Config().use_elliptic_key_verifier(
+                public_key=pub_key_file
+            ).set_hashing_config(
+                model_signing.hashing.Config().set_ignored_paths(
+                    paths=[signature]
+                )
+            ).verify(model_path, signature)
+        finally:
+            self.run_softhsm_setup("teardown")
