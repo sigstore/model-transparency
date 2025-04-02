@@ -139,8 +139,7 @@ def train_model(model, loss, optimizer, train):
             running_loss += loss_score.item()
             if i % batch_size == 0:
                 print(
-                    f"[{epoch}, {i:5d}], "
-                    f"loss: {running_loss / batch_size :.3f}"
+                    f"[{epoch}, {i:5d}], loss: {running_loss / batch_size:.3f}"
                 )
                 running_loss = 0.0
 
