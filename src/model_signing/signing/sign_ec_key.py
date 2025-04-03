@@ -176,4 +176,4 @@ class Verifier(sigstore_pb.Verifier):
             ec.ECDSA(get_ec_key_hash(self._public_key)),
         )
 
-        return envelope.payload_type, json.loads(envelope.payload)
+        return envelope.payload_type, envelope.payload
