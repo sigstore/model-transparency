@@ -168,16 +168,13 @@ class SigningPayload:
         Don't call this directly in production. Use `from_manifest()` instead.
 
         Args:
-            statement: The DSSE statement representing this in-toto payload.
+            statement: The in-toto statement for this payload.
         """
         self.statement = statement
 
     @classmethod
     def from_manifest(cls, manifest: manifest.Manifest) -> Self:
-        """Converts a manifest to the signing payload used for signing.
-
-        The manifest must be one where every model file is paired with its own
-        digest. Currently, this is only `Manifest`.
+        """Converts a manifest to the in-toto payload.
 
         Args:
             manifest: the manifest to convert to signing payload.
@@ -201,6 +198,9 @@ class SigningPayload:
 
         Returns:
             A manifest that can be converted back to the same payload.
+
+        Raises:
+            ValueError: If the payload cannot be deserialized to a manifest.
         """
         subjects = payload["subject"]
 
