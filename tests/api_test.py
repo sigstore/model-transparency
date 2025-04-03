@@ -25,7 +25,7 @@ import time
 
 import pytest
 
-from model_signing import sign
+from model_signing import signing
 from model_signing import verification
 
 
@@ -87,7 +87,7 @@ class TestSigstoreSigning:
     def test_sign_and_verify(
         self, sigstore_oidc_beacon_token, sample_model_folder, tmp_path
     ):
-        sc = sign.Config()
+        sc = signing.Config()
         sc.set_sigstore_signer(
             use_staging=True, identity_token=sigstore_oidc_beacon_token
         )
