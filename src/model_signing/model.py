@@ -23,9 +23,7 @@ from model_signing.signature import verifying
 from model_signing.signing import signing
 
 
-PayloadGeneratorFunc: TypeAlias = Callable[
-    [manifest.Manifest], signing.SigningPayload
-]
+PayloadGeneratorFunc: TypeAlias = Callable[[manifest.Manifest], signing.Payload]
 
 
 def sign(

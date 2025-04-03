@@ -49,7 +49,7 @@ class IntotoSignature(signing.Signature):
 
     def to_manifest(self) -> manifest.Manifest:
         payload = json.loads(self._bundle.dsse_envelope.payload)
-        return signing.SigningPayload.manifest_from_payload(payload)
+        return signing.Payload.manifest_from_payload(payload)
 
 
 class IntotoSigner(signing.Signer):
@@ -57,7 +57,7 @@ class IntotoSigner(signing.Signer):
         self._sig_signer = sig_signer
 
     @override
-    def sign(self, payload: signing.SigningPayload) -> IntotoSignature:
+    def sign(self, payload: signing.Payload) -> IntotoSignature:
         bundle = self._sig_signer.sign(payload.statement)
         return IntotoSignature(bundle)
 

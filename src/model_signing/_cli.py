@@ -355,7 +355,7 @@ def _serialize_and_sign(
     signing_result = model.sign(
         model_path=model_path,
         signer=signer,
-        payload_generator=signing.SigningPayload.from_manifest,
+        payload_generator=signing.Payload,
         serializer=serializer,
         ignore_paths=_expand_paths_to_ignore(
             model_path, signature, ignore_paths, ignore_git_paths

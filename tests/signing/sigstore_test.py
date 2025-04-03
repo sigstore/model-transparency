@@ -182,12 +182,11 @@ class TestSigstoreSigning:
         self,
         manifest,
         signature_path,
-        payload_type,
         signer_type,
         use_staging=True,
         oidc_issuer=None,
     ):
-        payload = payload_type.from_manifest(manifest)
+        payload = signing.Payload(manifest)
         signer = signer_type(use_staging=use_staging, oidc_issuer=oidc_issuer)
         signature = signer.sign(payload)
         signature.write(signature_path)
@@ -208,12 +207,7 @@ class TestSigstoreSigning:
         )
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            signing.SigningPayload,
-            sigstore.SigstoreSigner,
-        )
+        self._sign_manifest(manifest, signature_path, sigstore.SigstoreSigner)
 
         # Read signature and check against expected serialization
         expected_manifest = self._verify_dsse_signature(signature_path)
@@ -229,11 +223,7 @@ class TestSigstoreSigning:
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
         self._sign_manifest(
-            manifest,
-            signature_path,
-            signing.SigningPayload,
-            sigstore.SigstoreSigner,
-            use_staging=False,
+            manifest, signature_path, sigstore.SigstoreSigner, use_staging=False
         )
 
         # Read signature and check against expected serialization
@@ -254,7 +244,6 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            signing.SigningPayload,
             sigstore.SigstoreSigner,
             use_staging=False,
             oidc_issuer="test",
@@ -281,12 +270,7 @@ class TestSigstoreSigning:
         )
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            signing.SigningPayload,
-            sigstore.SigstoreSigner,
-        )
+        self._sign_manifest(manifest, signature_path, sigstore.SigstoreSigner)
 
         # Read signature and check against expected serialization
         expected_manifest = self._verify_dsse_signature(signature_path)
@@ -315,12 +299,7 @@ class TestSigstoreSigning:
         )
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            signing.SigningPayload,
-            sigstore.SigstoreSigner,
-        )
+        self._sign_manifest(manifest, signature_path, sigstore.SigstoreSigner)
 
         with pytest.raises(ValueError, match="Expected DSSE payload"):
             self._verify_dsse_signature(signature_path)
@@ -333,12 +312,7 @@ class TestSigstoreSigning:
         )
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
-        self._sign_manifest(
-            manifest,
-            signature_path,
-            signing.SigningPayload,
-            sigstore.SigstoreSigner,
-        )
+        self._sign_manifest(manifest, signature_path, sigstore.SigstoreSigner)
 
         correct_signature = signature_path.read_text()
         json_signature = json.loads(correct_signature)
