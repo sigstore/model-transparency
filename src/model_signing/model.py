@@ -19,7 +19,6 @@ from typing import TypeAlias
 
 from model_signing import manifest
 from model_signing._serialization import serialization
-from model_signing.signature import verifying
 from model_signing.signing import signing
 
 
@@ -68,11 +67,8 @@ def verify(
         serializer: the serializer used to generate the local manifest.
         ignore_paths: paths that should be ignored during serialization.
           Defaults to an empty set.
-
-    Raises:
-        verifying.VerificationError: on any verification error.
     """
     peer_manifest = verifier.verify(sig)
     local_manifest = serializer.serialize(model_path, ignore_paths=ignore_paths)
     if peer_manifest != local_manifest:
-        raise verifying.VerificationError("the manifests do not match")
+        raise ValueError("the manifests do not match")
