@@ -25,10 +25,10 @@ from model_signing import model
 from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
-from model_signing.signature import key
-from model_signing.signature import pki
-from model_signing.signing import in_toto_signature
+from model_signing.signing import sign_certificate as certificate
+from model_signing.signing import sign_ec_key as ec_key
 from model_signing.signing import sign_sigstore as sigstore
+from model_signing.signing import sign_sigstore_pb as sigstore_pb
 from model_signing.signing import signing
 
 
@@ -275,10 +275,7 @@ def _sign_private_key(
     signer, outside of pairing the keys. Also note that we don't offer key
     management protocols.
     """
-    signer = in_toto_signature.IntotoSigner(
-        # TODO: The API needs clean up, it uses str, not pathlib.Path
-        key.ECKeySigner.from_path(private_key_path=private_key.as_posix())
-    )
+    signer = ec_key.Signer(private_key)
     _serialize_and_sign(
         model_path, ignore_paths, ignore_git_paths, signer, signature
     )
@@ -323,13 +320,8 @@ def _sign_certificate(
 
     Note that we don't offer certificate and key management protocols.
     """
-    signer = in_toto_signature.IntotoSigner(
-        # TODO: The API needs clean up, it uses str, not pathlib.Path
-        pki.PKISigner.from_path(
-            private_key.as_posix(),
-            signing_certificate.as_posix(),
-            [c.as_posix() for c in certificate_chain],
-        )
+    signer = certificate.Signer(
+        private_key, signing_certificate, certificate_chain
     )
     _serialize_and_sign(
         model_path, ignore_paths, ignore_git_paths, signer, signature
@@ -469,11 +461,8 @@ def _verify_private_key(
     signer, outside of pairing the keys. Also note that we don't offer key
     management protocols.
     """
-    verifier = in_toto_signature.IntotoVerifier(
-        # TODO: The API needs clean up, it uses str, not pathlib.Path
-        key.ECKeyVerifier.from_path(public_key.as_posix())
-    )
-    signature_contents = in_toto_signature.IntotoSignature.read(signature)
+    verifier = ec_key.Verifier(public_key)
+    signature_contents = sigstore_pb.Signature.read(signature)
     _serialize_and_verify(
         model_path,
         verifier,
@@ -510,11 +499,8 @@ def _verify_certificate(
 
     Note that we don't offer certificate and key management protocols.
     """
-    verifier = in_toto_signature.IntotoVerifier(
-        # TODO: The API needs clean up, it uses str, not pathlib.Path
-        pki.PKIVerifier.from_paths([c.as_posix() for c in certificate_chain])
-    )
-    signature_contents = in_toto_signature.IntotoSignature.read(signature)
+    verifier = certificate.Verifier(certificate_chain)
+    signature_contents = sigstore_pb.Signature.read(signature)
     _serialize_and_verify(
         model_path,
         verifier,
