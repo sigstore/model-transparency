@@ -34,7 +34,7 @@ from model_signing.signing import signing
 from tests import test_support
 
 
-class TestSigningPayload:
+class TestPayload:
     def _file_hasher_factory(self, path: pathlib.Path) -> io.FileHasher:
         return io.SimpleFileHasher(path, memory.SHA256())
 
@@ -55,12 +55,12 @@ class TestSigningPayload:
     ):
         # Set up variables (arrange)
         test_path = testdata_path / "signing"
-        test_class_path = test_path / "TestSigningPayload"
+        test_class_path = test_path / "TestPayload"
         golden_path = test_class_path / golden_name
 
         # Compute payload (act)
         manifest = serializer.serialize(model)
-        payload = signing.SigningPayload.from_manifest(manifest)
+        payload = signing.Payload(manifest)
 
         # Compare with golden, or write to golden (approximately "assert")
         if should_update:
@@ -117,6 +117,6 @@ class TestSigningPayload:
         )
         manifest = serializer.serialize(sample_model_folder)
 
-        payload = signing.SigningPayload.from_manifest(manifest)
+        payload = signing.Payload(manifest)
 
         payload.statement.validate()

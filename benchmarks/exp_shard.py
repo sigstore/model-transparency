@@ -22,8 +22,6 @@ from typing import Final
 from google.protobuf import json_format
 import serialize
 
-from model_signing.signing import signing
-
 
 KB: Final[int] = 1000
 MB: Final[int] = 1000 * KB
@@ -79,8 +77,8 @@ if __name__ == "__main__":
             en = time.time()
             times.append(en - st)
 
-            if not isinstance(payload, signing.SigningPayload):
-                raise TypeError("IntotoPayloads expected")
+            if payload is None:
+                continue  # no payload is generated
 
             if not manifest_size:
                 statement = json_format.MessageToJson(

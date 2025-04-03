@@ -60,7 +60,7 @@ class Config:
     def __init__(self):
         """Initializes the default configuration for signing."""
         self._hashing_config = hash.Config()
-        self._payload_generator = signing.SigningPayload.from_manifest
+        self._payload_generator = signing.Payload
         self._signer = sigstore.SigstoreSigner(
             use_ambient_credentials=False, use_staging=False
         )
@@ -90,7 +90,7 @@ class Config:
         return self
 
     def set_payload_generator(
-        self, generator: Callable[[manifest.Manifest], signing.SigningPayload]
+        self, generator: Callable[[manifest.Manifest], signing.Payload]
     ) -> Self:
         """Sets the conversion from manifest to signing payload.
 

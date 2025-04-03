@@ -146,7 +146,7 @@ class SigstoreSigner(signing.Signer):
         return self._issuer.identity_token(force_oob=True)
 
     @override
-    def sign(self, payload: signing.SigningPayload) -> SigstoreSignature:
+    def sign(self, payload: signing.Payload) -> SigstoreSignature:
         """Signs the provided signing payload.
 
         Args:
@@ -234,4 +234,4 @@ class SigstoreVerifier(signing.Verifier):
                 f"but got {payload['_type']}"
             )
 
-        return signing.SigningPayload.manifest_from_payload(payload)
+        return signing.Payload.manifest_from_payload(payload)

@@ -104,7 +104,7 @@ def get_file_hasher_factory(
     return _hasher_factory
 
 
-def run(args: argparse.Namespace) -> Optional[signing.SigningPayload]:
+def run(args: argparse.Namespace) -> Optional[signing.Payload]:
     """Performs the benchmark.
 
     Args:
@@ -126,14 +126,11 @@ def run(args: argparse.Namespace) -> Optional[signing.SigningPayload]:
 
     serializer = serializer_factory(hasher, max_workers=args.max_workers)
 
-    # 3. Signing layer
-    in_toto_builder = signing.SigningPayload
-
     # Put everything together
     if not args.dry_run:
         manifest = serializer.serialize(args.path)
         if not args.skip_manifest:
-            return in_toto_builder.from_manifest(manifest)
+            return signing.Payload(manifest)
 
 
 def build_parser() -> argparse.ArgumentParser:

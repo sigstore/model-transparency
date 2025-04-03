@@ -56,7 +56,7 @@ else:
     from typing_extensions import Self
 
 
-class SigningPayload:
+class Payload:
     """In-toto payload used to represent a model for signing.
 
     This payload represents all the object (files, shards, etc.) of the model
@@ -137,25 +137,11 @@ class SigningPayload:
     predicate_type: Final[str] = "https://model_signing/signature/v1.0"
     statement: Final[statement.Statement]
 
-    def __init__(self, statement: statement.Statement):
+    def __init__(self, manifest: manifest.Manifest):
         """Builds an instance of this in-toto payload.
-
-        Don't call this directly in production. Use `from_manifest()` instead.
-
-        Args:
-            statement: The in-toto statement for this payload.
-        """
-        self.statement = statement
-
-    @classmethod
-    def from_manifest(cls, manifest: manifest.Manifest) -> Self:
-        """Converts a manifest to the in-toto payload.
 
         Args:
             manifest: the manifest to convert to signing payload.
-
-        Returns:
-            An instance of this class.
         """
         hasher = memory.SHA256()
         resources = []
@@ -180,12 +166,10 @@ class SigningPayload:
             # other properties can go here
         }
 
-        return cls(
-            statement.Statement(
-                subjects=[subject],
-                predicate_type=cls.predicate_type,
-                predicate=predicate,
-            )
+        self.statement = statement.Statement(
+            subjects=[subject],
+            predicate_type=self.predicate_type,
+            predicate=predicate,
         )
 
     @classmethod
@@ -276,17 +260,17 @@ class Signature(metaclass=abc.ABCMeta):
 
 
 class Signer(metaclass=abc.ABCMeta):
-    """Generic signer for `SigningPayload` objects.
+    """Generic signer.
 
     Each signer may implement its own mechanism for managing the key material.
     """
 
     @abc.abstractmethod
-    def sign(self, payload: SigningPayload) -> Signature:
+    def sign(self, payload: Payload) -> Signature:
         """Signs the provided signing payload.
 
         Args:
-            payload: the `SigningPayload` instance that should be signed.
+            payload: the `Payload` instance that should be signed.
 
         Returns:
             A valid signature.
