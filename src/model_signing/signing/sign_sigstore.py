@@ -41,52 +41,29 @@ _IN_TOTO_JSON_PAYLOAD_TYPE: str = "application/vnd.in-toto+json"
 _IN_TOTO_STATEMENT_TYPE: str = "https://in-toto.io/Statement/v1"
 
 
-class SigstoreSignature(signing.Signature):
+class Signature(signing.Signature):
     """Sigstore signature support, wrapping around `sigstore_models.Bundle`."""
 
     def __init__(self, bundle: sigstore_models.Bundle):
         """Builds an instance of this signature.
 
         Args:
-            bundle: the Sigstore `Bundle` to wrap around.
+            bundle: the sigstore bundle (in `bundle_pb.Bundle` format).
         """
         self.bundle = bundle
 
     @override
     def write(self, path: pathlib.Path) -> None:
-        """Writes the signature to disk, to the given path.
-
-        The Sigstore `Bundle` is written in JSON format, per the
-        canonicalization defined by the `sigstore-python` library.
-
-        Args:
-            path: the path to write the signature to.
-        """
         path.write_text(self.bundle.to_json())
 
     @classmethod
     @override
     def read(cls, path: pathlib.Path) -> Self:
-        """Reads the signature from disk.
-
-        Does not perform any signature verification, except what is needed to
-        parse the signature file.
-
-        Args:
-            path: the path to read the signature from.
-
-        Returns:
-            A `SigstoreSignature` object wrapping a Sigstore `Bundle`.
-
-        Raises:
-            ValueError: If the Sigstore `Bundle` could not be deserialized from
-              the contents of the file pointed to by `path`.
-        """
         content = path.read_text()
         return cls(sigstore_models.Bundle.from_json(content))
 
 
-class SigstoreSigner(signing.Signer):
+class Signer(signing.Signer):
     """Signing using Sigstore."""
 
     def __init__(
@@ -146,15 +123,7 @@ class SigstoreSigner(signing.Signer):
         return self._issuer.identity_token(force_oob=True)
 
     @override
-    def sign(self, payload: signing.Payload) -> SigstoreSignature:
-        """Signs the provided signing payload.
-
-        Args:
-            payload: the payload to sign.
-
-        Returns:
-            A `SigstoreSignature` object.
-        """
+    def sign(self, payload: signing.Payload) -> Signature:
         # We need to convert from in-toto statement to Sigstore's DSSE
         # version. They both contain the same contents, but there is no way
         # to coerce one type to the other.
@@ -167,10 +136,10 @@ class SigstoreSigner(signing.Signer):
         with self._signing_context.signer(token) as signer:
             bundle = signer.sign_dsse(statement)
 
-        return SigstoreSignature(bundle)
+        return Signature(bundle)
 
 
-class SigstoreVerifier(signing.Verifier):
+class Verifier(signing.Verifier):
     """Signature verification using Sigstore."""
 
     def __init__(

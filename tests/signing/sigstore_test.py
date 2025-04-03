@@ -35,7 +35,7 @@ else:
 
 
 class MockedSigstoreBundle:
-    """Mocked SigstoreBundle that just records the signed payload."""
+    """Mocked sigstore bundle that just records the signed payload."""
 
     def __init__(self, data):
         self._data = data
@@ -169,7 +169,7 @@ def mocked_sigstore(
     return True  # keep in scope
 
 
-class TestSigstoreSigning:
+class TestSigning:
     def _file_hasher_factory(self, path: pathlib.Path) -> io.FileHasher:
         return io.SimpleFileHasher(path, memory.SHA256())
 
@@ -192,8 +192,8 @@ class TestSigstoreSigning:
         signature.write(signature_path)
 
     def _verify_dsse_signature(self, signature_path, use_staging=True):
-        signature = sigstore.SigstoreSignature.read(signature_path)
-        verifier = sigstore.SigstoreVerifier(
+        signature = sigstore.Signature.read(signature_path)
+        verifier = sigstore.Verifier(
             identity="test", oidc_issuer="test", use_staging=use_staging
         )
         return verifier.verify(signature)
@@ -207,7 +207,7 @@ class TestSigstoreSigning:
         )
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
-        self._sign_manifest(manifest, signature_path, sigstore.SigstoreSigner)
+        self._sign_manifest(manifest, signature_path, sigstore.Signer)
 
         # Read signature and check against expected serialization
         expected_manifest = self._verify_dsse_signature(signature_path)
@@ -223,7 +223,7 @@ class TestSigstoreSigning:
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
         self._sign_manifest(
-            manifest, signature_path, sigstore.SigstoreSigner, use_staging=False
+            manifest, signature_path, sigstore.Signer, use_staging=False
         )
 
         # Read signature and check against expected serialization
@@ -244,7 +244,7 @@ class TestSigstoreSigning:
         self._sign_manifest(
             manifest,
             signature_path,
-            sigstore.SigstoreSigner,
+            sigstore.Signer,
             use_staging=False,
             oidc_issuer="test",
         )
@@ -270,18 +270,18 @@ class TestSigstoreSigning:
         )
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
-        self._sign_manifest(manifest, signature_path, sigstore.SigstoreSigner)
+        self._sign_manifest(manifest, signature_path, sigstore.Signer)
 
         # Read signature and check against expected serialization
         expected_manifest = self._verify_dsse_signature(signature_path)
         assert expected_manifest == manifest
 
     def test_sign_identity_token_precedence(self, mocked_oidc_provider):
-        signer = sigstore.SigstoreSigner(identity_token="provided_token")
+        signer = sigstore.Signer(identity_token="provided_token")
         token = signer._get_identity_token()
         assert token == "provided_token"
 
-        signer = sigstore.SigstoreSigner()
+        signer = sigstore.Signer()
         token = signer._get_identity_token()
         assert token == "fake_token"
 
@@ -299,7 +299,7 @@ class TestSigstoreSigning:
         )
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
-        self._sign_manifest(manifest, signature_path, sigstore.SigstoreSigner)
+        self._sign_manifest(manifest, signature_path, sigstore.Signer)
 
         with pytest.raises(ValueError, match="Expected DSSE payload"):
             self._verify_dsse_signature(signature_path)
@@ -312,7 +312,7 @@ class TestSigstoreSigning:
         )
         manifest = serializer.serialize(sample_model_folder)
         signature_path = tmp_path / "model.sig"
-        self._sign_manifest(manifest, signature_path, sigstore.SigstoreSigner)
+        self._sign_manifest(manifest, signature_path, sigstore.Signer)
 
         correct_signature = signature_path.read_text()
         json_signature = json.loads(correct_signature)

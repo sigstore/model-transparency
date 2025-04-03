@@ -83,9 +83,7 @@ class Config:
             model_path: the path to the model to verify.
             signature_path: the path to the signature to check.
         """
-        signature = sigstore.SigstoreSignature.read(
-            pathlib.Path(signature_path)
-        )
+        signature = sigstore.Signature.read(pathlib.Path(signature_path))
         expected_manifest = self._verifier.verify(signature)
         actual_manifest = self._hashing_config.hash(model_path)
 
@@ -128,7 +126,7 @@ class Config:
         Return:
             The new verification configuration.
         """
-        self._verifier = sigstore.SigstoreVerifier(
+        self._verifier = sigstore.Verifier(
             identity=identity, oidc_issuer=oidc_issuer, use_staging=use_staging
         )
         return self
