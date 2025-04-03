@@ -159,7 +159,7 @@ class SigningPayload:
     ```
     """
 
-    predicate_type: Final[str] = "https://model_signing/Digests/v0.1"
+    predicate_type: Final[str] = "https://model_signing/signature/v1.0"
     statement: Final[statement.Statement]
 
     def __init__(self, statement: statement.Statement):
