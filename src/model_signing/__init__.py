@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""For the stable high-level API, see model_signing.{hash,sign,verify}."""
+"""For the stable high-level API, see model_signing.{hashing,sign,verify}."""
 
-from model_signing import hash
+from model_signing import hashing
 from model_signing import sign
 from model_signing import verify
 
@@ -22,4 +22,4 @@ from model_signing import verify
 __version__ = "0.2.0"
 
 
-__all__ = ["hash", "sign", "verify"]
+__all__ = ["hashing", "sign", "verify"]

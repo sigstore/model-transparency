@@ -16,7 +16,7 @@
 
 Users should use this API to sign models, rather than using the internals of the
 library. We guarantee backwards compatibility only for the API defined in
-`hash.py`, `sign.py` and `verify.py` at the root level of the library.
+`hashing.py`, `sign.py` and `verify.py` at the root level of the library.
 """
 
 from collections.abc import Callable
@@ -25,7 +25,7 @@ import pathlib
 import sys
 from typing import Optional
 
-from model_signing import hash
+from model_signing import hashing
 from model_signing import manifest
 from model_signing.signing import sign_sigstore as sigstore
 from model_signing.signing import signing
@@ -59,7 +59,7 @@ class Config:
 
     def __init__(self):
         """Initializes the default configuration for signing."""
-        self._hashing_config = hash.Config()
+        self._hashing_config = hashing.Config()
         self._payload_generator = signing.Payload
         self._signer = sigstore.Signer(
             use_ambient_credentials=False, use_staging=False
@@ -77,7 +77,7 @@ class Config:
         signature = self._signer.sign(payload)
         signature.write(pathlib.Path(signature_path))
 
-    def set_hashing_config(self, hashing_config: hash.Config) -> Self:
+    def set_hashing_config(self, hashing_config: hashing.Config) -> Self:
         """Sets the new configuration for hashing models.
 
         Args:
