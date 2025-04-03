@@ -60,7 +60,7 @@ class SigningPayload:
     """In-toto payload used to represent a model for signing.
 
     This payload represents all the object (files, shards, etc.) of the model
-    paired with their hases. It can be seen as a serialization of a manifest.
+    paired with their hashes. It can be seen as a serialization of a manifest.
     The hashes are all recorded under the predicate, given that for the subject
     we are limited on what hashes we can use
     (https://github.com/sigstore/sigstore-python/issues/1018). Each hash follows
@@ -175,7 +175,7 @@ class SigningPayload:
         ).pb
 
         predicate = {
-            "serialization": manifest.serialization,
+            "serialization": manifest.serialization_type,
             "resources": resources,
             # other properties can go here
         }
@@ -218,8 +218,8 @@ class SigningPayload:
         expected_digest = subjects[0]["digest"]["sha256"]
 
         predicate = payload["predicate"]
-        serialization_dict = predicate["serialization"]
-        serialization = manifest.SerializationType.from_dict(serialization_dict)
+        serialization_args = predicate["serialization"]
+        serialization = manifest.SerializationType.from_args(serialization_args)
 
         hasher = memory.SHA256()
         items = []

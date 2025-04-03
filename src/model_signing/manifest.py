@@ -257,29 +257,41 @@ class SerializationType(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def serialization_dict(self) -> dict[str, Any]:
+    def serialization_parameters(self) -> dict[str, Any]:
         """The arguments of the serialization method."""
 
     @classmethod
-    def from_dict(cls, serialization_dict: dict[str, Any]) -> Self:
+    def from_args(cls, args: dict[str, Any]) -> Self:
         """Builds an instance of this class based on the dict representation.
 
-        This is the reverse of `serialization_dict`.
+        This is the reverse of `serialization_parameters`.
+
+        Args:
+            args: The arguments as a dictionary (equivalent to `**kwargs`).
         """
-        serialization_type = serialization_dict["method"]
+        serialization_type = args["method"]
         for subclass in [_FileSerialization, _ShardSerialization]:
             if serialization_type == subclass.method:
-                return subclass._from_dict(serialization_dict)
+                return subclass._from_args(args)
         raise ValueError(f"Unknown serialization type {serialization_type}")
 
     @classmethod
     @abc.abstractmethod
-    def _from_dict(cls, serialization_dict: dict[str, Any]) -> Self:
+    def _from_args(cls, args: dict[str, Any]) -> Self:
         """Performs the actual build from `from_dict`."""
 
     @abc.abstractmethod
     def new_item(self, name: str, digest: hashing.Digest) -> ManifestItem:
-        """Returns a new manifest item with given name and digest."""
+        """Builds a `ManifestItem` of the correct type.
+
+        Each serialization type results in different types for the items in the
+        manifest. This method parses the `name` of the item according to the
+        serialization type to create the proper manifest item.
+
+        Args:
+            name: The name of the item, as shown in the manifest.
+            digest: The digest of the item.
+        """
 
 
 class _FileSerialization(SerializationType):
@@ -300,7 +312,7 @@ class _FileSerialization(SerializationType):
 
     @property
     @override
-    def serialization_dict(self) -> dict[str, Any]:
+    def serialization_parameters(self) -> dict[str, Any]:
         return {
             "method": self.method,
             "hash_type": self._hash_type,
@@ -309,11 +321,8 @@ class _FileSerialization(SerializationType):
 
     @classmethod
     @override
-    def _from_dict(cls, serialization_dict: dict[str, Any]) -> Self:
-        return cls(
-            serialization_dict["hash_type"],
-            serialization_dict["allow_symlinks"],
-        )
+    def _from_args(cls, args: dict[str, Any]) -> Self:
+        return cls(args["hash_type"], args["allow_symlinks"])
 
     @override
     def new_item(self, name: str, digest: hashing.Digest) -> ManifestItem:
@@ -344,7 +353,7 @@ class _ShardSerialization(SerializationType):
 
     @property
     @override
-    def serialization_dict(self) -> dict[str, Any]:
+    def serialization_parameters(self) -> dict[str, Any]:
         return {
             "method": self.method,
             "hash_type": self._hash_type,
@@ -354,11 +363,9 @@ class _ShardSerialization(SerializationType):
 
     @classmethod
     @override
-    def _from_dict(cls, serialization_dict: dict[str, Any]) -> Self:
+    def _from_args(cls, args: dict[str, Any]) -> Self:
         return cls(
-            serialization_dict["hash_type"],
-            serialization_dict["shard_size"],
-            serialization_dict["allow_symlinks"],
+            args["hash_type"], args["shard_size"], args["allow_symlinks"]
         )
 
     @override
@@ -383,17 +390,19 @@ class Manifest:
 
     def __init__(
         self,
-        model: str,
+        model_name: str,
         items: Iterable[ManifestItem],
         serialization_type: SerializationType,
     ):
         """Builds a manifest from a collection of already hashed objects.
 
         Args:
-            model: A name for the model that generated the manifest.
+            model_name: A name for the model that generated the manifest. This
+              is the final component of the model path, and is only informative.
+              See `model_name` property.
             items: An iterable sequence of objects and their hashes.
         """
-        self._name = model
+        self._name = model_name
         self._item_to_digest = {item.key: item.digest for item in items}
         self._serialization_type = serialization_type
 
@@ -407,21 +416,20 @@ class Manifest:
 
     @property
     def model_name(self) -> str:
-        """The name of the model when serialized.
+        """The name of the model when serialized (final component of the path).
 
-        This is the final component of the path and is only informative.
-        Changing the name of the model should still result in the same digests
-        after serialization, it must not invalidate signatures. As a result, two
-        manifests with different model names but with the same resource
-        descriptors will compare equal.
+        This is only informative. Changing the name of the model should still
+        result in the same digests after serialization, it must not invalidate
+        signatures. As a result, two manifests with different model names but
+        with the same resource descriptors will compare equal.
         """
         return self._name
 
     @property
-    def serialization(self) -> dict[str, Any]:
+    def serialization_type(self) -> dict[str, Any]:
         """The serialization (and arguments) used to build the manifest.
 
         This is needed to record the serialization method used to generate the
         manifest so that signature verification can use the same method.
         """
-        return self._serialization_type.serialization_dict
+        return self._serialization_type.serialization_parameters
