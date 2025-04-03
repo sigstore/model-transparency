@@ -36,7 +36,7 @@ def pytest_addoption(parser):
 @pytest.fixture
 def sample_model_file(tmp_path_factory):
     """A model with just a single file."""
-    file = tmp_path_factory.mktemp("model") / "file"
+    file = tmp_path_factory.mktemp("model") / "file_model"
     file.write_bytes(test_support.KNOWN_MODEL_TEXT)
     return file
 
@@ -44,7 +44,7 @@ def sample_model_file(tmp_path_factory):
 @pytest.fixture
 def empty_model_file(tmp_path_factory):
     """A model with just an empty file."""
-    file = tmp_path_factory.mktemp("model") / "file"
+    file = tmp_path_factory.mktemp("model") / "empty_file_model"
     file.write_bytes(b"")
     return file
 
@@ -52,7 +52,7 @@ def empty_model_file(tmp_path_factory):
 @pytest.fixture
 def sample_model_folder(tmp_path_factory):
     """A model with multiple files and directories."""
-    model_root = tmp_path_factory.mktemp("model") / "root"
+    model_root = tmp_path_factory.mktemp("model") / "sample_model"
     model_root.mkdir()
 
     for i in range(2):
@@ -72,7 +72,7 @@ def sample_model_folder(tmp_path_factory):
 @pytest.fixture
 def empty_model_folder(tmp_path_factory):
     """A model with just an empty directory."""
-    model_root = tmp_path_factory.mktemp("model") / "root"
+    model_root = tmp_path_factory.mktemp("model") / "empty_folder_model"
     model_root.mkdir()
     return model_root
 
@@ -80,7 +80,7 @@ def empty_model_folder(tmp_path_factory):
 @pytest.fixture
 def model_folder_with_empty_file(tmp_path_factory):
     """A model with just an empty file, inside a directory."""
-    model_root = tmp_path_factory.mktemp("model") / "root"
+    model_root = tmp_path_factory.mktemp("model") / "empty_file_inside_model"
     model_root.mkdir()
 
     empty_file = model_root / "empty_file"
@@ -92,7 +92,7 @@ def model_folder_with_empty_file(tmp_path_factory):
 @pytest.fixture
 def deep_model_folder(tmp_path_factory):
     """A model with a deep directory hierarchy."""
-    model_root = tmp_path_factory.mktemp("model") / "root"
+    model_root = tmp_path_factory.mktemp("model") / "deep_model"
     model_root.mkdir()
 
     current = model_root
@@ -114,7 +114,10 @@ def symlink_model_folder(
     """A model folder with a symlink to an external file."""
     external_file = tmp_path_factory.mktemp("external") / "file"
     external_file.write_bytes(test_support.KNOWN_MODEL_TEXT)
-    model_dir = tmp_path_factory.mktemp("model")
+
+    model_dir = tmp_path_factory.mktemp("model") / "symlink_model"
+    model_dir.mkdir()
+
     symlink_file = model_dir / "symlink_file"
     os.symlink(external_file.absolute(), symlink_file.absolute())
     return model_dir
