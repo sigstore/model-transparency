@@ -39,3 +39,17 @@ class TestIntotoSignature:
         verifier.verify(sig)
         manifest = sig.to_manifest()
         assert file_manifest == manifest
+
+    def test_signature_round_trip(self, sample_model_folder, tmp_path):
+        signer = in_toto_signature.IntotoSigner(fake.FakeSigner())
+        file_serializer = file.Serializer(
+            self._hasher_factory, allow_symlinks=True
+        )
+        file_manifest = file_serializer.serialize(sample_model_folder)
+
+        payload = signing.Payload(file_manifest)
+        sig = signer.sign(payload)
+        sig_file = tmp_path / "sig"
+        sig.write(sig_file)
+        sig2 = in_toto_signature.IntotoSignature.read(sig_file)
+        assert sig.to_manifest() == sig2.to_manifest()
