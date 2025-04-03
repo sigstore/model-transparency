@@ -37,18 +37,15 @@ class TestSigningPayload:
     def _hasher_factory(self, path: pathlib.Path) -> io.FileHasher:
         return io.SimpleFileHasher(path, memory.SHA256())
 
-    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
-    def test_known_models(self, request, model_fixture_name):
+    def _run_test(
+        self, testdata_path, golden_name, should_update, model, serializer
+    ):
         # Set up variables (arrange)
-        testdata_path = request.path.parent / "testdata"
         test_path = testdata_path / "signing"
         test_class_path = test_path / "TestSigningPayload"
-        golden_path = test_class_path / model_fixture_name
-        should_update = request.config.getoption("update_goldens")
-        model = request.getfixturevalue(model_fixture_name)
+        golden_path = test_class_path / golden_name
 
         # Compute payload (act)
-        serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
         manifest = serializer.serialize(model)
         payload = signing.SigningPayload.from_manifest(manifest)
 
@@ -64,6 +61,16 @@ class TestSigningPayload:
                 )
 
             assert payload.statement.pb == expected_proto
+
+    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
+    def test_known_models_file(self, request, model_fixture_name):
+        self._run_test(
+            request.path.parent / "testdata",
+            model_fixture_name,
+            request.config.getoption("update_goldens"),
+            request.getfixturevalue(model_fixture_name),
+            file.Serializer(self._hasher_factory, allow_symlinks=True),
+        )
 
     def test_produces_valid_statements(self, sample_model_folder):
         serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
