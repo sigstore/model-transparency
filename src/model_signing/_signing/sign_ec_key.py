@@ -26,8 +26,8 @@ from sigstore_protobuf_specs.dev.sigstore.common import v1 as common_pb
 from sigstore_protobuf_specs.io import intoto as intoto_pb
 from typing_extensions import override
 
-from model_signing.signing import sign_sigstore_pb as sigstore_pb
-from model_signing.signing import signing
+from model_signing._signing import sign_sigstore_pb as sigstore_pb
+from model_signing._signing import signing
 
 
 def _check_supported_ec_key(public_key: ec.EllipticCurvePublicKey):

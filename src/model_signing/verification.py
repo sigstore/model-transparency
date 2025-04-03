@@ -26,7 +26,7 @@ import sys
 from typing import Optional
 
 from model_signing import hashing
-from model_signing.signing import sign_sigstore as sigstore
+from model_signing._signing import sign_sigstore as sigstore
 
 
 if sys.version_info >= (3, 11):

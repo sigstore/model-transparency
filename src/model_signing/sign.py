@@ -27,8 +27,8 @@ from typing import Optional
 
 from model_signing import hashing
 from model_signing import manifest
-from model_signing.signing import sign_sigstore as sigstore
-from model_signing.signing import signing
+from model_signing._signing import sign_sigstore as sigstore
+from model_signing._signing import signing
 
 
 if sys.version_info >= (3, 11):

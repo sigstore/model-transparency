@@ -25,11 +25,11 @@ from model_signing import model
 from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
-from model_signing.signing import sign_certificate as certificate
-from model_signing.signing import sign_ec_key as ec_key
-from model_signing.signing import sign_sigstore as sigstore
-from model_signing.signing import sign_sigstore_pb as sigstore_pb
-from model_signing.signing import signing
+from model_signing._signing import sign_certificate as certificate
+from model_signing._signing import sign_ec_key as ec_key
+from model_signing._signing import sign_sigstore as sigstore
+from model_signing._signing import sign_sigstore_pb as sigstore_pb
+from model_signing._signing import signing
 
 
 # Decorator for the commonly used argument for the model path.
