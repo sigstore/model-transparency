@@ -47,38 +47,13 @@ from in_toto_attestation.v1 import statement
 
 from model_signing import manifest
 from model_signing._hashing import hashing
+from model_signing._hashing import memory
 
 
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
-
-
-def _convert_descriptors_to_direct_statement(
-    model_manifest: manifest.Manifest, predicate_type: str
-) -> statement.Statement:
-    """Converts manifest descriptors to an in-toto statement, as subjects.
-
-    Args:
-        manifest: The manifest to extract the descriptors from. Assumed valid.
-        predicate_type: The predicate_type to use in the in-toto statement.
-    """
-    subjects = []
-    for descriptor in model_manifest.resource_descriptors():
-        subject = statement.ResourceDescriptor(
-            name=descriptor.identifier,
-            digest={"sha256": descriptor.digest.digest_hex},
-            annotations={"actual_hash_algorithm": descriptor.digest.algorithm},
-        )
-        subjects.append(subject.pb)
-
-    return statement.Statement(
-        subjects=subjects,
-        predicate_type=predicate_type,
-        # https://github.com/in-toto/attestation/issues/374
-        predicate={"unused": "Unused, just passed due to API requirements"},
-    )
 
 
 class SigningPayload:
@@ -182,10 +157,34 @@ class SigningPayload:
         Returns:
             An instance of this class.
         """
-        statement = _convert_descriptors_to_direct_statement(
-            manifest, predicate_type=cls.predicate_type
+        hasher = memory.SHA256()
+        resources = []
+        for descriptor in manifest.resource_descriptors():
+            hasher.update(descriptor.digest.digest_value)
+            resources.append(
+                {
+                    "name": descriptor.identifier,
+                    "algorithm": descriptor.digest.algorithm,
+                    "digest": descriptor.digest.digest_hex,
+                }
+            )
+
+        root_digest = {"sha256": hasher.compute().digest_hex}
+        subject = statement.ResourceDescriptor(
+            name=manifest.model_name, digest=root_digest
+        ).pb
+
+        predicate = {
+            "resources": resources,
+        }
+
+        return cls(
+            statement.Statement(
+                subjects=[subject],
+                predicate_type=cls.predicate_type,
+                predicate=predicate,
+            )
         )
-        return cls(statement)
 
     @classmethod
     def manifest_from_payload(
@@ -202,18 +201,39 @@ class SigningPayload:
         Raises:
             ValueError: If the payload cannot be deserialized to a manifest.
         """
+        obtained_predicate_type = payload["predicateType"]
+        if obtained_predicate_type != cls.predicate_type:
+            raise ValueError(
+                f"Predicate type mismatch, expected {cls.predicate_type}, "
+                f"got {obtained_predicate_type}"
+            )
+
         subjects = payload["subject"]
+        if len(subjects) != 1:
+            raise ValueError(f"Expected only one subject, got {subjects}")
 
+        model_name = subjects[0]["name"]
+        expected_digest = subjects[0]["digest"]["sha256"]
+
+        predicate = payload["predicate"]
+
+        hasher = memory.SHA256()
         items = []
-        for subject in subjects:
-            path = pathlib.PurePosixPath(subject["name"])
-            algorithm = subject["annotations"]["actual_hash_algorithm"]
-            digest_value = subject["digest"]["sha256"]
+        for resource in predicate["resources"]:
+            name = resource["name"]
+            algorithm = resource["algorithm"]
+            digest_value = resource["digest"]
             digest = hashing.Digest(algorithm, bytes.fromhex(digest_value))
-            item = manifest.FileManifestItem(path=path, digest=digest)
-            items.append(item)
+            hasher.update(digest.digest_value)
 
-        return manifest.Manifest(items)
+        obtained_digest = hasher.compute().digest_hex
+        if obtained_digest != expected_digest:
+            raise ValueError(
+                f"Manifest is inconsistent. Root digest is {expected_digest}, "
+                f"but the included resources hash to {obtained_digest}"
+            )
+
+        return manifest.Manifest(model_name, items)
 
 
 class Signature(metaclass=abc.ABCMeta):
