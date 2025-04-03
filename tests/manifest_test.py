@@ -21,6 +21,8 @@ from model_signing._hashing import hashing
 
 
 class TestFileLevelManifest:
+    _manifest_type = manifest._FileSerialization("unused")
+
     def test_insert_order_does_not_matter(self):
         path1 = pathlib.PurePath("file1")
         digest1 = hashing.Digest("test", b"abcd")
@@ -30,8 +32,12 @@ class TestFileLevelManifest:
         digest2 = hashing.Digest("test", b"efgh")
         item2 = manifest.FileManifestItem(path=path2, digest=digest2)
 
-        manifest1 = manifest.Manifest([item1, item2])
-        manifest2 = manifest.Manifest([item2, item1])
+        manifest1 = manifest.Manifest(
+            "test", [item1, item2], self._manifest_type
+        )
+        manifest2 = manifest.Manifest(
+            "test", [item2, item1], self._manifest_type
+        )
 
         assert manifest1 == manifest2
 
@@ -43,7 +49,7 @@ class TestFileLevelManifest:
             digest = hashing.Digest("test", b"hash{i}")
             item = manifest.FileManifestItem(path=path, digest=digest)
             items.append(item)
-        manifest_file = manifest.Manifest(items)
+        manifest_file = manifest.Manifest("test", items, self._manifest_type)
 
         descriptors = list(manifest_file.resource_descriptors())
 
@@ -59,7 +65,9 @@ class TestFileLevelManifest:
         item2 = manifest.FileManifestItem(path=path2, digest=digest2)
 
         # Note order is reversed
-        manifest_file = manifest.Manifest([item2, item1])
+        manifest_file = manifest.Manifest(
+            "test", [item2, item1], self._manifest_type
+        )
         descriptors = list(manifest_file.resource_descriptors())
 
         # But we expect the descriptors to be in order by file
@@ -106,6 +114,8 @@ class TestShard:
 
 
 class TestShardLevelManifest:
+    _manifest_type = manifest._ShardSerialization("unused", 42)
+
     def test_insert_order_does_not_matter(self):
         path1 = pathlib.PurePath("file1")
         digest1 = hashing.Digest("test", b"abcd")
@@ -119,8 +129,12 @@ class TestShardLevelManifest:
             path=path2, digest=digest2, start=0, end=4
         )
 
-        manifest1 = manifest.Manifest([item1, item2])
-        manifest2 = manifest.Manifest([item2, item1])
+        manifest1 = manifest.Manifest(
+            "test", [item1, item2], self._manifest_type
+        )
+        manifest2 = manifest.Manifest(
+            "test", [item2, item1], self._manifest_type
+        )
 
         assert manifest1 == manifest2
 
@@ -131,12 +145,12 @@ class TestShardLevelManifest:
         item = manifest.ShardedFileManifestItem(
             path=path, digest=digest, start=0, end=2
         )
-        manifest1 = manifest.Manifest([item])
+        manifest1 = manifest.Manifest("test", [item], self._manifest_type)
 
         item = manifest.ShardedFileManifestItem(
             path=path, digest=digest, start=2, end=4
         )
-        manifest2 = manifest.Manifest([item])
+        manifest2 = manifest.Manifest("test", [item], self._manifest_type)
 
         assert manifest1 != manifest2
 
@@ -150,7 +164,7 @@ class TestShardLevelManifest:
                 path=path, digest=digest, start=i, end=i + 2
             )
             items.append(item)
-        manifest_file = manifest.Manifest(items)
+        manifest_file = manifest.Manifest("test", items, self._manifest_type)
 
         descriptors = list(manifest_file.resource_descriptors())
 
@@ -176,7 +190,9 @@ class TestShardLevelManifest:
         )
 
         # Note order is not preserved (random permutation)
-        manifest_file = manifest.Manifest([item2, item3, item1])
+        manifest_file = manifest.Manifest(
+            "test", [item2, item3, item1], self._manifest_type
+        )
         descriptors = list(manifest_file.resource_descriptors())
 
         # But we expect the descriptors to be in order by file shard
