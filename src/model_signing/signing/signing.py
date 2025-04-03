@@ -82,68 +82,81 @@ def _convert_descriptors_to_direct_statement(
 
 
 class SigningPayload:
-    """In-toto payload where the subjects are the model files themselves.
+    """In-toto payload used to represent a model for signing.
 
-    This payload is supposed to be used for manifests where every file in the
-    model is matched with a digest. Because existing tooling only supports
-    established hashing algorithms, we annotate every subject with the actual
-    hash algorithm used to compute the file digest, and use "sha256" as the
-    algorithm name in the digest itself.
+    This payload represents all the object (files, shards, etc.) of the model
+    paired with their hases. It can be seen as a serialization of a manifest.
+    The hashes are all recorded under the predicate, given that for the subject
+    we are limited on what hashes we can use
+    (https://github.com/sigstore/sigstore-python/issues/1018). Each hash follows
+    the format of a ResourceDescriptor: is an object containing a name for the
+    object, the hashing algorithm, and the digest value. These are recorded in
+    the predicate, as part of the `"resources"` list.
 
-    Example (TODO: needs to be updated):
+    The subject is a name for the model (taken from the model's directory) and a
+    global digest over all the computed digests. This is SHA256 computed over
+    all the digests, in the order they show up in the predicate (we canonicalize
+    this to be in alphabetical order). This digest can be used to refer to the
+    model from other metadata documents without having to carry the entire set
+    of resource descriptors around.
+
+    To ensure backwards compatibility, the predicate contains a
+    `"serialization"` section which describes the method used to serialize a
+    model to the manifest used to generate this payload. The section includes a
+    method name and a list of all relevant values needed to recompute the
+    serialization.
+
+    Future extensions to the model signature (e.g., incorporating model cards,
+    etc.) can be added as part of the predicate. For v1.0 of the predicate the
+    only supported fields in the predicate are `"serialization"` and
+    `"resources"`. Any other field should be ignored by verifiers adhering to
+    v1.0 version.
+
+    Example:
     ```json
     {
       "_type": "https://in-toto.io/Statement/v1",
       "subject": [
         {
-          "name": "d0/d1/d2/d3/d4/f0",
+          "name": "sample_model",
           "digest": {
-            "sha256": "6efa14..."
-          },
-          "annotations": {
-            "actual_hash_algorithm": "file-sha256"
-          }
-        },
-        {
-          "name": "d0/d1/d2/d3/d4/f1",
-          "digest": {
-            "sha256": "a9bc14..."
-          },
-          "annotations": {
-            "actual_hash_algorithm": "file-sha256"
-          }
-        },
-        {
-          "name": "d0/d1/d2/d3/d4/f2",
-          "digest": {
-            "sha256": "5f597e..."
-          },
-          "annotations": {
-            "actual_hash_algorithm": "file-sha256"
-          }
-        },
-        {
-          "name": "d0/d1/d2/d3/d4/f3",
-          "digest": {
-            "sha256": "eaf677..."
-          },
-          "annotations": {
-            "actual_hash_algorithm": "file-sha256"
+            "sha256": "143cc6..."
           }
         }
       ],
-      "predicateType": "https://model_signing/Digests/v0.1",
+      "predicateType": "https://model_signing/signature/v1.0",
       "predicate": {
-        "unused": "Unused, just passed due to API requirements"
+        "serialization": {
+          "method": "files",
+          "hash_type": "sha256",
+          "allow_symlinks": true
+        },
+        "resources": [
+          {
+            "algorithm": "sha256",
+            "digest": "fdd892...",
+            "name": "d0/f00"
+          },
+          {
+            "algorithm": "sha256",
+            "digest": "e16940...",
+            "name": "d0/f01"
+          },
+          {
+            "algorithm": "sha256",
+            "digest": "407822...",
+            "name": "d0/f02"
+          },
+          ...
+          {
+            "algorithm": "sha256",
+            "digest": "912bcf...",
+            "name": "f3"
+          }
+        ]
       }
     }
     ```
-
-    If the annotation for a subject is missing, or it does not contain
-    actual_hash_algorithm, it should be assumed that the digest is computed via
-    the algorithm listed in the digest dictionary (i.e., sha256).
-
-    See also https://github.com/sigstore/sigstore-python/issues/1018.
     """
 
     predicate_type: Final[str] = "https://model_signing/Digests/v0.1"
