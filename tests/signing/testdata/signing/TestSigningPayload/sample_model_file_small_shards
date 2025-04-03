@@ -1,0 +1,37 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "file_model",
+      "digest": {
+        "sha256": "57d54248751a51781ac2bed647670df0c45d3926e337021585c34a82384b6573"
+      }
+    }
+  ],
+  "predicateType": "https://model_signing/signature/v1.0",
+  "predicate": {
+    "serialization": {
+      "method": "shards",
+      "hash_type": "sha256-sharded-8",
+      "allow_symlinks": true,
+      "shard_size": 8.0
+    },
+    "resources": [
+      {
+        "algorithm": "sha256-sharded-8",
+        "digest": "a37010c994067764d86540bf479d93b4d0c3bb3955de7b61f951caf2fd0301b0",
+        "name": ".:0:8"
+      },
+      {
+        "algorithm": "sha256-sharded-8",
+        "digest": "bd762002a3528a27fb9a8822f822b949d3c9ab7e860af33039c9aa70ebbbe682",
+        "name": ".:8:16"
+      },
+      {
+        "algorithm": "sha256-sharded-8",
+        "digest": "a791e1e893ea4260c77475725101fb4cc6ad85f6340f21f10b239184e318cd21",
+        "name": ".:16:22"
+      }
+    ]
+  }
+}

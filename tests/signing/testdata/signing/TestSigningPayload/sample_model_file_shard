@@ -2,7 +2,7 @@
   "_type": "https://in-toto.io/Statement/v1",
   "subject": [
     {
-      "name": "symlink_model",
+      "name": "file_model",
       "digest": {
         "sha256": "002d162f867c5eee944e5080d25829b6625be0e3f081f6fbafc7dd655ca2e178"
       }
@@ -11,15 +11,16 @@
   "predicateType": "https://model_signing/signature/v1.0",
   "predicate": {
     "serialization": {
-      "method": "files",
-      "hash_type": "sha256",
-      "allow_symlinks": true
+      "method": "shards",
+      "hash_type": "sha256-sharded-1000000000",
+      "allow_symlinks": true,
+      "shard_size": 1000000000.0
     },
     "resources": [
       {
-        "algorithm": "sha256",
+        "algorithm": "sha256-sharded-1000000000",
         "digest": "3aab065c7181a173b5dd9e9d32a9f79923440b413be1e1ffcdba26a7365f719b",
-        "name": "symlink_file"
+        "name": ".:0:22"
       }
     ]
   }

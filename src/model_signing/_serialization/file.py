@@ -56,6 +56,13 @@ class Serializer(serialization.Serializer):
         self._max_workers = max_workers
         self._allow_symlinks = allow_symlinks
 
+        # Precompute some private values only once by using a mock file hasher.
+        # None of the arguments used to build the hasher are used.
+        hasher = file_hasher_factory(pathlib.Path())
+        self._serialization_description = manifest._FileSerialization(
+            hasher.digest_name, self._allow_symlinks
+        )
+
     @override
     def serialize(
         self,
@@ -103,7 +110,9 @@ class Serializer(serialization.Serializer):
             for future in concurrent.futures.as_completed(futures):
                 manifest_items.append(future.result())
 
-        return manifest.Manifest(manifest_items)
+        return manifest.Manifest(
+            model_path.name, manifest_items, self._serialization_description
+        )
 
     def _compute_hash(
         self, model_path: pathlib.Path, path: pathlib.Path

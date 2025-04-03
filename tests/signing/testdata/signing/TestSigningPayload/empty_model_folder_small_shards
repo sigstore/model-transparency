@@ -11,9 +11,10 @@
   "predicateType": "https://model_signing/signature/v1.0",
   "predicate": {
     "serialization": {
-      "method": "files",
-      "hash_type": "sha256",
-      "allow_symlinks": true
+      "method": "shards",
+      "hash_type": "sha256-sharded-8",
+      "allow_symlinks": true,
+      "shard_size": 8.0
     },
     "resources": []
   }

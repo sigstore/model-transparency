@@ -2,7 +2,7 @@
   "_type": "https://in-toto.io/Statement/v1",
   "subject": [
     {
-      "name": "empty_folder_model",
+      "name": "empty_file_inside_model",
       "digest": {
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }
@@ -11,9 +11,10 @@
   "predicateType": "https://model_signing/signature/v1.0",
   "predicate": {
     "serialization": {
-      "method": "files",
-      "hash_type": "sha256",
-      "allow_symlinks": true
+      "method": "shards",
+      "hash_type": "sha256-sharded-8",
+      "allow_symlinks": true,
+      "shard_size": 8.0
     },
     "resources": []
   }
