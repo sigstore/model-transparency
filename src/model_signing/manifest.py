@@ -248,12 +248,18 @@ class ShardedFileManifestItem(ManifestItem):
 class Manifest:
     """Generic manifest file to represent a model."""
 
-    def __init__(self, items: Iterable[ManifestItem]):
+    def __init__(
+        self,
+        model: str,
+        items: Iterable[ManifestItem],
+    ):
         """Builds a manifest from a collection of already hashed objects.
 
         Args:
+            model: A name for the model that generated the manifest.
             items: An iterable sequence of objects and their hashes.
         """
+        self._name = model
         self._item_to_digest = {item.key: item.digest for item in items}
 
     def __eq__(self, other: Self):
@@ -263,3 +269,15 @@ class Manifest:
         """Yields each resource from the manifest, one by one."""
         for item, digest in sorted(self._item_to_digest.items()):
             yield ResourceDescriptor(identifier=str(item), digest=digest)
+
+    @property
+    def model_name(self) -> str:
+        """The name of the model when serialized.
+
+        This is the final component of the path and is only informative.
+        Changing the name of the model should still result in the same digests
+        after serialization, it must not invalidate signatures. As a result, two
+        manifests with different model names but with the same resource
+        descriptors will compare equal.
+        """
+        return self._name

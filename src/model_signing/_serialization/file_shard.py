@@ -135,7 +135,9 @@ class Serializer(serialization.Serializer):
             for future in concurrent.futures.as_completed(futures):
                 manifest_items.append(future.result())
 
-        return manifest.Manifest(manifest_items)
+        return manifest.Manifest(
+            model_path.name, manifest_items
+        )
 
     def _get_shards(
         self, path: pathlib.Path
