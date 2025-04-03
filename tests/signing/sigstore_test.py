@@ -51,7 +51,7 @@ class MockedSigstoreBundle:
 
 
 def _mocked_verify_dsse(
-    bundle, policy, json_type=sigstore._IN_TOTO_JSON_PAYLOAD_TYPE
+    bundle, policy, json_type=signing._IN_TOTO_JSON_PAYLOAD_TYPE
 ):
     """Mocked replacement for `sigstore.Verifier.verify_dsse`."""
     return json_type, json.dumps(bundle._data)
