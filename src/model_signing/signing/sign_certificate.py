@@ -15,7 +15,6 @@
 """Signers and verifiers using certificates."""
 
 from collections.abc import Iterable
-import json
 import pathlib
 
 import certifi

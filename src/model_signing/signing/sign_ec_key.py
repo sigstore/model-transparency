@@ -14,7 +14,6 @@
 
 """Signers and verifiers using elliptic curve keys."""
 
-import json
 import pathlib
 from typing import Optional
 
