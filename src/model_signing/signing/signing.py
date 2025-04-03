@@ -39,7 +39,7 @@ https://docs.sigstore.dev/about/bundle/.
 import abc
 import pathlib
 import sys
-from typing import Any, Final
+from typing import Any
 
 from in_toto_attestation.v1 import statement
 
@@ -52,6 +52,10 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
+
+
+# The expected model signature predicate type.
+_PREDICATE_TYPE: str = "https://model_signing/signature/v1.0"
 
 
 def dsse_payload_to_manifest(dsse_payload: dict[str, Any]) -> manifest.Manifest:
@@ -70,9 +74,9 @@ def dsse_payload_to_manifest(dsse_payload: dict[str, Any]) -> manifest.Manifest:
         ValueError: If the payload cannot be deserialized to a manifest.
     """
     obtained_predicate_type = dsse_payload["predicateType"]
-    if obtained_predicate_type != Payload.predicate_type:
+    if obtained_predicate_type != _PREDICATE_TYPE:
         raise ValueError(
-            f"Predicate type mismatch, expected {Payload.predicate_type}, "
+            f"Predicate type mismatch, expected {_PREDICATE_TYPE}, "
             f"got {obtained_predicate_type}"
         )
 
@@ -185,9 +189,6 @@ class Payload:
     ```
     """
 
-    predicate_type: Final[str] = "https://model_signing/signature/v1.0"
-    statement: Final[statement.Statement]
-
     def __init__(self, manifest: manifest.Manifest):
         """Builds an instance of this in-toto payload.
 
@@ -219,7 +220,7 @@ class Payload:
 
         self.statement = statement.Statement(
             subjects=[subject],
-            predicate_type=self.predicate_type,
+            predicate_type=_PREDICATE_TYPE,
             predicate=predicate,
         )
 
