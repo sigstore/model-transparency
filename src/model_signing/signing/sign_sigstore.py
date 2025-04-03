@@ -14,10 +14,9 @@
 
 """Sigstore based signature, signers and verifiers."""
 
-import json
 import pathlib
 import sys
-from typing import Optional
+from typing import Optional, cast
 
 from google.protobuf import json_format
 from sigstore import dsse as sigstore_dsse
@@ -27,7 +26,6 @@ from sigstore import sign as sigstore_signer
 from sigstore import verify as sigstore_verifier
 from typing_extensions import override
 
-from model_signing import manifest
 from model_signing.signing import signing
 
 
@@ -35,10 +33,6 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
-
-
-_IN_TOTO_JSON_PAYLOAD_TYPE: str = "application/vnd.in-toto+json"
-_IN_TOTO_STATEMENT_TYPE: str = "https://in-toto.io/Statement/v1"
 
 
 class Signature(signing.Signature):
@@ -168,39 +162,10 @@ class Verifier(signing.Verifier):
         )
 
     @override
-    def verify(self, signature: signing.Signature) -> manifest.Manifest:
-        """Verifies the signature.
-
-        Args:
-            signature: the signature to verify.
-
-        Returns:
-            A manifest that represents the model when it was signed.
-
-        Raises:
-            ValueError: If the signature verification fails, or if the DSSE
-              envelope is not in the expected format.
-            TypeError: If the signature type is not `SigstoreSignature`.
-        """
-        if not isinstance(signature, SigstoreSignature):
-            raise TypeError("Only `SigstoreSignature` signatures are supported")
-
-        payload_type, payload = self._verifier.verify_dsse(
-            bundle=signature.bundle, policy=self._policy
-        )
-
-        if payload_type != _IN_TOTO_JSON_PAYLOAD_TYPE:
-            raise ValueError(
-                f"Expected DSSE payload {_IN_TOTO_JSON_PAYLOAD_TYPE}, "
-                f"but got {payload_type}"
-            )
-
-        payload = json.loads(payload)
-
-        if payload["_type"] != _IN_TOTO_STATEMENT_TYPE:
-            raise ValueError(
-                f"Expected in-toto {_IN_TOTO_STATEMENT_TYPE} payload, "
-                f"but got {payload['_type']}"
-            )
-
-        return signing.dsse_payload_to_manifest(payload)
+    def _verify_signed_content(
+        self, signature: signing.Signature
+    ) -> tuple[str, bytes]:
+        # We are guaranteed to only use the local signature type
+        signature = cast(Signature, signature)
+        bundle = signature.bundle
+        return self._verifier.verify_dsse(bundle=bundle, policy=self._policy)
