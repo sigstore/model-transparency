@@ -19,14 +19,15 @@ library. We guarantee backwards compatibility only for the API defined in
 `hashing.py`, `signing.py` and `verifying.py` at the root level of the library.
 """
 
-from collections.abc import Callable
+from collections.abc import Iterable
 import os
 import pathlib
 import sys
 from typing import Optional
 
 from model_signing import hashing
-from model_signing import manifest
+from model_signing._signing import sign_certificate as certificate
+from model_signing._signing import sign_ec_key as ec_key
 from model_signing._signing import sign_sigstore as sigstore
 from model_signing._signing import signing
 
@@ -60,10 +61,7 @@ class Config:
     def __init__(self):
         """Initializes the default configuration for signing."""
         self._hashing_config = hashing.Config()
-        self._payload_generator = signing.Payload
-        self._signer = sigstore.Signer(
-            use_ambient_credentials=False, use_staging=False
-        )
+        self.use_sigstore_signer()
 
     def sign(self, model_path: os.PathLike, signature_path: os.PathLike):
         """Signs a model using the current configuration.
@@ -73,7 +71,7 @@ class Config:
             signature_path: the path of the resulting signature.
         """
         manifest = self._hashing_config.hash(model_path)
-        payload = self._payload_generator(manifest)
+        payload = signing.Payload(manifest)
         signature = self._signer.sign(payload)
         signature.write(pathlib.Path(signature_path))
 
@@ -89,25 +87,7 @@ class Config:
         self._hashing_config = hashing_config
         return self
 
-    def set_payload_generator(
-        self, generator: Callable[[manifest.Manifest], signing.Payload]
-    ) -> Self:
-        """Sets the conversion from manifest to signing payload.
-
-        Since we want to support multiple serialization formats and multiple
-        signing solutions, we use a payload generator to relax the coupling
-        between the two.
-
-        Args:
-            generator: the conversion from a manifest to a signing payload.
-
-        Return:
-            The new signing configuration.
-        """
-        self._payload_generator = generator
-        return self
-
-    def set_sigstore_signer(
+    def use_sigstore_signer(
         self,
         *,
         oidc_issuer: Optional[str] = None,
@@ -117,9 +97,8 @@ class Config:
     ) -> Self:
         """Configures the signing to be performed with Sigstore.
 
-        Only one signer can be configured. Currently, we only support Sigstore
-        in the API, but the CLI supports signing with PKI, BYOK and no signing.
-        We will merge the configurations in a subsequent change.
+        The signer in this configuration is changed to one that performs signing
+        with Sigstore, as configured.
 
         Args:
             oidc_issuer: An optional OpenID Connect issuer to use instead of the
@@ -142,5 +121,49 @@ class Config:
             use_ambient_credentials=use_ambient_credentials,
             use_staging=use_staging,
             identity_token=identity_token,
+        )
+        return self
+
+    def use_elliptic_key_signer(
+        self, *, private_key: pathlib.Path, password: Optional[str] = None
+    ) -> Self:
+        """Configures the signing to be performed using elliptic curve keys.
+
+        The signer in this configuration is changed to one that performs signing
+        using a private key based on elliptic curve cryptography.
+
+        Args:
+            private_key: The path to the private key to use for signing.
+            password: An optional password for the key, if encrypted.
+
+        Return:
+            The new signing configuration.
+        """
+        self._signer = ec_key.Signer(private_key, password)
+        return self
+
+    def use_certificate_signer(
+        self,
+        *,
+        private_key: pathlib.Path,
+        signing_certificate: pathlib.Path,
+        certificate_chain: Iterable[pathlib.Path],
+    ) -> Self:
+        """Configures the signing to be performed using signing certificates.
+
+        The signer in this configuration is changed to one that performs signing
+        using cryptographic certificates.
+
+        Args:
+            private_key: The path to the private key to use for signing.
+            signing_certificate: The path to the signing certificate.
+            certificate_chain: Optional paths to other certificates to establish
+              a chain of trust.
+
+        Return:
+            The new signing configuration.
+        """
+        self._signer = certificate.Signer(
+            private_key, signing_certificate, certificate_chain
         )
         return self
