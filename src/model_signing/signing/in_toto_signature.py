@@ -49,7 +49,7 @@ class IntotoSignature(signing.Signature):
 
     def to_manifest(self) -> manifest.Manifest:
         payload = json.loads(self._bundle.dsse_envelope.payload)
-        return signing.Payload.manifest_from_payload(payload)
+        return signing.dsse_payload_to_manifest(payload)
 
 
 class IntotoSigner(signing.Signer):
