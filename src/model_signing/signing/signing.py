@@ -175,7 +175,9 @@ class SigningPayload:
         ).pb
 
         predicate = {
+            "serialization": manifest.serialization,
             "resources": resources,
+            # other properties can go here
         }
 
         return cls(
@@ -216,6 +218,8 @@ class SigningPayload:
         expected_digest = subjects[0]["digest"]["sha256"]
 
         predicate = payload["predicate"]
+        serialization_dict = predicate["serialization"]
+        serialization = manifest.SerializationType.from_dict(serialization_dict)
 
         hasher = memory.SHA256()
         items = []
@@ -225,6 +229,7 @@ class SigningPayload:
             digest_value = resource["digest"]
             digest = hashing.Digest(algorithm, bytes.fromhex(digest_value))
             hasher.update(digest.digest_value)
+            items.append(serialization.new_item(name, digest))
 
         obtained_digest = hasher.compute().digest_hex
         if obtained_digest != expected_digest:
@@ -233,7 +238,7 @@ class SigningPayload:
                 f"but the included resources hash to {obtained_digest}"
             )
 
-        return manifest.Manifest(model_name, items)
+        return manifest.Manifest(model_name, items, serialization)
 
 
 class Signature(metaclass=abc.ABCMeta):

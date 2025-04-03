@@ -35,6 +35,7 @@ from collections.abc import Iterable, Iterator
 import dataclasses
 import pathlib
 import sys
+from typing import Any, Final
 
 from typing_extensions import override
 
@@ -245,6 +246,138 @@ class ShardedFileManifestItem(ManifestItem):
         return Shard(self._path, self._start, self._end)
 
 
+class SerializationType(metaclass=abc.ABCMeta):
+    """A description of the serialization process that generated the manifest.
+
+    These should record all the parameters needed to ensure a reproducible
+    serialization. These are used to build a manifest back from the signature in
+    a backwards compatible way. We use these to determine what serialization to
+    use when verifying a signature.
+    """
+
+    @property
+    @abc.abstractmethod
+    def serialization_dict(self) -> dict[str, Any]:
+        """The arguments of the serialization method."""
+
+    @classmethod
+    def from_dict(cls, serialization_dict: dict[str, Any]) -> Self:
+        """Builds an instance of this class based on the dict representation.
+
+        This is the reverse of `serialization_dict`.
+        """
+        serialization_type = serialization_dict["method"]
+        for subclass in [_FileSerialization, _ShardSerialization]:
+            if serialization_type == subclass.method:
+                return subclass._from_dict(serialization_dict)
+        raise ValueError(f"Unknown serialization type {serialization_type}")
+
+    @classmethod
+    @abc.abstractmethod
+    def _from_dict(cls, serialization_dict: dict[str, Any]) -> Self:
+        """Performs the actual build from `from_dict`."""
+
+    @abc.abstractmethod
+    def new_item(self, name: str, digest: hashing.Digest) -> ManifestItem:
+        """Returns a new manifest item with given name and digest."""
+
+
+class _FileSerialization(SerializationType):
+    method: Final[str] = "files"
+
+    def __init__(self, hash_type: str, allow_symlinks: bool = False):
+        """Records the manifest serialization type for serialization by files.
+
+        We only need to record the hashing engine used and whether symlinks are
+        hashed or ignored.
+
+        Args:
+            hash_type: A string representation of the hash algorithm.
+            allow_symlinks: Controls whether symbolic links are included.
+        """
+        self._hash_type = hash_type
+        self._allow_symlinks = allow_symlinks
+
+    @property
+    @override
+    def serialization_dict(self) -> dict[str, Any]:
+        return {
+            "method": self.method,
+            "hash_type": self._hash_type,
+            "allow_symlinks": self._allow_symlinks,
+        }
+
+    @classmethod
+    @override
+    def _from_dict(cls, serialization_dict: dict[str, Any]) -> Self:
+        return cls(
+            serialization_dict["hash_type"],
+            serialization_dict["allow_symlinks"],
+        )
+
+    @override
+    def new_item(self, name: str, digest: hashing.Digest) -> ManifestItem:
+        path = pathlib.PurePosixPath(name)
+        return FileManifestItem(path=path, digest=digest)
+
+
+class _ShardSerialization(SerializationType):
+    method: Final[str] = "shards"
+
+    def __init__(
+        self, hash_type: str, shard_size: int, allow_symlinks: bool = False
+    ):
+        """Records the manifest serialization type for serialization by files.
+
+        We need to record the hashing engine used and whether symlinks are
+        hashed or ignored, just like for file serialization. We also need to
+        record the shard size used to split the files, since different shard
+        sizes results in different resources.
+
+        Args:
+            hash_type: A string representation of the hash algorithm.
+            allow_symlinks: Controls whether symbolic links are included.
+        """
+        self._hash_type = hash_type
+        self._allow_symlinks = allow_symlinks
+        self._shard_size = shard_size
+
+    @property
+    @override
+    def serialization_dict(self) -> dict[str, Any]:
+        return {
+            "method": self.method,
+            "hash_type": self._hash_type,
+            "shard_size": self._shard_size,
+            "allow_symlinks": self._allow_symlinks,
+        }
+
+    @classmethod
+    @override
+    def _from_dict(cls, serialization_dict: dict[str, Any]) -> Self:
+        return cls(
+            serialization_dict["hash_type"],
+            serialization_dict["shard_size"],
+            serialization_dict["allow_symlinks"],
+        )
+
+    @override
+    def new_item(self, name: str, digest: hashing.Digest) -> ManifestItem:
+        parts = name.split(":")
+        if len(parts) != 3:
+            raise ValueError(
+                "Invalid resource name: expected 3 components separated by "
+                f"`:`, got {name}"
+            )
+
+        path = pathlib.PurePosixPath(parts[0])
+        start = int(parts[1])
+        end = int(parts[2])
+        return ShardedFileManifestItem(
+            path=path, start=start, end=end, digest=digest
+        )
+
+
 class Manifest:
     """Generic manifest file to represent a model."""
 
@@ -252,6 +385,7 @@ class Manifest:
         self,
         model: str,
         items: Iterable[ManifestItem],
+        serialization_type: SerializationType,
     ):
         """Builds a manifest from a collection of already hashed objects.
 
@@ -261,6 +395,7 @@ class Manifest:
         """
         self._name = model
         self._item_to_digest = {item.key: item.digest for item in items}
+        self._serialization_type = serialization_type
 
     def __eq__(self, other: Self):
         return self._item_to_digest == other._item_to_digest
@@ -281,3 +416,12 @@ class Manifest:
         descriptors will compare equal.
         """
         return self._name
+
+    @property
+    def serialization(self) -> dict[str, Any]:
+        """The serialization (and arguments) used to build the manifest.
+
+        This is needed to record the serialization method used to generate the
+        manifest so that signature verification can use the same method.
+        """
+        return self._serialization_type.serialization_dict

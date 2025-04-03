@@ -87,6 +87,9 @@ class Serializer(serialization.Serializer):
         # None of the arguments used to build the hasher are used.
         hasher = sharded_hasher_factory(pathlib.Path(), 0, 1)
         self._shard_size = hasher.shard_size
+        self._serialization = manifest._ShardSerialization(
+            hasher.digest_name, self._shard_size, self._allow_symlinks
+        )
 
     @override
     def serialize(
@@ -136,7 +139,7 @@ class Serializer(serialization.Serializer):
                 manifest_items.append(future.result())
 
         return manifest.Manifest(
-            model_path.name, manifest_items
+            model_path.name, manifest_items, self._serialization
         )
 
     def _get_shards(
