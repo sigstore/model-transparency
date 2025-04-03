@@ -18,30 +18,28 @@ The serialization API produces a manifest representation of the models, and we
 use that to implement integrity checking of models in different computational
 patterns. This means that all manifests need to be kept only in memory.
 
-For signing, we need to convert the manifest to the signing payload. We only
-support manifests serialized to in-toto formats described by
-https://github.com/in-toto/attestation/tree/main/spec/v1. The envelope format
-is DSSE, as described in https://github.com/secure-systems-lab/dsse.
-
 Since we need to support multiple signing methods (e.g., Sigstore, key,
 certificate, etc.) , we provide a `Signer` abstract class with a single `sign`
 method that takes a signing payload and converts it to a signature in the
 supported format.
 
-Every possible signature will be implemented as a subclass of `Signature` class.
-The API for signatures only allows writing them to disk and parsing them from a
-given path.
-TODO: only one signature is supported!
-
 Finally, every signature needs to be verified. We pair every `Signer` subclass
 with a `Verifier` which takes a signature, verify the authenticity of the
 payload and then expand that to a manifest.
+
+Regarding the data formats, for signing, we need to convert the manifest to the
+signing payload. We only support manifests serialized to in-toto formats
+described by https://github.com/in-toto/attestation/tree/main/spec/v1. The
+envelope format is DSSE, as described in
+https://github.com/secure-systems-lab/dsse. The signature is in a Sigstore
+bundle format over the DSSE payload. The format is described at
+https://docs.sigstore.dev/about/bundle/.
 """
 
 import abc
 import pathlib
 import sys
-from typing import Any, Final
+from typing import Any
 
 from in_toto_attestation.v1 import statement
 
@@ -54,6 +52,63 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
+
+
+# The expected model signature predicate type.
+_PREDICATE_TYPE: str = "https://model_signing/signature/v1.0"
+
+
+def dsse_payload_to_manifest(dsse_payload: dict[str, Any]) -> manifest.Manifest:
+    """Builds a manifest from the DSSE payload read from a signature.
+
+    The payload here is a dictionary that represents the payload part of the
+    DSSE envelope contained in the Sigstore bundle.
+
+    Args:
+        payload: The in-toto DSSE envelope to convert to manifest.
+
+    Returns:
+        A manifest representing the signed model.
+
+    Raises:
+        ValueError: If the payload cannot be deserialized to a manifest.
+    """
+    obtained_predicate_type = dsse_payload["predicateType"]
+    if obtained_predicate_type != _PREDICATE_TYPE:
+        raise ValueError(
+            f"Predicate type mismatch, expected {_PREDICATE_TYPE}, "
+            f"got {obtained_predicate_type}"
+        )
+
+    subjects = dsse_payload["subject"]
+    if len(subjects) != 1:
+        raise ValueError(f"Expected only one subject, got {subjects}")
+
+    model_name = subjects[0]["name"]
+    expected_digest = subjects[0]["digest"]["sha256"]
+
+    predicate = dsse_payload["predicate"]
+    serialization_args = predicate["serialization"]
+    serialization = manifest.SerializationType.from_args(serialization_args)
+
+    hasher = memory.SHA256()
+    items = []
+    for resource in predicate["resources"]:
+        name = resource["name"]
+        algorithm = resource["algorithm"]
+        digest_value = resource["digest"]
+        digest = hashing.Digest(algorithm, bytes.fromhex(digest_value))
+        hasher.update(digest.digest_value)
+        items.append(serialization.new_item(name, digest))
+
+    obtained_digest = hasher.compute().digest_hex
+    if obtained_digest != expected_digest:
+        raise ValueError(
+            f"Manifest is inconsistent. Root digest is {expected_digest}, "
+            f"but the included resources hash to {obtained_digest}"
+        )
+
+    return manifest.Manifest(model_name, items, serialization)
 
 
 class Payload:
@@ -134,9 +189,6 @@ class Payload:
     ```
     """
 
-    predicate_type: Final[str] = "https://model_signing/signature/v1.0"
-    statement: Final[statement.Statement]
-
     def __init__(self, manifest: manifest.Manifest):
         """Builds an instance of this in-toto payload.
 
@@ -168,61 +220,9 @@ class Payload:
 
         self.statement = statement.Statement(
             subjects=[subject],
-            predicate_type=self.predicate_type,
+            predicate_type=_PREDICATE_TYPE,
             predicate=predicate,
         )
-
-    @classmethod
-    def manifest_from_payload(
-        cls, payload: dict[str, Any]
-    ) -> manifest.Manifest:
-        """Builds a manifest from an in-memory in-toto payload.
-
-        Args:
-            payload: the in memory in-toto payload to build a manifest from.
-
-        Returns:
-            A manifest that can be converted back to the same payload.
-
-        Raises:
-            ValueError: If the payload cannot be deserialized to a manifest.
-        """
-        obtained_predicate_type = payload["predicateType"]
-        if obtained_predicate_type != cls.predicate_type:
-            raise ValueError(
-                f"Predicate type mismatch, expected {cls.predicate_type}, "
-                f"got {obtained_predicate_type}"
-            )
-
-        subjects = payload["subject"]
-        if len(subjects) != 1:
-            raise ValueError(f"Expected only one subject, got {subjects}")
-
-        model_name = subjects[0]["name"]
-        expected_digest = subjects[0]["digest"]["sha256"]
-
-        predicate = payload["predicate"]
-        serialization_args = predicate["serialization"]
-        serialization = manifest.SerializationType.from_args(serialization_args)
-
-        hasher = memory.SHA256()
-        items = []
-        for resource in predicate["resources"]:
-            name = resource["name"]
-            algorithm = resource["algorithm"]
-            digest_value = resource["digest"]
-            digest = hashing.Digest(algorithm, bytes.fromhex(digest_value))
-            hasher.update(digest.digest_value)
-            items.append(serialization.new_item(name, digest))
-
-        obtained_digest = hasher.compute().digest_hex
-        if obtained_digest != expected_digest:
-            raise ValueError(
-                f"Manifest is inconsistent. Root digest is {expected_digest}, "
-                f"but the included resources hash to {obtained_digest}"
-            )
-
-        return manifest.Manifest(model_name, items, serialization)
 
 
 class Signature(metaclass=abc.ABCMeta):

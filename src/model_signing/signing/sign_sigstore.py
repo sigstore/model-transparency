@@ -234,4 +234,4 @@ class SigstoreVerifier(signing.Verifier):
                 f"but got {payload['_type']}"
             )
 
-        return signing.Payload.manifest_from_payload(payload)
+        return signing.dsse_payload_to_manifest(payload)
