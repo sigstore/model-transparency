@@ -26,7 +26,7 @@ import time
 import pytest
 
 from model_signing import sign
-from model_signing import verify
+from model_signing import verification
 
 
 _MIN_VALIDITY = timedelta(minutes=1)
@@ -95,7 +95,7 @@ class TestSigstoreSigning:
         sc.sign(sample_model_folder, signature_path)
 
         expected_identity = "https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon/.github/workflows/extremely-dangerous-oidc-beacon.yml@refs/heads/main"
-        verify.verify(
+        verification.verify(
             sample_model_folder,
             signature_path,
             identity=expected_identity,
