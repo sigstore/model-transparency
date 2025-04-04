@@ -88,7 +88,11 @@ class Serializer(serialization.Serializer):
         hasher = sharded_hasher_factory(pathlib.Path(), 0, 1)
         self._shard_size = hasher.shard_size
         self._serialization_description = manifest._ShardSerialization(
-            hasher.digest_name, self._shard_size, self._allow_symlinks
+            # Here we need the internal hasher name, not the mangled name.
+            # This name is used when guessing the hashing configuration.
+            hasher._content_hasher.digest_name,
+            self._shard_size,
+            self._allow_symlinks,
         )
 
     @override

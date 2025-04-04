@@ -12,7 +12,7 @@
   "predicate": {
     "serialization": {
       "method": "shards",
-      "hash_type": "sha256-sharded-1000000000",
+      "hash_type": "sha256",
       "allow_symlinks": true,
       "shard_size": 1000000000.0
     },
