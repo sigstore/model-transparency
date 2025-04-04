@@ -20,7 +20,6 @@ library. We guarantee backwards compatibility only for the API defined in
 """
 
 from collections.abc import Iterable
-import os
 import pathlib
 import sys
 from typing import Optional
@@ -38,7 +37,7 @@ else:
     from typing_extensions import Self
 
 
-def sign(model_path: os.PathLike, signature_path: os.PathLike):
+def sign(model_path: hashing.PathLike, signature_path: hashing.PathLike):
     """Signs a model using the default configuration.
 
     Args:
@@ -63,7 +62,9 @@ class Config:
         self._hashing_config = hashing.Config()
         self.use_sigstore_signer()
 
-    def sign(self, model_path: os.PathLike, signature_path: os.PathLike):
+    def sign(
+        self, model_path: hashing.PathLike, signature_path: hashing.PathLike
+    ):
         """Signs a model using the current configuration.
 
         Args:
@@ -125,7 +126,7 @@ class Config:
         return self
 
     def use_elliptic_key_signer(
-        self, *, private_key: pathlib.Path, password: Optional[str] = None
+        self, *, private_key: hashing.PathLike, password: Optional[str] = None
     ) -> Self:
         """Configures the signing to be performed using elliptic curve keys.
 
@@ -139,15 +140,15 @@ class Config:
         Return:
             The new signing configuration.
         """
-        self._signer = ec_key.Signer(private_key, password)
+        self._signer = ec_key.Signer(pathlib.Path(private_key), password)
         return self
 
     def use_certificate_signer(
         self,
         *,
-        private_key: pathlib.Path,
-        signing_certificate: pathlib.Path,
-        certificate_chain: Iterable[pathlib.Path],
+        private_key: hashing.PathLike,
+        signing_certificate: hashing.PathLike,
+        certificate_chain: Iterable[hashing.PathLike],
     ) -> Self:
         """Configures the signing to be performed using signing certificates.
 
@@ -164,6 +165,8 @@ class Config:
             The new signing configuration.
         """
         self._signer = certificate.Signer(
-            private_key, signing_certificate, certificate_chain
+            pathlib.Path(private_key),
+            pathlib.Path(signing_certificate),
+            [pathlib.Path(c) for c in certificate_chain],
         )
         return self
