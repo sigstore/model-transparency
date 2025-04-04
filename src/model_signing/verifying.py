@@ -16,8 +16,8 @@
 
 Users should use this API to verify the integrity of models, rather than using
 the internals of the library. We guarantee backwards compatibility only for the
-API defined in `hashing.py`, `sign.py` and `verify.py` at the root level of the
-library.
+API defined in `hashing.py`, `signing.py` and `verifying.py` at the root level
+of the library.
 """
 
 import os

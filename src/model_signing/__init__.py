@@ -18,15 +18,15 @@ The stable high-level API is split into 3 modules:
 
 - model_signing.hashing
 - model_signing.signing
-- model_signing.verification
+- model_signing.verifying
 """
 
 from model_signing import hashing
 from model_signing import signing
-from model_signing import verification
+from model_signing import verifying
 
 
 __version__ = "0.2.0"
 
 
-__all__ = ["hashing", "signing", "verification"]
+__all__ = ["hashing", "signing", "verifying"]
