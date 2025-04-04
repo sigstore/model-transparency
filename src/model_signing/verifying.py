@@ -25,6 +25,7 @@ import pathlib
 import sys
 
 from model_signing import hashing
+from model_signing import manifest
 from model_signing._signing import sign_certificate as certificate
 from model_signing._signing import sign_ec_key as ec_key
 from model_signing._signing import sign_sigstore as sigstore
@@ -44,11 +45,15 @@ class Config:
     formats and verification types. Having configured the serialization format,
     this configuration class supports setting up the verification parameters.
     These should match the signing one.
+
+    For the hashing config used during serialization, although this should also
+    match the configuration used during signing, we can autodetect it from the
+    signature. This is the default behavior.
     """
 
     def __init__(self):
         """Initializes the default configuration for verification."""
-        self._hashing_config = hashing.Config()
+        self._hashing_config = None
         self._verifier = None
         self._uses_sigstore = False
 
@@ -72,6 +77,9 @@ class Config:
             signature = sigstore_pb.Signature.read(pathlib.Path(signature_path))
 
         expected_manifest = self._verifier.verify(signature)
+
+        if self._hashing_config is None:
+            self._guess_hashing_config(expected_manifest)
         actual_manifest = self._hashing_config.hash(model_path)
 
         if actual_manifest != expected_manifest:
@@ -88,6 +96,25 @@ class Config:
         """
         self._hashing_config = hashing_config
         return self
+
+    def _guess_hashing_config(self, source_manifest: manifest.Manifest) -> None:
+        """Attempts to guess the hashing config from a manifest."""
+        args = source_manifest.serialization_type
+        method = args["method"]
+        # TODO: Once Python 3.9 support is deprecated revert to using `match`
+        if method == "files":
+            self._hashing_config = hashing.Config().use_file_serialization(
+                hashing_algorithm=args["hash_type"],
+                allow_symlinks=args["allow_symlinks"],
+            )
+        elif method == "shards":
+            self._hashing_config = hashing.Config().use_shard_serialization(
+                hashing_algorithm=args["hash_type"],
+                shard_size=args["shard_size"],
+                allow_symlinks=args["allow_symlinks"],
+            )
+        else:
+            raise ValueError("Cannot guess the hashing configuration")
 
     def use_sigstore_verifier(
         self, *, identity: str, oidc_issuer: str, use_staging: bool = False
