@@ -12,11 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""High level API for the signing interface of model_signing library.
+"""High level API for the signing interface of `model_signing` library.
 
-Users should use this API to sign models, rather than using the internals of the
-library. We guarantee backwards compatibility only for the API defined in
-`hashing.py`, `signing.py` and `verifying.py` at the root level of the library.
+The module allows signing a model with a default configuration:
+
+```python
+model_signing.signing.sign("finbert", "finbert.sig")
+```
+
+The module allows customizing the signing configuration before signing:
+
+```python
+model_signing.signing.Config().use_elliptic_key_signer(private_key="key").sign(
+    "finbert", "finbert.sig"
+)
+```
+
+The same signing configuration can be used to sign multiple models:
+
+```python
+signing_config = model_signing.signing.Config().use_elliptic_key_signer(
+    private_key="key"
+)
+
+for model in all_models:
+    signing_config.sign(model, f"{model}_sharded.sig")
+```
+
+The API defined here is stable and backwards compatible.
 """
 
 from collections.abc import Iterable
@@ -40,6 +63,11 @@ else:
 def sign(model_path: hashing.PathLike, signature_path: hashing.PathLike):
     """Signs a model using the default configuration.
 
+    In this default configuration we sign using Sigstore and the default hashing
+    configuration from `model_signing.hashing`.
+
+    The resulting signature is in the Sigstore bundle format.
+
     Args:
         model_path: the path to the model to sign.
         signature_path: the path of the resulting signature.
@@ -50,11 +78,9 @@ def sign(model_path: hashing.PathLike, signature_path: hashing.PathLike):
 class Config:
     """Configuration to use when signing models.
 
-    The signing configuration is used to decouple between serialization formats
-    and signing types. This configuration class allows setting up the
-    serialization format, the method to convert a manifest to a signing payload
-    and the engine used for signing (currently, only supporting Sigstore at this
-    level).
+    Currently we support signing with Sigstore (public instance and staging
+    instance), signing with private keys and signing with signing certificates.
+    Other signing modes can be added in the future.
     """
 
     def __init__(self):
@@ -68,8 +94,8 @@ class Config:
         """Signs a model using the current configuration.
 
         Args:
-            model_path: the path to the model to sign.
-            signature_path: the path of the resulting signature.
+            model_path: The path to the model to sign.
+            signature_path: The path of the resulting signature.
         """
         manifest = self._hashing_config.hash(model_path)
         payload = signing.Payload(manifest)
@@ -80,7 +106,7 @@ class Config:
         """Sets the new configuration for hashing models.
 
         Args:
-            hashing_config: the new hashing configuration.
+            hashing_config: The new hashing configuration.
 
         Returns:
             The new signing configuration.
@@ -99,7 +125,7 @@ class Config:
         """Configures the signing to be performed with Sigstore.
 
         The signer in this configuration is changed to one that performs signing
-        with Sigstore, as configured.
+        with Sigstore.
 
         Args:
             oidc_issuer: An optional OpenID Connect issuer to use instead of the
@@ -153,7 +179,7 @@ class Config:
         """Configures the signing to be performed using signing certificates.
 
         The signer in this configuration is changed to one that performs signing
-        using cryptographic certificates.
+        using cryptographic signing certificates.
 
         Args:
             private_key: The path to the private key to use for signing.

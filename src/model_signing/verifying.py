@@ -12,12 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""High level API for the verification interface of model_signing library.
+"""High level API for the verification interface of `model_signing` library.
 
-Users should use this API to verify the integrity of models, rather than using
-the internals of the library. We guarantee backwards compatibility only for the
-API defined in `hashing.py`, `signing.py` and `verifying.py` at the root level
-of the library.
+This module supports configuring the verification method used to verify a model,
+before performing the verification.
+
+```python
+model_signing.verifying.Config().use_sigstore_verifier(
+    identity=identity, oidc_issuer=oidc_provider
+).verify("finbert", "finbert.sig")
+```
+
+The same verification configuration can be used to verify multiple models:
+
+```python
+verifying_config = model_signing.signing.Config().use_elliptic_key_verifier(
+    public_key="key.pub"
+)
+
+for model in all_models:
+    verifying_config.verify(model, f"{model}_sharded.sig")
+```
+
+The API defined here is stable and backwards compatible.
 """
 
 from collections.abc import Iterable
@@ -41,14 +58,14 @@ else:
 class Config:
     """Configuration to use when verifying models against signatures.
 
-    The verification configuration is used to decouple between serialization
-    formats and verification types. Having configured the serialization format,
-    this configuration class supports setting up the verification parameters.
-    These should match the signing one.
+    The verification configuration is needed to determine how to read and verify
+    the signature. Given we support multiple signing format, the verification
+    settings must match the signing ones.
 
-    For the hashing config used during serialization, although this should also
-    match the configuration used during signing, we can autodetect it from the
-    signature. This is the default behavior.
+    The configuration also supports configuring the hashing configuration from
+    `model_signing.hashing`. This should also match the configuration used
+    during signing. However, by default, we can attempt to guess it from the
+    signature.
     """
 
     def __init__(self):
@@ -63,7 +80,7 @@ class Config:
         """Verifies that a model conforms to a signature.
 
         Args:
-            model_path: the path to the model to verify.
+            model_path: The path to the model to verify.
 
         Raises:
             ValueError: No verifier has been configured.
@@ -88,8 +105,12 @@ class Config:
     def set_hashing_config(self, hashing_config: hashing.Config) -> Self:
         """Sets the new configuration for hashing models.
 
+        After calling this method, the automatic guessing of the hashing
+        configuration used during signing is no longer possible from within one
+        instance of this class.
+
         Args:
-            hashing_config: the new hashing configuration.
+            hashing_config: The new hashing configuration.
 
         Returns:
             The new signing configuration.

@@ -81,38 +81,38 @@ class TestFileLevelManifest:
 
 class TestShard:
     def test_round_trip_from_shard(self):
-        shard = manifest.Shard(pathlib.PurePosixPath("file"), 0, 42)
+        shard = manifest._Shard(pathlib.PurePosixPath("file"), 0, 42)
         shard_str = str(shard)
-        assert manifest.Shard.from_str(shard_str) == shard
+        assert manifest._Shard.from_str(shard_str) == shard
 
     def test_round_trip_from_string(self):
         shard_str = "file:0:42"
-        shard = manifest.Shard.from_str(shard_str)
+        shard = manifest._Shard.from_str(shard_str)
         assert str(shard) == shard_str
 
     def test_invalid_shard_str_too_few_components(self):
         shard_str = "file"
 
         with pytest.raises(ValueError, match="Expected 3 components"):
-            manifest.Shard.from_str(shard_str)
+            manifest._Shard.from_str(shard_str)
 
     def test_invalid_shard_str_too_many_components(self):
         shard_str = "file:0:1:2"
 
         with pytest.raises(ValueError, match="Expected 3 components"):
-            manifest.Shard.from_str(shard_str)
+            manifest._Shard.from_str(shard_str)
 
     def test_invalid_shard_bad_type_for_start_offset(self):
         shard_str = "file:zero:4"
 
         with pytest.raises(ValueError, match="invalid literal for int"):
-            manifest.Shard.from_str(shard_str)
+            manifest._Shard.from_str(shard_str)
 
     def test_invalid_shard_bad_type_for_endart_offset(self):
         shard_str = "file:0:four"
 
         with pytest.raises(ValueError, match="invalid literal for int"):
-            manifest.Shard.from_str(shard_str)
+            manifest._Shard.from_str(shard_str)
 
 
 class TestShardLevelManifest:
