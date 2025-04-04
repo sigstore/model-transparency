@@ -20,7 +20,6 @@ library. We guarantee backwards compatibility only for the API defined in
 """
 
 from collections.abc import Iterable
-import os
 import pathlib
 import sys
 from typing import Optional
@@ -38,7 +37,7 @@ else:
     from typing_extensions import Self
 
 
-def sign(model_path: os.PathLike, signature_path: os.PathLike):
+def sign(model_path: hashing.PathLike, signature_path: hashing.PathLike):
     """Signs a model using the default configuration.
 
     Args:
@@ -63,7 +62,9 @@ class Config:
         self._hashing_config = hashing.Config()
         self.use_sigstore_signer()
 
-    def sign(self, model_path: os.PathLike, signature_path: os.PathLike):
+    def sign(
+        self, model_path: hashing.PathLike, signature_path: hashing.PathLike
+    ):
         """Signs a model using the current configuration.
 
         Args:
@@ -125,7 +126,7 @@ class Config:
         return self
 
     def use_elliptic_key_signer(
-        self, *, private_key: os.PathLike, password: Optional[str] = None
+        self, *, private_key: hashing.PathLike, password: Optional[str] = None
     ) -> Self:
         """Configures the signing to be performed using elliptic curve keys.
 
@@ -145,9 +146,9 @@ class Config:
     def use_certificate_signer(
         self,
         *,
-        private_key: os.PathLike,
-        signing_certificate: os.PathLike,
-        certificate_chain: Iterable[os.PathLike],
+        private_key: hashing.PathLike,
+        signing_certificate: hashing.PathLike,
+        certificate_chain: Iterable[hashing.PathLike],
     ) -> Self:
         """Configures the signing to be performed using signing certificates.
 

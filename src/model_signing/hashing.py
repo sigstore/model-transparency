@@ -27,7 +27,7 @@ from collections.abc import Callable, Iterable
 import os
 import pathlib
 import sys
-from typing import Literal, Optional
+from typing import Literal, Optional, TypeAlias, Union
 
 from model_signing import manifest
 from model_signing._hashing import hashing
@@ -43,7 +43,13 @@ else:
     from typing_extensions import Self
 
 
-def hash(model_path: os.PathLike) -> manifest.Manifest:
+# Type alias to support `os.PathLike`, `str` and `bytes` objects in the API
+# When Python 3.12 is the minimum supported version we can use `type`
+# When Python 3.11 is the minimum supported version we can use `|`
+PathLike: TypeAlias = Union[str, bytes, os.PathLike]
+
+
+def hash(model_path: PathLike) -> manifest.Manifest:
     """Hashes a model using the default configuration.
 
     We use a separate method and configuration for hashing as it needs to be
@@ -93,7 +99,7 @@ class Config:
         self._ignore_git_paths = True
         self.use_file_serialization()
 
-    def hash(self, model_path: os.PathLike) -> manifest.Manifest:
+    def hash(self, model_path: PathLike) -> manifest.Manifest:
         """Hashes a model using the current configuration."""
         ignored_paths = [path for path in self._ignored_paths]
         if self._ignore_git_paths:
@@ -259,7 +265,7 @@ class Config:
         return self
 
     def set_ignored_paths(
-        self, *, paths: Iterable[os.PathLike], ignore_git_paths: bool = True
+        self, *, paths: Iterable[PathLike], ignore_git_paths: bool = True
     ) -> Self:
         """Configures the paths to be ignored during serialization of a model.
 
