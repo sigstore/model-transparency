@@ -48,9 +48,9 @@ be seen
 [here](https://github.com/secure-systems-lab/dsse/blob/v1.0.0/protocol.md).
 
 Finally, the statement itself contains subjects which are a list of (file path,
-digest) pairs a predicate type set to `model_signing/v1/model`and a dictionary
-f predicates. The idea is to use the predicates to store (and therefor sign) model
-card information in the future.
+digest) pairs a predicate type set to `https://model_signing/signature/v1.0` and
+a dictionary of predicates. The idea is to use the predicates to store (and
+therefor sign) model card information in the future.
 
 The verification part reads the sigstore bundle file and firstly verifies that the
 signature is valid and secondly compute the model's file hashes again to compare
@@ -158,6 +158,7 @@ that can be used at the moment:
 
 * Google's provider is `https://accounts.google.com`.
 * GitHub's provider is `https://github.com/login/oauth`.
+  * GitHub Actions uses `https://token.actions.githubusercontent.com`
 * Microsoft's provider is `https://login.microsoftonline.com`.
 
 For automated signing using a workload identity, the following platforms
