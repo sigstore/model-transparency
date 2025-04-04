@@ -20,7 +20,7 @@ the same configuration is used in both cases.
 The module could also be used to just hash a single model, without signing it:
 
 ```python
-model_signing.hash(model_path)
+model_signing.hashing.hash(model_path)
 ```
 
 This module allows setting up the hashing configuration to a single variable and
@@ -251,7 +251,7 @@ class Config:
               single call.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurrent.futures` library to select the best
-              value for the current operating system.
+              value for the current machine.
             allow_symlinks: Controls whether symbolic links are included. If a
               symlink is present but the flag is `False` (default) the
               serialization would raise an error.
@@ -290,7 +290,7 @@ class Config:
             shard_size: The size of a file shard. Default is 1 GB.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurrent.futures` library to select the best
-              value for the current operating system.
+              value for the current machine.
             allow_symlinks: Controls whether symbolic links are included. If a
               symlink is present but the flag is `False` (default) the
               serialization would raise an error.

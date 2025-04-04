@@ -84,8 +84,7 @@ To verify the private key example, we could use the following:
 model_signing.verifying.Config().use_elliptic_key_verifier(
     public_key="key.pub"
 ).set_hashing_config(
-    model_signing.hashing.Config().set_ignored_paths(
-        paths=["README.md"], ignore_git_paths=True
+    model_signing.hashing.Config().use_shard_serialization()
     )
 ).verify("finbert", "finbert.sig")
 ```
