@@ -21,15 +21,6 @@ from typing import Optional
 import click
 
 import model_signing
-from model_signing import model
-from model_signing._hashing import io
-from model_signing._hashing import memory
-from model_signing._serialization import file
-from model_signing._signing import sign_certificate as certificate
-from model_signing._signing import sign_ec_key as ec_key
-from model_signing._signing import sign_sigstore as sigstore
-from model_signing._signing import sign_sigstore_pb as sigstore_pb
-from model_signing._signing import signing
 
 
 # Decorator for the commonly used argument for the model path.
@@ -239,14 +230,22 @@ def _sign_sigstore(
     Passing the `--use_staging` flag would use that instance instead of the
     production one.
     """
-    signer = sigstore.Signer(
-        use_ambient_credentials=use_ambient_credentials,
-        use_staging=use_staging,
-        identity_token=identity_token,
-    )
-    _serialize_and_sign(
-        model_path, ignore_paths, ignore_git_paths, signer, signature
-    )
+    try:
+        model_signing.signing.Config().use_sigstore_signer(
+            use_ambient_credentials=use_ambient_credentials,
+            use_staging=use_staging,
+            identity_token=identity_token,
+        ).set_hashing_config(
+            model_signing.hashing.Config().set_ignored_paths(
+                _expand_paths_to_ignore(
+                    model_path, signature, ignore_paths, ignore_git_paths
+                )
+            )
+        ).sign(model_path, signature)
+    except Exception as err:
+        click.echo(f"Signing failed with error: {err}", err=True)
+    else:
+        click.echo("Signing succeeded")
 
 
 @_sign.command(name="key")
@@ -255,12 +254,19 @@ def _sign_sigstore(
 @_ignore_git_paths_option
 @_write_signature_option
 @_private_key_option
+@click.option(
+    "--password",
+    type=str,
+    metavar="PASSWORD",
+    help="Password for the key encryption, if any",
+)
 def _sign_private_key(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     signature: pathlib.Path,
     private_key: pathlib.Path,
+    password: Optional[str] = None,
 ) -> None:
     """Sign using a private key (paired with a public one).
 
@@ -275,10 +281,20 @@ def _sign_private_key(
     signer, outside of pairing the keys. Also note that we don't offer key
     management protocols.
     """
-    signer = ec_key.Signer(private_key)
-    _serialize_and_sign(
-        model_path, ignore_paths, ignore_git_paths, signer, signature
-    )
+    try:
+        model_signing.signing.Config().use_elliptic_key_signer(
+            private_key=private_key, password=password
+        ).set_hashing_config(
+            model_signing.hashing.Config().set_ignored_paths(
+                _expand_paths_to_ignore(
+                    model_path, signature, ignore_paths, ignore_git_paths
+                )
+            )
+        ).sign(model_path, signature)
+    except Exception as err:
+        click.echo(f"Signing failed with error: {err}", err=True)
+    else:
+        click.echo("Signing succeeded")
 
 
 @_sign.command(name="certificate")
@@ -320,41 +336,22 @@ def _sign_certificate(
 
     Note that we don't offer certificate and key management protocols.
     """
-    signer = certificate.Signer(
-        private_key, signing_certificate, certificate_chain
-    )
-    _serialize_and_sign(
-        model_path, ignore_paths, ignore_git_paths, signer, signature
-    )
-
-
-def _serialize_and_sign(
-    model_path: pathlib.Path,
-    ignore_paths: Iterable[pathlib.Path],
-    ignore_git_paths: bool,
-    signer: signing.Signer,
-    signature: pathlib.Path,
-) -> None:
-    """Serialize a model and sign it with the provided signer."""
-
-    def hasher_factory(file_path: pathlib.Path) -> io.FileHasher:
-        return io.SimpleFileHasher(
-            file=file_path, content_hasher=memory.SHA256()
-        )
-
-    serializer = file.Serializer(file_hasher_factory=hasher_factory)
-
-    signing_result = model.sign(
-        model_path=model_path,
-        signer=signer,
-        payload_generator=signing.Payload,
-        serializer=serializer,
-        ignore_paths=_expand_paths_to_ignore(
-            model_path, signature, ignore_paths, ignore_git_paths
-        ),
-    )
-
-    signing_result.write(signature)
+    try:
+        model_signing.signing.Config().use_certificate_signer(
+            private_key=private_key,
+            signing_certificate=signing_certificate,
+            certificate_chain=certificate_chain,
+        ).set_hashing_config(
+            model_signing.hashing.Config().set_ignored_paths(
+                _expand_paths_to_ignore(
+                    model_path, signature, ignore_paths, ignore_git_paths
+                )
+            )
+        ).sign(model_path, signature)
+    except Exception as err:
+        click.echo(f"Signing failed with error: {err}", err=True)
+    else:
+        click.echo("Signing succeeded")
 
 
 @main.group(name="verify", subcommand_metavar="PKI_METHOD", cls=PKICmdGroup)
@@ -413,20 +410,22 @@ def _verify_sigstore(
     provider for the signature. If these don't match what is provided in the
     signature, verification would fail.
     """
-    verifier = sigstore.Verifier(
-        identity=identity,
-        oidc_issuer=identity_provider,
-        use_staging=use_staging,
-    )
-    signature_contents = sigstore.Signature.read(signature)
-    _serialize_and_verify(
-        model_path,
-        verifier,
-        ignore_paths,
-        ignore_git_paths,
-        signature_contents,
-        signature,
-    )
+    try:
+        model_signing.verifying.Config().use_sigstore_verifier(
+            identity=identity,
+            oidc_issuer=identity_provider,
+            use_staging=use_staging,
+        ).set_hashing_config(
+            model_signing.hashing.Config().set_ignored_paths(
+                _expand_paths_to_ignore(
+                    model_path, signature, ignore_paths, ignore_git_paths
+                )
+            )
+        ).verify(model_path, signature)
+    except Exception as err:
+        click.echo(f"Verification failed with error: {err}", err=True)
+    else:
+        click.echo("Verification succeeded")
 
 
 @_verify.command(name="key")
@@ -461,16 +460,20 @@ def _verify_private_key(
     signer, outside of pairing the keys. Also note that we don't offer key
     management protocols.
     """
-    verifier = ec_key.Verifier(public_key)
-    signature_contents = sigstore_pb.Signature.read(signature)
-    _serialize_and_verify(
-        model_path,
-        verifier,
-        ignore_paths,
-        ignore_git_paths,
-        signature_contents,
-        signature,
-    )
+    try:
+        model_signing.verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key
+        ).set_hashing_config(
+            model_signing.hashing.Config().set_ignored_paths(
+                _expand_paths_to_ignore(
+                    model_path, signature, ignore_paths, ignore_git_paths
+                )
+            )
+        ).verify(model_path, signature)
+    except Exception as err:
+        click.echo(f"Verification failed with error: {err}", err=True)
+    else:
+        click.echo("Verification succeeded")
 
 
 @_verify.command(name="certificate")
@@ -499,45 +502,16 @@ def _verify_certificate(
 
     Note that we don't offer certificate and key management protocols.
     """
-    verifier = certificate.Verifier(certificate_chain)
-    signature_contents = sigstore_pb.Signature.read(signature)
-    _serialize_and_verify(
-        model_path,
-        verifier,
-        ignore_paths,
-        ignore_git_paths,
-        signature_contents,
-        signature,
-    )
-
-
-def _serialize_and_verify(
-    model_path: pathlib.Path,
-    verifier: signing.Verifier,
-    ignore_paths: Iterable[pathlib.Path],
-    ignore_git_paths: bool,
-    signature_content: signing.Signature,
-    signature_file: pathlib.Path,
-) -> None:
-    """Serialize a model and verify it with the provided verifier."""
-
-    def hasher_factory(file_path: pathlib.Path) -> io.FileHasher:
-        return io.SimpleFileHasher(
-            file=file_path, content_hasher=memory.SHA256()
-        )
-
-    serializer = file.Serializer(file_hasher_factory=hasher_factory)
-
     try:
-        model.verify(
-            sig=signature_content,
-            verifier=verifier,
-            model_path=model_path,
-            serializer=serializer,
-            ignore_paths=_expand_paths_to_ignore(
-                model_path, signature_file, ignore_paths, ignore_git_paths
-            ),
-        )
+        model_signing.verifying.Config().use_certificate_verifier(
+            certificate_chain=certificate_chain
+        ).set_hashing_config(
+            model_signing.hashing.Config().set_ignored_paths(
+                _expand_paths_to_ignore(
+                    model_path, signature, ignore_paths, ignore_git_paths
+                )
+            )
+        ).verify(model_path, signature)
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
     else:
