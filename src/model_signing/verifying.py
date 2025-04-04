@@ -16,8 +16,8 @@
 
 Users should use this API to verify the integrity of models, rather than using
 the internals of the library. We guarantee backwards compatibility only for the
-API defined in `hash.py`, `sign.py` and `verify.py` at the root level of the
-library.
+API defined in `hashing.py`, `signing.py` and `verifying.py` at the root level
+of the library.
 """
 
 import os
@@ -25,8 +25,8 @@ import pathlib
 import sys
 from typing import Optional
 
-from model_signing import hash
-from model_signing.signing import sign_sigstore as sigstore
+from model_signing import hashing
+from model_signing._signing import sign_sigstore as sigstore
 
 
 if sys.version_info >= (3, 11):
@@ -73,7 +73,7 @@ class Config:
 
     def __init__(self):
         """Initializes the default configuration for verification."""
-        self._hashing_config = hash.Config()
+        self._hashing_config = hashing.Config()
         self._verifier = None
 
     def verify(self, model_path: os.PathLike, signature_path: os.PathLike):
@@ -90,7 +90,7 @@ class Config:
         if actual_manifest != expected_manifest:
             raise ValueError("Signature mismatch")
 
-    def set_hashing_config(self, hashing_config: hash.Config) -> Self:
+    def set_hashing_config(self, hashing_config: hashing.Config) -> Self:
         """Sets the new configuration for hashing models.
 
         Args:

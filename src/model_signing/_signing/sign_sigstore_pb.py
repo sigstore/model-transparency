@@ -29,7 +29,7 @@ from typing import cast
 from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 from typing_extensions import override
 
-from model_signing.signing import signing
+from model_signing._signing import signing
 
 
 if sys.version_info >= (3, 11):

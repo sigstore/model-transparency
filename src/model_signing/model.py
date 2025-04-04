@@ -19,7 +19,7 @@ from typing import TypeAlias
 
 from model_signing import manifest
 from model_signing._serialization import serialization
-from model_signing.signing import signing
+from model_signing._signing import signing
 
 
 PayloadGeneratorFunc: TypeAlias = Callable[[manifest.Manifest], signing.Payload]

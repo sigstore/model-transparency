@@ -12,14 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""For the stable high-level API, see model_signing.{hash,sign,verify}."""
+"""Universal model signing library.
 
-from model_signing import hash
-from model_signing import sign
-from model_signing import verify
+The stable high-level API is split into 3 modules:
+
+- model_signing.hashing
+- model_signing.signing
+- model_signing.verifying
+"""
+
+from model_signing import hashing
+from model_signing import signing
+from model_signing import verifying
 
 
 __version__ = "0.2.0"
 
 
-__all__ = ["hash", "sign", "verify"]
+__all__ = ["hashing", "signing", "verifying"]

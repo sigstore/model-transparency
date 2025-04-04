@@ -26,7 +26,7 @@ from sigstore import sign as sigstore_signer
 from sigstore import verify as sigstore_verifier
 from typing_extensions import override
 
-from model_signing.signing import signing
+from model_signing._signing import signing
 
 
 if sys.version_info >= (3, 11):
