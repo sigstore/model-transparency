@@ -56,7 +56,7 @@ def hash(model_path: os.PathLike) -> manifest.Manifest:
     depends on the configuration.
 
     Args:
-        model_path: the path to the model to hash.
+        model_path: The path to the model to hash.
 
     Returns:
         A manifest of the hashed model.
@@ -90,12 +90,19 @@ class Config:
         symbolic link in the model directory results in an error.
         """
         self._ignored_paths = frozenset()
+        self._ignore_git_paths = True
         self.use_file_serialization()
 
     def hash(self, model_path: os.PathLike) -> manifest.Manifest:
         """Hashes a model using the current configuration."""
+        ignored_paths = [path for path in self._ignored_paths]
+        if self._ignore_git_paths:
+            ignored_paths.extend(
+                [".git/", ".gitattributes", ".github/", ".gitignore"]
+            )
+
         return self._serializer.serialize(
-            pathlib.Path(model_path), ignore_paths=self._ignored_paths
+            pathlib.Path(model_path), ignore_paths=ignored_paths
         )
 
     def _build_stream_hasher(
@@ -104,7 +111,7 @@ class Config:
         """Builds a streaming hasher from a constant string.
 
         Args:
-            hashing_algorithm: the hashing algorithm to use.
+            hashing_algorithm: The hashing algorithm to use.
 
         Returns:
             An instance of the requested hasher.
@@ -125,7 +132,7 @@ class Config:
         """Builds the hasher factory for a serialization by file.
 
         Args:
-            hashing_algorithm: the hashing algorithm to use to hash a file
+            hashing_algorithm: The hashing algorithm to use to hash a file.
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
@@ -150,7 +157,7 @@ class Config:
         """Builds the hasher factory for a serialization by file shards.
 
         Args:
-            hashing_algorithm: the hashing algorithm to use to hash a file
+            hashing_algorithm: The hashing algorithm to use to hash a shard.
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
@@ -191,7 +198,7 @@ class Config:
         containing all these pairings is being returned.
 
         Args:
-            hashing_algorithm: the hashing algorithm to use to hash a file
+            hashing_algorithm: The hashing algorithm to use to hash a file.
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
@@ -228,7 +235,7 @@ class Config:
         is being returned.
 
         Args:
-            hashing_algorithm: the hashing algorithm to use to hash a file shard
+            hashing_algorithm: The hashing algorithm to use to hash a shard.
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
@@ -251,7 +258,9 @@ class Config:
         )
         return self
 
-    def set_ignored_paths(self, paths: Iterable[os.PathLike]) -> Self:
+    def set_ignored_paths(
+        self, *, paths: Iterable[os.PathLike], ignore_git_paths: bool = True
+    ) -> Self:
         """Configures the paths to be ignored during serialization of a model.
 
         If the model is a single file, there are no paths that are ignored. If
@@ -264,10 +273,13 @@ class Config:
         any of its children.
 
         Args:
-            paths: the paths to ignore
+            paths: The paths to ignore.
+            ignore_git_paths: Whether to ignore git related paths (default) or
+              include them in the signature.
 
         Returns:
             The new hashing configuration with a new set of ignored paths.
         """
         self._ignored_paths = frozenset({pathlib.Path(p) for p in paths})
+        self._ignore_git_paths = ignore_git_paths
         return self

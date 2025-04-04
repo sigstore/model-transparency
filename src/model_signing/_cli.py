@@ -97,25 +97,6 @@ _sigstore_staging_option = click.option(
 )
 
 
-def _collect_git_related_files(model_path: pathlib.Path) -> list[pathlib.Path]:
-    """Expand to all git related files in the model directory."""
-    return [pathlib.Path(p) for p in list(model_path.glob("**/.git*"))]
-
-
-def _expand_paths_to_ignore(
-    model_path: pathlib.Path,
-    signature: pathlib.Path,
-    ignore_paths: Iterable[pathlib.Path],
-    ignore_git_paths: bool,
-) -> list[pathlib.Path]:
-    """Expand all ignore arguments to build the list of paths to exclude."""
-    ignore_paths = [path for path in ignore_paths]
-    ignore_paths.append(signature)
-    if ignore_git_paths:
-        ignore_paths.extend(_collect_git_related_files(model_path))
-    return ignore_paths
-
-
 class PKICmdGroup(click.Group):
     """A custom group to configure the supported PKI methods."""
 
@@ -237,9 +218,7 @@ def _sign_sigstore(
             identity_token=identity_token,
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                _expand_paths_to_ignore(
-                    model_path, signature, ignore_paths, ignore_git_paths
-                )
+                paths=ignore_paths, ignore_git_paths=ignore_git_paths
             )
         ).sign(model_path, signature)
     except Exception as err:
@@ -286,9 +265,7 @@ def _sign_private_key(
             private_key=private_key, password=password
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                _expand_paths_to_ignore(
-                    model_path, signature, ignore_paths, ignore_git_paths
-                )
+                paths=ignore_paths, ignore_git_paths=ignore_git_paths
             )
         ).sign(model_path, signature)
     except Exception as err:
@@ -343,9 +320,7 @@ def _sign_certificate(
             certificate_chain=certificate_chain,
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                _expand_paths_to_ignore(
-                    model_path, signature, ignore_paths, ignore_git_paths
-                )
+                paths=ignore_paths, ignore_git_paths=ignore_git_paths
             )
         ).sign(model_path, signature)
     except Exception as err:
@@ -417,9 +392,7 @@ def _verify_sigstore(
             use_staging=use_staging,
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                _expand_paths_to_ignore(
-                    model_path, signature, ignore_paths, ignore_git_paths
-                )
+                paths=ignore_paths, ignore_git_paths=ignore_git_paths
             )
         ).verify(model_path, signature)
     except Exception as err:
@@ -465,9 +438,7 @@ def _verify_private_key(
             public_key=public_key
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                _expand_paths_to_ignore(
-                    model_path, signature, ignore_paths, ignore_git_paths
-                )
+                paths=ignore_paths, ignore_git_paths=ignore_git_paths
             )
         ).verify(model_path, signature)
     except Exception as err:
@@ -507,9 +478,7 @@ def _verify_certificate(
             certificate_chain=certificate_chain
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                _expand_paths_to_ignore(
-                    model_path, signature, ignore_paths, ignore_git_paths
-                )
+                paths=ignore_paths, ignore_git_paths=ignore_git_paths
             )
         ).verify(model_path, signature)
     except Exception as err:
