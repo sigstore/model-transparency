@@ -19,6 +19,7 @@ import pathlib
 
 import certifi
 from cryptography import x509
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509 import oid
@@ -97,7 +98,9 @@ class Verifier(sigstore_pb.Verifier):
     """Verifier for signatures generated via signing with certificates."""
 
     def __init__(
-        self, certificate_chain_paths: Iterable[pathlib.Path] = frozenset()
+        self,
+        certificate_chain_paths: Iterable[pathlib.Path] = frozenset(),
+        fingerprints: bool = False,
     ):
         """Initializes the verifier with the list of certificates to use.
 
@@ -106,7 +109,10 @@ class Verifier(sigstore_pb.Verifier):
               signature and establish chain of trust. By default this is empty,
               in which case we would use the root certificates from the
               operating system, as per `certifi.where()`.
+            fingerprints: Display the fingerprints of certificates
         """
+        self.fingerprints = fingerprints
+
         if not certificate_chain_paths:
             certificate_chain_paths = [pathlib.Path(p) for p in certifi.where()]
 
@@ -116,7 +122,16 @@ class Verifier(sigstore_pb.Verifier):
 
         self._store = crypto.X509Store()
         for certificate in certificates:
+            if self.fingerprints:
+                self.display_cert_fingerprint(certificate, hashes.SHA256())
             self._store.add_cert(crypto.X509.from_cryptography(certificate))
+
+    def display_cert_fingerprint(self, cert, hash_alg: hashes.Hash) -> None:
+        fp = cert.fingerprint(hash_alg)
+        print(
+            f"{hash_alg.name} Fingerprint: "
+            f"{':'.join(f'{b:02X}' for b in fp)}"
+        )
 
     @override
     def _verify_bundle(self, bundle: bundle_pb.Bundle) -> tuple[str, bytes]:
@@ -131,7 +146,9 @@ class Verifier(sigstore_pb.Verifier):
         return envelope.payload_type, envelope.payload
 
     def _verify_certificates(
-        self, verification_material: bundle_pb.VerificationMaterial
+        self,
+        verification_material: bundle_pb.VerificationMaterial,
+        fingerprint: bool = False,
     ) -> ec.EllipticCurvePublicKey:
         """Verifies the certificate chain and returns the public key.
 
@@ -140,26 +157,28 @@ class Verifier(sigstore_pb.Verifier):
         from the key used during signing.
         """
 
-        def _to_openssl_certificate(certificate_bytes):
-            return crypto.X509.from_cryptography(
-                x509.load_der_x509_certificate(certificate_bytes)
-            )
+        def _to_openssl_certificate(certificate_bytes, fingerprints):
+            cert = x509.load_der_x509_certificate(certificate_bytes)
+            if fingerprints:
+                self.display_cert_fingerprint(cert, hashes.SHA256())
+            return crypto.X509.from_cryptography(cert)
 
         signing_chain = verification_material.x509_certificate_chain
         signing_certificate = x509.load_der_x509_certificate(
             signing_chain.certificates[0].raw_bytes
         )
 
-        max_signing_time = signing_certificate.not_valid_before
+        max_signing_time = signing_certificate.not_valid_before_utc
         self._store.set_time(max_signing_time)
 
         signing_certificate_ssl = _to_openssl_certificate(
-            signing_chain.certificates[0].raw_bytes
+            signing_chain.certificates[0].raw_bytes, False
         )
         trust_chain_ssl = [
-            _to_openssl_certificate(certificate.raw_bytes)
+            _to_openssl_certificate(certificate.raw_bytes, self.fingerprints)
             for certificate in signing_chain.certificates[1:]
         ]
+
         store_context = crypto.X509StoreContext(
             self._store, signing_certificate_ssl, trust_chain_ssl
         )
