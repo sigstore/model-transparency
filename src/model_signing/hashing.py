@@ -12,15 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""High level API for the hashing interface of model_signing library.
+"""High level API for the hashing interface of `model_signing` library.
 
 Hashing is used both for signing and verification and users should ensure that
 the same configuration is used in both cases.
 
-Users should use this API to hash models (no signing and verification), rather
-than using the internals of the library. We guarantee backwards compatibility
-only for the API defined in `hashing.py`, `signing.py` and `verifying.py` at the
-root level of the library.
+The module could also be used to just hash a single model, without signing it:
+
+```python
+model_signing.hash(model_path)
+```
+
+This module allows setting up the hashing configuration to a single variable and
+then sharing it between signing and verification.
+
+```python
+hashing_config = model_signing.hashing.Config().set_ignored_paths(
+    paths=["README.md"], ignore_git_paths=True
+)
+
+signing_config = (
+    model_signing.signing.Config()
+    .use_elliptic_key_signer(private_key="key")
+    .set_hashing_config(hashing_config)
+)
+
+verifying_config = (
+    model_signing.verifying.Config()
+    .use_elliptic_key_verifier(public_key="key.pub")
+    .set_hashing_config(hashing_config)
+)
+```
+
+The API defined here is stable and backwards compatible.
 """
 
 from collections.abc import Callable, Iterable
@@ -60,14 +84,17 @@ PathLike: TypeAlias = Union[str, bytes, os.PathLike]
 def hash(model_path: PathLike) -> manifest.Manifest:
     """Hashes a model using the default configuration.
 
-    We use a separate method and configuration for hashing as it needs to be
-    common between signing and signature verification. Having thise separate
-    also helps with performance testing, as hashing is expected to take the
-    largest amount of time (proportional to model size).
+    Hashing is the shared part between signing and verification and is also
+    expected to be the slowest component. When serializing a model, we need to
+    spend time proportional to the model size on disk.
 
-    Since we need to be flexible on the serialization format, this returns a
-    manifest, instead of just a single digest. The type of returned manifest
-    depends on the configuration.
+    This method returns a "manifest" of the model. A manifest is a collection of
+    every object in the model, paired with the corresponding hash. Currently, we
+    consider an object in the model to be either a file or a shard of the file.
+    Large models with large files will be hashed much faster when every shard is
+    hashed in parallel, at the cost of generating a larger payload for the
+    signature. In future releases we could support hashing individual tensors or
+    tensor slices for further speed optimizations for very large models.
 
     Args:
         model_path: The path to the model to hash.
@@ -81,28 +108,34 @@ def hash(model_path: PathLike) -> manifest.Manifest:
 class Config:
     """Configuration to use when hashing models.
 
-    Hashing a model results in a manifest object. This is a pairing between
-    model components (e.g., files, file shards, etc.) and their corresponding
-    hash. This configuration class allows selecting the serialization method to
-    generate the desired manifest format.
+    Hashing is the shared part between signing and verification and is also
+    expected to be the slowest component. When serializing a model, we need to
+    spend time proportional to the model size on disk.
 
-    This configuration class also allows configuring files from within the model
-    directory that should be ignored. These are files that doesn't impact the
-    behavior of the model, or files that won't be distributed with the model.
+    Hashing builds a "manifest" of the model. A manifest is a collection of
+    every object in the model, paired with the corresponding hash. Currently, we
+    consider an object in the model to be either a file or a shard of the file.
+    Large models with large files will be hashed much faster when every shard is
+    hashed in parallel, at the cost of generating a larger payload for the
+    signature. In future releases we could support hashing individual tensors or
+    tensor slices for further speed optimizations for very large models.
 
-    Note that currently this configuration class only supports the main options
-    provided by the library. For more granular choices, usage of the lower level
-    APIs is recommended.
+    This configuration class supports configuring the hashing granularity. By
+    default, we hash at file level granularity.
+
+    This configuration class also supports configuring the hash method used to
+    generate the hash for every object in the model. We currently support SHA256
+    and BLAKE2, with SHA256 being the default.
+
+    This configuration class also supports configuring which paths from the
+    model directory should be ignored. These are files that doesn't impact the
+    behavior of the model, or files that won't be distributed with the model. By
+    default, only files that are associated with a git repository (`.git`,
+    `.gitattributes`, `.gitignore`, etc.) are ignored.
     """
 
     def __init__(self):
-        """Initializes the default configuration for hashing.
-
-        The default hashing configuration uses SHA256 to compute the digest of
-        every file in the model. The resulting manifest is a listing of files
-        paired with their hashes. By default, no file is ignored and any
-        symbolic link in the model directory results in an error.
-        """
+        """Initializes the default configuration for hashing."""
         self._ignored_paths = frozenset()
         self._ignore_git_paths = True
         self.use_file_serialization()
@@ -205,11 +238,11 @@ class Config:
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ) -> Self:
-        """Configures serialization to a manifest pairing files with hashes.
+        """Configures serialization to build a manifest of (file, hash) pairs.
 
         The serialization method in this configuration is changed to one where
         every file in the model is paired with its digest and a manifest
-        containing all these pairings is being returned.
+        containing all these pairings is being built.
 
         Args:
             hashing_algorithm: The hashing algorithm to use to hash a file.
@@ -217,7 +250,8 @@ class Config:
               special value of 0 signals to attempt to read everything in a
               single call.
             max_workers: Maximum number of workers to use in parallel. Default
-              is to defer to the `concurrent.futures` library.
+              is to defer to the `concurrent.futures` library to select the best
+              value for the current operating system.
             allow_symlinks: Controls whether symbolic links are included. If a
               symlink is present but the flag is `False` (default) the
               serialization would raise an error.
@@ -241,12 +275,12 @@ class Config:
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
     ) -> Self:
-        """Configures serialization to a manifest of (file shard, hash) pairs.
+        """Configures serialization to build a manifest of (shard, hash) pairs.
 
         The serialization method in this configuration is changed to one where
-        every file in the model is sharded in equal sized shards and every shard
-        is paired with its digest and a manifest containing all these pairings
-        is being returned.
+        every file in the model is sharded in equal sized shards, every shard is
+        paired with its digest and a manifest containing all these pairings is
+        being built.
 
         Args:
             hashing_algorithm: The hashing algorithm to use to hash a shard.
@@ -255,7 +289,8 @@ class Config:
               single call.
             shard_size: The size of a file shard. Default is 1 GB.
             max_workers: Maximum number of workers to use in parallel. Default
-              is to defer to the `concurrent.futures` library.
+              is to defer to the `concurrent.futures` library to select the best
+              value for the current operating system.
             allow_symlinks: Controls whether symbolic links are included. If a
               symlink is present but the flag is `False` (default) the
               serialization would raise an error.
@@ -278,13 +313,11 @@ class Config:
         """Configures the paths to be ignored during serialization of a model.
 
         If the model is a single file, there are no paths that are ignored. If
-        the model is a directory, all paths must be within the model directory.
-        If a path to be ignored is absolute, we convert it to a path within the
-        model directory during serialization. If the path is relative, it is
-        assumed to be relative to the model root.
+        the model is a directory, all paths are considered as relative to the
+        model directory, since we never look at files outside of it.
 
-        If a path is a directory, serialization will ignore both the path and
-        any of its children.
+        If an ignored path is a directory, serialization will ignore both the
+        path and any of its children.
 
         Args:
             paths: The paths to ignore.

@@ -161,11 +161,11 @@ class TestSerializer:
             old_manifest._item_to_digest
         )
         for key, digest in new_manifest._item_to_digest.items():
-            path = cast(manifest.File, key).path
+            path = cast(manifest._File, key).path
             if path.name == new_name:
-                key = manifest.File(old_name)
+                key = manifest._File(old_name)
             else:
-                key = manifest.File(path)
+                key = manifest._File(path)
             assert old_manifest._item_to_digest[key] == digest
 
     def test_folder_model_rename_file_only_changes_path_part(
@@ -203,17 +203,17 @@ class TestSerializer:
             old_manifest._item_to_digest
         )
         for key, digest in new_manifest._item_to_digest.items():
-            path = cast(manifest.File, key).path
+            path = cast(manifest._File, key).path
             if new_name in path.parts:
                 parts = [
                     old_name if part == new_name else part
                     for part in path.parts
                 ]
                 old = pathlib.PurePosixPath(*parts)
-                key = manifest.File(old)
+                key = manifest._File(old)
                 assert old_manifest._item_to_digest[key] == digest
             else:
-                key = manifest.File(path)
+                key = manifest._File(path)
                 assert old_manifest._item_to_digest[key] == digest
 
     def test_folder_model_rename_dir_only_changes_path_part(
@@ -262,7 +262,7 @@ class TestSerializer:
             old_manifest._item_to_digest
         )
         for key, digest in new_manifest._item_to_digest.items():
-            path = cast(manifest.File, key).path
+            path = cast(manifest._File, key).path
             if path == expected_mismatch_path:
                 assert old_manifest._item_to_digest[key] != digest
             else:

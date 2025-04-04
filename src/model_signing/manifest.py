@@ -12,22 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Machinery for representing a serialized representation of an ML model.
+"""An in-memory serialized representation of an ML model.
 
 A manifest pairs objects from the model (e.g., files, shards of files), with
-their hashes. When signing the model we generate a manifest from serializing the
-model (that is, computing the hashes for all the objects, according to the
-specific serialization method used).
+their hashes. When signing the model we first generate a manifest from
+serializing the model using a configured serialization method (see
+`model_signing.signing`).
 
-When verifying the integrity of the model, we extract a manifest from the
-signature, after verifying the authenticity of the signature. Then, we serialize
-the local model and compare the two manifests.
+When verifying the integrity of the model, after checking the authenticity of
+the signature, we extract a manifest from it. Then, we serialize the local model
+(the model being tested) and compare the two manifests.
 
-Comparing the manifests can be done by checking that everything matches, or, we
-can only check partial object match. This is useful, for example, for the cases
-where the original model contained files for multiple ML frameworks, but the
-user only uses the model with one framework. This way, the user can verify the
-integrity only for the files that are actually used.
+The serialization method used during signing must match the one used during
+verification. We can auto detect the method to use during verification from the
+signature, but it is recommended to be explicit when possible.
+
+Comparing the manifests can be done by checking that every item matches, both in
+name and in associated hash.  In the future we will support partial object
+matching. This is useful, for example, for the cases where the original model
+contained files for multiple ML frameworks, but the user only uses the model
+with one framework. This way, the user can verify the integrity only for the
+files that are actually used.
+
+This API should not be used directly, we don't guarantee that it is fully stable
+at the moment.
 """
 
 import abc
@@ -49,7 +57,7 @@ else:
 
 
 @dataclasses.dataclass(frozen=True, order=True)
-class ResourceDescriptor:
+class _ResourceDescriptor:
     """A description of any content from any `Manifest`.
 
     We aim this to be similar to in-toto's `ResourceDescriptor`. To support
@@ -63,14 +71,14 @@ class ResourceDescriptor:
     for the in-toto specification.
 
     Attributes:
-        identifier: A string that uniquely identifies this `ResourceDescriptor`
-          within the manifest. Depending on serialized format, users might
-          require the identifier to be unique across all manifests stored in a
-          system. Producers and consumers can agree on additional requirements
-          (e.g., several descriptors must have a common pattern for the
-          identifier and the integrity of the model implies integrity of all
-          these items, ignoring any other descriptor). Corresponds to `name`,
-          `uri`, or `content` in in-toto specification.
+        identifier: A string that uniquely identifies this object within the
+        manifest. Depending on serialized format, users might require the
+        identifier to be unique across all manifests stored in a system.
+        Producers and consumers can agree on additional requirements (e.g.,
+        several descriptors must have a common pattern for the identifier and
+        the integrity of the model implies integrity of all these items,
+        ignoring any other descriptor). Corresponds to `name`, `uri`, or
+        `content` in in-toto specification.
         digest: One digest for the item. Note that unlike in-toto, we only have
           one digest for the item and it is always required.
     """
@@ -79,7 +87,7 @@ class ResourceDescriptor:
     digest: hashing.Digest
 
 
-class ManifestKey(metaclass=abc.ABCMeta):
+class _ManifestKey(metaclass=abc.ABCMeta):
     """An object that can be a key for an item in a manifest.
 
     We need to be able to convert the key to string when we serialize the
@@ -106,7 +114,7 @@ class ManifestKey(metaclass=abc.ABCMeta):
 
 
 @dataclasses.dataclass(frozen=True, order=True)
-class File(ManifestKey):
+class _File(_ManifestKey):
     """A dataclass to hold information about a file as a manifest key.
 
     Attributes:
@@ -126,7 +134,7 @@ class File(ManifestKey):
 
 
 @dataclasses.dataclass(frozen=True, order=True)
-class Shard(ManifestKey):
+class _Shard(_ManifestKey):
     """A dataclass to hold information about a file shard as a manifest key.
 
     Attributes:
@@ -176,7 +184,7 @@ class ManifestItem(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def key(self) -> ManifestKey:
+    def key(self) -> _ManifestKey:
         """A unique representation for the manifest item.
 
         Two items in the same manifest must not share the same `key`. The
@@ -206,8 +214,8 @@ class FileManifestItem(ManifestItem):
 
     @property
     @override
-    def key(self) -> ManifestKey:
-        return File(self._path)
+    def key(self) -> _ManifestKey:
+        return _File(self._path)
 
 
 class ShardedFileManifestItem(ManifestItem):
@@ -242,8 +250,8 @@ class ShardedFileManifestItem(ManifestItem):
 
     @property
     @override
-    def key(self) -> ManifestKey:
-        return Shard(self._path, self._start, self._end)
+    def key(self) -> _ManifestKey:
+        return _Shard(self._path, self._start, self._end)
 
 
 class SerializationType(metaclass=abc.ABCMeta):
@@ -409,10 +417,10 @@ class Manifest:
     def __eq__(self, other: Self):
         return self._item_to_digest == other._item_to_digest
 
-    def resource_descriptors(self) -> Iterator[ResourceDescriptor]:
+    def resource_descriptors(self) -> Iterator[_ResourceDescriptor]:
         """Yields each resource from the manifest, one by one."""
         for item, digest in sorted(self._item_to_digest.items()):
-            yield ResourceDescriptor(identifier=str(item), digest=digest)
+            yield _ResourceDescriptor(identifier=str(item), digest=digest)
 
     @property
     def model_name(self) -> str:

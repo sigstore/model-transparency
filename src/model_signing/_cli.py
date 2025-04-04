@@ -97,7 +97,7 @@ _sigstore_staging_option = click.option(
 )
 
 
-class PKICmdGroup(click.Group):
+class _PKICmdGroup(click.Group):
     """A custom group to configure the supported PKI methods."""
 
     _supported_modes = ["sigstore", "key", "certificate"]
@@ -150,7 +150,7 @@ def main() -> None:
     """
 
 
-@main.group(name="sign", subcommand_metavar="PKI_METHOD", cls=PKICmdGroup)
+@main.group(name="sign", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
 def _sign() -> None:
     """Sign models.
 
@@ -329,7 +329,7 @@ def _sign_certificate(
         click.echo("Signing succeeded")
 
 
-@main.group(name="verify", subcommand_metavar="PKI_METHOD", cls=PKICmdGroup)
+@main.group(name="verify", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
 def _verify() -> None:
     """Verify models.
 
