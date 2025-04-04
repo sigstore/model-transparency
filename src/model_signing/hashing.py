@@ -27,7 +27,7 @@ from collections.abc import Callable, Iterable
 import os
 import pathlib
 import sys
-from typing import Literal, Optional, TypeAlias, Union
+from typing import Literal, Optional, Union
 
 from model_signing import manifest
 from model_signing._hashing import hashing
@@ -41,6 +41,14 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
+
+
+# `TypeAlias` only exists from Python 3.10
+# `TypeAlias` is deprecated in Python 3.12 in favor of `type`
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
 
 
 # Type alias to support `os.PathLike`, `str` and `bytes` objects in the API
