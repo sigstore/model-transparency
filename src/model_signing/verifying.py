@@ -37,16 +37,6 @@ else:
     from typing_extensions import Self
 
 
-def verify(model_path: os.PathLike, signature_path: os.PathLike):
-    """Verifies that a model matches a signature in the default configuration.
-
-    There is no default configuration with default arguments that can be used,
-    so this just raises an exception to signal that verification configuration
-    needs to be set up.
-    """
-    Config().verify(model_path, signature_path)
-
-
 class Config:
     """Configuration to use when verifying models against signatures.
 
@@ -66,7 +56,9 @@ class Config:
 
         Args:
             model_path: the path to the model to verify.
-            signature_path: the path to the signature to check.
+
+        Raises:
+            ValueError: No verifier has been configured.
         """
         if self._verifier is None:
             raise ValueError("Attempting to verify with no configured verifier")
