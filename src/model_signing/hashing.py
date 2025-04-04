@@ -97,7 +97,7 @@ class Config:
         """Hashes a model using the current configuration."""
         ignored_paths = [path for path in self._ignored_paths]
         if self._ignore_git_paths:
-            ignored_paths.extend([path for path in model_path.glob("**/.git*")])
+            ignored_paths.append(".git/")
 
         return self._serializer.serialize(
             pathlib.Path(model_path), ignore_paths=ignored_paths
