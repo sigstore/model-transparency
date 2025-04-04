@@ -91,7 +91,7 @@ class Config:
         self,
         *,
         oidc_issuer: Optional[str] = None,
-        use_ambient_credentials: bool = True,
+        use_ambient_credentials: bool = False,
         use_staging: bool = False,
         identity_token: Optional[str] = None,
     ) -> Self:
@@ -105,9 +105,9 @@ class Config:
               default production one. Only relevant if `use_staging = False`.
               Default is empty, relying on the Sigstore configuration.
             use_ambient_credentials: Use ambient credentials (also known as
-              Workload Identity). Default is True. If ambient credentials cannot
-              be used (not available, or option disabled), a flow to get signer
-              identity via OIDC will start.
+              Workload Identity). Default is False. If ambient credentials
+              cannot be used (not available, or option disabled), a flow to get
+              signer identity via OIDC will start.
             use_staging: Use staging configurations, instead of production. This
               is supposed to be set to True only when testing. Default is False.
             identity_token: An explicit identity token to use when signing,
