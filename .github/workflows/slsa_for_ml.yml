@@ -30,9 +30,6 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize]
-    paths-ignore:
-      - '**/*.md'
-      - '*.md'
     paths:
       - 'slsa_for_models/**'
       - '.github/workflows/slsa_for_ml.yml'
