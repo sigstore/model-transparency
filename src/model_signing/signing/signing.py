@@ -37,6 +37,7 @@ https://docs.sigstore.dev/about/bundle/.
 """
 
 import abc
+import json
 import pathlib
 import sys
 from typing import Any
@@ -52,6 +53,14 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
+
+
+# The expected in-toto payload type for the signature.
+_IN_TOTO_JSON_PAYLOAD_TYPE: str = "application/vnd.in-toto+json"
+
+
+# The expected in-toto statement type for the signature.
+_IN_TOTO_STATEMENT_TYPE: str = "https://in-toto.io/Statement/v1"
 
 
 # The expected model signature predicate type.
@@ -71,7 +80,7 @@ def dsse_payload_to_manifest(dsse_payload: dict[str, Any]) -> manifest.Manifest:
         A manifest representing the signed model.
 
     Raises:
-        ValueError: If the payload cannot be deserialized to a manifest.
+        ValueError: The payload cannot be deserialized to a manifest.
     """
     obtained_predicate_type = dsse_payload["predicateType"]
     if obtained_predicate_type != _PREDICATE_TYPE:
@@ -226,16 +235,21 @@ class Payload:
 
 
 class Signature(metaclass=abc.ABCMeta):
-    """Generic signature support."""
+    """Signature class, wrapping a sigstore bundle.
+
+    We only support sigstore bundle signature formats, but we need to have two
+    separate classes for this given the need to support traditional signing as
+    well as Sigstore one. One class wraps around `sigstore_models.Bundle` and
+    the other around the bundle as defined by `sigstore_protobuf_specs`.
+    """
 
     @abc.abstractmethod
     def write(self, path: pathlib.Path) -> None:
         """Writes the signature to disk, to the given path.
 
         Args:
-            path: the path to write the signature to.
+            path: The path to write the signature to.
         """
-        pass
 
     @classmethod
     @abc.abstractmethod
@@ -246,17 +260,12 @@ class Signature(metaclass=abc.ABCMeta):
         parse the signature file.
 
         Args:
-            path: the path to read the signature from.
+            path: The path to read the signature from.
 
         Returns:
             An instance of the class which can be passed to a `Verifier` for
             signature and integrity verification.
-
-        Raises:
-            ValueError: If the provided path is not deserializable to the format
-              expected by the `Signature` (sub)class.
         """
-        pass
 
 
 class Signer(metaclass=abc.ABCMeta):
@@ -270,12 +279,11 @@ class Signer(metaclass=abc.ABCMeta):
         """Signs the provided signing payload.
 
         Args:
-            payload: the `Payload` instance that should be signed.
+            payload: The `Payload` instance that should be signed.
 
         Returns:
             A valid signature.
         """
-        pass
 
 
 class Verifier(metaclass=abc.ABCMeta):
@@ -289,19 +297,46 @@ class Verifier(metaclass=abc.ABCMeta):
     which can then be used to check the model integrity.
     """
 
-    @abc.abstractmethod
     def verify(self, signature: Signature) -> manifest.Manifest:
         """Verifies the signature.
 
         Args:
-            signature: the signature to verify.
+            signature: The signature to verify.
 
         Returns:
             A `manifest.Manifest` instance that represents the model.
 
         Raises:
-            ValueError: If the signature verification fails.
-            TypeError: If the signature is not one of the `Signature` subclasses
-              accepted by the verifier.
+            ValueError: Signature verification fails.
         """
-        pass
+        payload_type, payload = self._verify_signed_content(signature)
+
+        if payload_type != _IN_TOTO_JSON_PAYLOAD_TYPE:
+            raise ValueError(
+                f"Expected DSSE payload {_IN_TOTO_JSON_PAYLOAD_TYPE}, "
+                f"but got {payload_type}"
+            )
+
+        payload = json.loads(payload)
+
+        if payload["_type"] != _IN_TOTO_STATEMENT_TYPE:
+            raise ValueError(
+                f"Expected in-toto {_IN_TOTO_STATEMENT_TYPE} payload, "
+                f"but got {payload['_type']}"
+            )
+
+        return dsse_payload_to_manifest(payload)
+
+    @abc.abstractmethod
+    def _verify_signed_content(self, signature: Signature) -> tuple[str, bytes]:
+        """Verifies the signed content and extract payload type and payload.
+
+        Subclasses only need to implement this method.
+
+        Args:
+            signature: The signature to verify.
+
+        Returns:
+            A tuple containing the payload type and the payload (as a JSON
+            object loaded to a dictionary).
+        """
