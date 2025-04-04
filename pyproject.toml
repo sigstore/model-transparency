@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "model-signing"
 dynamic = ["version"]
 description = "A tool for signing and verifying ML models"
-readme = "README.model_signing.md"  # TODO: Merge READMEs and update
+readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
   { name = "Sigstore Authors", email = "sigstore-dev@googlegroups.com" }
