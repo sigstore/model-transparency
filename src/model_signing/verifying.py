@@ -29,6 +29,7 @@ from model_signing import hashing
 from model_signing._signing import sign_certificate as certificate
 from model_signing._signing import sign_ec_key as ec_key
 from model_signing._signing import sign_sigstore as sigstore
+from model_signing._signing import sign_sigstore_pb as sigstore_pb
 
 
 if sys.version_info >= (3, 11):
@@ -50,6 +51,7 @@ class Config:
         """Initializes the default configuration for verification."""
         self._hashing_config = hashing.Config()
         self._verifier = None
+        self._uses_sigstore = False
 
     def verify(self, model_path: os.PathLike, signature_path: os.PathLike):
         """Verifies that a model conforms to a signature.
@@ -63,7 +65,11 @@ class Config:
         if self._verifier is None:
             raise ValueError("Attempting to verify with no configured verifier")
 
-        signature = sigstore.Signature.read(pathlib.Path(signature_path))
+        if self._uses_sigstore:
+            signature = sigstore.Signature.read(pathlib.Path(signature_path))
+        else:
+            signature = sigstore_pb.Signature.read(pathlib.Path(signature_path))
+
         expected_manifest = self._verifier.verify(signature)
         actual_manifest = self._hashing_config.hash(model_path)
 
@@ -101,6 +107,7 @@ class Config:
         Return:
             The new verification configuration.
         """
+        self._uses_sigstore = True
         self._verifier = sigstore.Verifier(
             identity=identity, oidc_issuer=oidc_issuer, use_staging=use_staging
         )
@@ -120,6 +127,7 @@ class Config:
         Return:
             The new verification configuration.
         """
+        self._uses_sigstore = False
         self._verifier = ec_key.Verifier(public_key)
         return self
 
@@ -138,5 +146,6 @@ class Config:
         Return:
             The new verification configuration.
         """
+        self._uses_sigstore = False
         self._verifier = certificate.Verifier(certificate_chain)
         return self
