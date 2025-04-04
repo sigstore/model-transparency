@@ -15,6 +15,7 @@
 """The main entry-point for the model_signing package."""
 
 from collections.abc import Iterable, Sequence
+import logging
 import pathlib
 import sys
 from typing import Optional
@@ -22,6 +23,9 @@ from typing import Optional
 import click
 
 import model_signing
+
+
+logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 
 # Decorator for the commonly used argument for the model path.
@@ -464,12 +468,21 @@ def _verify_private_key(
 @_ignore_paths_option
 @_ignore_git_paths_option
 @_certificate_root_of_trust_option
+@click.option(
+    "--log_fingerprints",
+    type=bool,
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Log SHA256 fingerprints of all certificates.",
+)
 def _verify_certificate(
     model_path: pathlib.Path,
     signature: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     certificate_chain: Iterable[pathlib.Path],
+    log_fingerprints: bool,
 ) -> None:
     """Verify using a certificate.
 
@@ -486,7 +499,8 @@ def _verify_certificate(
     """
     try:
         model_signing.verifying.Config().use_certificate_verifier(
-            certificate_chain=certificate_chain
+            certificate_chain=certificate_chain,
+            log_fingerprints=log_fingerprints,
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
