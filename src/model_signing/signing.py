@@ -125,7 +125,7 @@ class Config:
         return self
 
     def use_elliptic_key_signer(
-        self, *, private_key: pathlib.Path, password: Optional[str] = None
+        self, *, private_key: os.PathLike, password: Optional[str] = None
     ) -> Self:
         """Configures the signing to be performed using elliptic curve keys.
 
@@ -139,15 +139,15 @@ class Config:
         Return:
             The new signing configuration.
         """
-        self._signer = ec_key.Signer(private_key, password)
+        self._signer = ec_key.Signer(pathlib.Path(private_key), password)
         return self
 
     def use_certificate_signer(
         self,
         *,
-        private_key: pathlib.Path,
-        signing_certificate: pathlib.Path,
-        certificate_chain: Iterable[pathlib.Path],
+        private_key: os.PathLike,
+        signing_certificate: os.PathLike,
+        certificate_chain: Iterable[os.PathLike],
     ) -> Self:
         """Configures the signing to be performed using signing certificates.
 
@@ -164,6 +164,8 @@ class Config:
             The new signing configuration.
         """
         self._signer = certificate.Signer(
-            private_key, signing_certificate, certificate_chain
+            pathlib.Path(private_key),
+            pathlib.Path(signing_certificate),
+            [pathlib.Path(c) for c in certificate_chain],
         )
         return self
