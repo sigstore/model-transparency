@@ -88,16 +88,16 @@ class TestSigstoreSigning:
         self, sigstore_oidc_beacon_token, sample_model_folder, tmp_path
     ):
         sc = signing.Config()
-        sc.set_sigstore_signer(
+        sc.use_sigstore_signer(
             use_staging=True, identity_token=sigstore_oidc_beacon_token
         )
         signature_path = tmp_path / "model.sig"
         sc.sign(sample_model_folder, signature_path)
 
         expected_identity = "https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon/.github/workflows/extremely-dangerous-oidc-beacon.yml@refs/heads/main"
-        verifying.verify(
-            sample_model_folder,
-            signature_path,
+        expected_oidc_issuer = "https://token.actions.githubusercontent.com"
+        verifying.Config().use_sigstore_verifier(
             identity=expected_identity,
+            oidc_issuer=expected_oidc_issuer,
             use_staging=True,
-        )
+        ).verify(sample_model_folder, signature_path)

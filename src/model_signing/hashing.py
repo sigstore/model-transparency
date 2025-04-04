@@ -90,9 +90,7 @@ class Config:
         symbolic link in the model directory results in an error.
         """
         self._ignored_paths = frozenset()
-        self._serializer = file.Serializer(
-            self._build_file_hasher_factory(), allow_symlinks=False
-        )
+        self.use_file_serialization()
 
     def hash(self, model_path: os.PathLike) -> manifest.Manifest:
         """Hashes a model using the current configuration."""
@@ -137,11 +135,11 @@ class Config:
             method.
         """
 
-        def factory(path: pathlib.Path) -> io.SimpleFileHasher:
+        def _factory(path: pathlib.Path) -> io.SimpleFileHasher:
             hasher = self._build_stream_hasher(hashing_algorithm)
             return io.SimpleFileHasher(path, hasher, chunk_size=chunk_size)
 
-        return factory
+        return _factory
 
     def _build_sharded_file_hasher_factory(
         self,
@@ -162,23 +160,23 @@ class Config:
             The hasher factory that should be used by the active serialization
             method.
         """
-        algorithm = self._build_stream_hasher(hashing_algorithm)
 
-        def factory(
+        def _factory(
             path: pathlib.Path, start: int, end: int
         ) -> io.ShardedFileHasher:
+            hasher = self._build_stream_hasher(hashing_algorithm)
             return io.ShardedFileHasher(
                 path,
-                algorithm,
+                hasher,
                 start=start,
                 end=end,
                 chunk_size=chunk_size,
                 shard_size=shard_size,
             )
 
-        return factory
+        return _factory
 
-    def set_serialize_by_file_to_manifest(
+    def use_file_serialization(
         self,
         *,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
@@ -213,7 +211,7 @@ class Config:
         )
         return self
 
-    def set_serialize_by_file_shard_to_manifest(
+    def use_shard_serialization(
         self,
         *,
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
