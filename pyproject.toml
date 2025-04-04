@@ -31,6 +31,7 @@ dependencies = [
   "click",
   "cryptography",
   "in-toto-attestation",
+  "python-pkcs11",
   "sigstore",
   "typing_extensions",
 ]

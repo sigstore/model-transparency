@@ -70,10 +70,10 @@ _ignore_git_paths_option = click.option(
 # (when using non-Sigstore PKI).
 _private_key_option = click.option(
     "--private_key",
-    type=pathlib.Path,
+    type=str,
     metavar="PRIVATE_KEY",
     required=True,
-    help="Path to the private key, as a PEM-encoded file.",
+    help="PKCS #11 URI or path to the private key, as a PEM-encoded file.",
 )
 
 
@@ -245,7 +245,7 @@ def _sign_private_key(
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     signature: pathlib.Path,
-    private_key: pathlib.Path,
+    private_key: str,
     password: Optional[str] = None,
 ) -> None:
     """Sign using a private key (paired with a public one).
@@ -255,21 +255,32 @@ def _sign_private_key(
     signature.
 
     Traditionally, signing could be achieved by using a public/private key pair.
-    Pass the signing key using `--private_key`.
+    Pass the signing key using `--private_key`. The private key may also be
+    a PKCS #11 URI.
 
     Note that this method does not provide a way to tie to the identity of the
     signer, outside of pairing the keys. Also note that we don't offer key
     management protocols.
     """
     try:
-        model_signing.signing.Config().use_elliptic_key_signer(
-            private_key=private_key, password=password
-        ).set_hashing_config(
-            model_signing.hashing.Config().set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
-            )
-        ).sign(model_path, signature)
+        if private_key.startswith("pkcs11:"):
+            model_signing.signing.Config().use_pkcs11_signer(
+                pkcs11_uri=private_key
+            ).set_hashing_config(
+                model_signing.hashing.Config().set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+            ).sign(model_path, signature)
+        else:
+            model_signing.signing.Config().use_elliptic_key_signer(
+                private_key=pathlib.Path(private_key), password=password
+            ).set_hashing_config(
+                model_signing.hashing.Config().set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+            ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
     else:
@@ -295,7 +306,7 @@ def _sign_certificate(
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     signature: pathlib.Path,
-    private_key: pathlib.Path,
+    private_key: str,
     signing_certificate: pathlib.Path,
     certificate_chain: Iterable[pathlib.Path],
 ) -> None:
@@ -308,24 +319,37 @@ def _sign_certificate(
     Traditionally, signing can be achieved by using keys from a certificate.
     The certificate can also provide the identity of the signer, making this
     method more informative than just using a public/private key pair for
-    signing.  Pass the private signing key using `--private_key` and signing
-    certificate via `--signing_certificate`. Optionally, pass a certificate
-    chain via `--certificate_chain` to establish root of trust (this option can
-    be repeated as needed, or all cerificates could be placed in a single file).
+    signing.  Pass the private signing key using `--private_key` (PKCS #11 URIs
+    are also supported) and signin certificate via `--signing_certificate`.
+    Optionally, pass a certificate chain via `--certificate_chain` to establish
+    root of trust (this option can be repeated as needed, or all cerificates
+    could be placed in a single file).
 
     Note that we don't offer certificate and key management protocols.
     """
     try:
-        model_signing.signing.Config().use_certificate_signer(
-            private_key=private_key,
-            signing_certificate=signing_certificate,
-            certificate_chain=certificate_chain,
-        ).set_hashing_config(
-            model_signing.hashing.Config().set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
-            )
-        ).sign(model_path, signature)
+        if private_key.startswith("pkcs11:"):
+            model_signing.signing.Config().use_pkcs11_certificate_signer(
+                pkcs11_uri=private_key,
+                signing_certificate=signing_certificate,
+                certificate_chain=certificate_chain,
+            ).set_hashing_config(
+                model_signing.hashing.Config().set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+            ).sign(model_path, signature)
+        else:
+            model_signing.signing.Config().use_certificate_signer(
+                private_key=pathlib.Path(private_key),
+                signing_certificate=signing_certificate,
+                certificate_chain=certificate_chain,
+            ).set_hashing_config(
+                model_signing.hashing.Config().set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+            ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
     else:

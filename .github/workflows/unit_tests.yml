@@ -44,6 +44,9 @@ jobs:
     - name: Run unit tests (with coverage report at the end)
       run: |
         set -euxo pipefail
+        if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+          sudo apt install softhsm2 gnutls-bin
+        fi
         if [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.python-version }}" == "3.12" ]]; then
           hatch test -c -py ${{ matrix.python-version }} | tee > cov.txt
         else
