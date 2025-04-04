@@ -125,7 +125,7 @@ class Verifier(sigstore_pb.Verifier):
         public_key.verify(
             envelope.signatures[0].sig,
             sigstore_pb.pae(envelope.payload),
-            ec.ECDSA(ec.key.get_ec_key_hash(public_key)),
+            ec.ECDSA(ec_key.get_ec_key_hash(public_key)),
         )
 
         return envelope.payload_type, envelope.payload
