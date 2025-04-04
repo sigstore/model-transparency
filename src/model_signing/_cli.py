@@ -218,7 +218,8 @@ def _sign_sigstore(
             identity_token=identity_token,
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                paths=ignore_paths, ignore_git_paths=ignore_git_paths
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
             )
         ).sign(model_path, signature)
     except Exception as err:
@@ -265,7 +266,8 @@ def _sign_private_key(
             private_key=private_key, password=password
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                paths=ignore_paths, ignore_git_paths=ignore_git_paths
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
             )
         ).sign(model_path, signature)
     except Exception as err:
@@ -320,7 +322,8 @@ def _sign_certificate(
             certificate_chain=certificate_chain,
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                paths=ignore_paths, ignore_git_paths=ignore_git_paths
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
             )
         ).sign(model_path, signature)
     except Exception as err:
@@ -392,7 +395,8 @@ def _verify_sigstore(
             use_staging=use_staging,
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                paths=ignore_paths, ignore_git_paths=ignore_git_paths
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
             )
         ).verify(model_path, signature)
     except Exception as err:
@@ -438,7 +442,8 @@ def _verify_private_key(
             public_key=public_key
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                paths=ignore_paths, ignore_git_paths=ignore_git_paths
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
             )
         ).verify(model_path, signature)
     except Exception as err:
@@ -478,7 +483,8 @@ def _verify_certificate(
             certificate_chain=certificate_chain
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                paths=ignore_paths, ignore_git_paths=ignore_git_paths
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
             )
         ).verify(model_path, signature)
     except Exception as err:
