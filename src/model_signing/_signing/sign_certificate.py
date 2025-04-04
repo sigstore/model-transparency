@@ -73,7 +73,7 @@ class Signer(ec_key.Signer):
     def _get_verification_material(self) -> bundle_pb.VerificationMaterial:
         def _to_protobuf_certificate(certificate):
             return common_pb.X509Certificate(
-                raw_byutes=certificate.public_bytes(
+                raw_bytes=certificate.public_bytes(
                     encoding=serialization.Encoding.DER
                 )
             )
@@ -108,7 +108,7 @@ class Verifier(sigstore_pb.Verifier):
               operating system, as per `certifi.where()`.
         """
         if not certificate_chain_paths:
-            certificate_chain_paths = [certifi.where()]
+            certificate_chain_paths = [pathlib.Path(p) for p in certifi.where()]
 
         certificates = x509.load_pem_x509_certificates(
             b"".join([path.read_bytes() for path in certificate_chain_paths])
