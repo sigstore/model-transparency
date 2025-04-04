@@ -26,7 +26,7 @@ from model_signing import signing
 from model_signing import verifying
 
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 
 __all__ = ["hashing", "signing", "verifying"]
