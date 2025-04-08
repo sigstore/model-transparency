@@ -16,6 +16,7 @@
 
 from collections.abc import Iterable, Sequence
 import pathlib
+import sys
 from typing import Optional
 
 import click
@@ -224,8 +225,9 @@ def _sign_sigstore(
         ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
-    else:
-        click.echo("Signing succeeded")
+        sys.exit(1)
+
+    click.echo("Signing succeeded")
 
 
 @_sign.command(name="key")
@@ -272,8 +274,9 @@ def _sign_private_key(
         ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
-    else:
-        click.echo("Signing succeeded")
+        sys.exit(1)
+
+    click.echo("Signing succeeded")
 
 
 @_sign.command(name="certificate")
@@ -328,8 +331,9 @@ def _sign_certificate(
         ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
-    else:
-        click.echo("Signing succeeded")
+        sys.exit(1)
+
+    click.echo("Signing succeeded")
 
 
 @main.group(name="verify", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
@@ -401,8 +405,9 @@ def _verify_sigstore(
         ).verify(model_path, signature)
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
-    else:
-        click.echo("Verification succeeded")
+        sys.exit(1)
+
+    click.echo("Verification succeeded")
 
 
 @_verify.command(name="key")
@@ -448,8 +453,9 @@ def _verify_private_key(
         ).verify(model_path, signature)
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
-    else:
-        click.echo("Verification succeeded")
+        sys.exit(1)
+
+    click.echo("Verification succeeded")
 
 
 @_verify.command(name="certificate")
@@ -489,5 +495,6 @@ def _verify_certificate(
         ).verify(model_path, signature)
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
-    else:
-        click.echo("Verification succeeded")
+        sys.exit(1)
+
+    click.echo("Verification succeeded")
