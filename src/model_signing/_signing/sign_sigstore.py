@@ -18,12 +18,16 @@ import pathlib
 import sys
 from typing import Optional, cast
 
+from cryptography.x509 import ExtensionNotFound
+from cryptography.x509 import RFC822Name
+from cryptography.x509 import SubjectAlternativeName
 from google.protobuf import json_format
 from sigstore import dsse as sigstore_dsse
 from sigstore import models as sigstore_models
 from sigstore import oidc as sigstore_oidc
 from sigstore import sign as sigstore_signer
 from sigstore import verify as sigstore_verifier
+from sigstore.verify.policy import OIDCIssuer
 from typing_extensions import override
 
 from model_signing._signing import signing
@@ -169,3 +173,34 @@ class Verifier(signing.Verifier):
         signature = cast(Signature, signature)
         bundle = signature.bundle
         return self._verifier.verify_dsse(bundle=bundle, policy=self._policy)
+
+
+def get_oidc_params_from_sigfile(
+    sigfile: pathlib.Path,
+) -> tuple[Optional[str], Optional[str]]:
+    """Get the OIDC parameters of email and issuer from the signature file."""
+    data = sigfile.read_text()
+    bundle = sigstore_models.Bundle.from_json(data)
+
+    signing_cert = bundle.signing_certificate
+    # SAN holds the identity's email
+    san_ext = signing_cert.extensions.get_extension_for_class(
+        SubjectAlternativeName
+    ).value
+    all_sans = san_ext.get_values_for_type(RFC822Name)
+    if len(all_sans) != 1:
+        raise ValueError(
+            "Expected to find 1 email address in certificate's "
+            "SAN: {all_sans}"
+        )
+
+    try:
+        ext = signing_cert.extensions.get_extension_for_oid(
+            OIDCIssuer.oid
+        ).value
+    except ExtensionNotFound as ex:
+        raise ValueError(
+            "Could not get issuer from certificate extension "
+            "{OIDCIssuer.oid}"
+        ) from ex
+    return all_sans[0], ext.value.decode()

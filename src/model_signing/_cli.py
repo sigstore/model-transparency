@@ -23,6 +23,7 @@ from typing import Optional
 import click
 
 import model_signing
+from model_signing._signing.sign_sigstore import get_oidc_params_from_sigfile
 
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
@@ -340,6 +341,20 @@ def _sign_certificate(
     click.echo("Signing succeeded")
 
 
+def confirm(msg: str, yes: bool) -> bool:
+    """Have the user respond to a message with either y or n."""
+    while True:
+        click.echo(msg, nl=False)
+        if yes:
+            click.echo("y")
+            return True
+        answer = input("")
+        if answer in ["y", "Y"]:
+            return True
+        if answer in ["n", "N", ""]:
+            return False
+
+
 @main.group(name="verify", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
 def _verify() -> None:
     """Verify models.
@@ -367,15 +382,22 @@ def _verify() -> None:
     "--identity",
     type=str,
     metavar="IDENTITY",
-    required=True,
+    required=False,
     help="The expected identity of the signer (e.g., name@example.com).",
 )
 @click.option(
     "--identity_provider",
     type=str,
     metavar="IDENTITY_PROVIDER",
-    required=True,
+    required=False,
     help="The expected identity provider (e.g., https://accounts.example.com).",
+)
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    default=False,
+    help="Respond to all interactive question with 'y'.",
 )
 def _verify_sigstore(
     model_path: pathlib.Path,
@@ -385,6 +407,7 @@ def _verify_sigstore(
     identity: str,
     identity_provider: str,
     use_staging: bool,
+    yes: bool,
 ) -> None:
     """Verify using Sigstore (DEFAULT verification method).
 
@@ -396,6 +419,16 @@ def _verify_sigstore(
     provider for the signature. If these don't match what is provided in the
     signature, verification would fail.
     """
+    if not identity_provider or not identity:
+        identity, identity_provider = get_oidc_params_from_sigfile(signature)
+        if not confirm(
+            f"Use identity '{identity}' and identity provider "
+            f"'{identity_provider}' from "
+            f"{signature}? [y/N] ",
+            yes,
+        ):
+            sys.exit(1)
+
     try:
         model_signing.verifying.Config().use_sigstore_verifier(
             identity=identity,
