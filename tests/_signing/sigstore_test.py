@@ -276,7 +276,9 @@ class TestSigning:
         expected_manifest = self._verify_dsse_signature(signature_path)
         assert expected_manifest == manifest
 
-    def test_sign_identity_token_precedence(self, mocked_oidc_provider):
+    def test_sign_identity_token_precedence(
+        self, mocked_oidc_provider, mocked_sigstore_signer
+    ):
         signer = sigstore.Signer(identity_token="provided_token")
         token = signer._get_identity_token()
         assert token == "provided_token"
