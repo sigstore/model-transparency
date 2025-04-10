@@ -49,6 +49,6 @@ jobs:
       run: |
         set -euxo pipefail
         if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-          sudo apt install softhsm2 gnutls-bin
+          sudo apt install softhsm2 gnutls-bin python3-pykcs11
         fi
         hatch test -c -py ${{ matrix.python-version }} -m integration

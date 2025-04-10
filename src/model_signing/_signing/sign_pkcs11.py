@@ -25,7 +25,12 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from google.protobuf import json_format
-import PyKCS11
+
+
+try:
+    import PyKCS11
+except ModuleNotFoundError:
+    PyKCS11 = None
 from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
 from sigstore_protobuf_specs.dev.sigstore.common import v1 as common_pb
 from sigstore_protobuf_specs.io import intoto as intoto_pb
@@ -107,6 +112,11 @@ class Signer(sigstore_pb.Signer):
     """Signer using PKCS #11 URIs with elliptic curves keys."""
 
     def __init__(self, pkcs11_uri: str, module_paths: list[str] = MODULE_PATHS):
+        if PyKCS11 is None:
+            raise ValueError(
+                "To use pkcs11 support install PyKCS11 (python3-pykcs11)"
+            )
+
         self.session = None
 
         self.pkcs11_uri = Pkcs11URI()

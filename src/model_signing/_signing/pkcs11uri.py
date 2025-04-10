@@ -23,7 +23,11 @@ from typing import Optional
 from urllib import parse
 from urllib.parse import urlparse
 
-import PyKCS11
+
+try:
+    import PyKCS11
+except ModuleNotFoundError:
+    PyKCS11 = None
 
 
 def escape_all(s: str) -> str:
@@ -449,6 +453,10 @@ class Pkcs11URI:
 
     def login(self) -> tuple[PyKCS11.Session, PyKCS11.PyKCS11Lib]:
         """Log in to the device using parameters from the URI."""
+        if PyKCS11 is None:
+            raise ValueError(
+                "To use pkcs11 support install PyKCS11 (python3-pykcs11)"
+            )
         pin, module, slot_id = self.get_login_parameters()
 
         lib = PyKCS11.PyKCS11Lib().load(pkcs11dll_filename=module)
