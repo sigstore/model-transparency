@@ -28,6 +28,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "asn1crypto",
   "click",
   "cryptography",
   "in-toto-attestation",
