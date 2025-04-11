@@ -175,15 +175,15 @@ class Verifier(sigstore_pb.Verifier):
         max_signing_time = signing_certificate.not_valid_before_utc
         self._store.set_time(max_signing_time)
 
-        signing_certificate_ssl = _to_openssl_certificate(
-            signing_chain.certificates[0].raw_bytes, False
-        )
         trust_chain_ssl = [
             _to_openssl_certificate(
                 certificate.raw_bytes, self._log_fingerprints
             )
             for certificate in signing_chain.certificates[1:]
         ]
+        signing_certificate_ssl = _to_openssl_certificate(
+            signing_chain.certificates[0].raw_bytes, self._log_fingerprints
+        )
 
         store_context = crypto.X509StoreContext(
             self._store, signing_certificate_ssl, trust_chain_ssl
