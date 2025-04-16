@@ -272,29 +272,35 @@ class TestPkcs11URI:
 
 
 class TestPkcs11SoftHSMSigning:
-    def run_softhsm_setup(self, cmd: str) -> Optional[bytes]:
+    def run_softhsm_setup(self, cmd: str) -> tuple[Optional[bytes], int]:
         curr_dir = os.path.dirname(os.path.realpath(__file__))
         softhsm_setup = os.path.join(
             curr_dir, "../../scripts/pkcs11-tests/softhsm_setup"
         )
         result = subprocess.run([softhsm_setup, cmd], stdout=subprocess.PIPE)
-        return result.stdout
+        return result.stdout, result.returncode
 
     @pytest.mark.integration
     def test_softhsm(self, tmp_path: pathlib.Path) -> None:
         if shutil.which("softhsm2-util") is None:
             return
 
-        stdout_b = self.run_softhsm_setup("setup")
-        if stdout_b is None:
-            return
+        did_setup = False
+
+        stdout_b, returncode = self.run_softhsm_setup("getkeyuri")
+        if returncode > 0:
+            stdout_b, _ = self.run_softhsm_setup("setup")
+            if stdout_b is None:
+                return
+
+            did_setup = True
 
         try:
             stdout = str(stdout_b.rstrip())
             i = stdout.index("pkcs11:")
             pkcs11_uri = stdout[i:].rstrip("'")
 
-            stdout = self.run_softhsm_setup("getpubkey")
+            stdout, _ = self.run_softhsm_setup("getpubkey")
 
             pub_key_file = tmp_path.joinpath("pubkey.pem")
             pub_key_file.write_bytes(stdout)
@@ -318,4 +324,5 @@ class TestPkcs11SoftHSMSigning:
                 )
             ).verify(model_path, signature)
         finally:
-            self.run_softhsm_setup("teardown")
+            if did_setup:
+                self.run_softhsm_setup("teardown")
