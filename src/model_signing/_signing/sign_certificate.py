@@ -153,7 +153,7 @@ class Verifier(sigstore_pb.Verifier):
             # Here, we patch over a bug in `pae` which mixed unicode `str` and
             # `bytes`. As a result, additional escape characters were added to
             # the material that got signed over.
-            self._public_key.verify(
+            public_key.verify(
                 envelope.signatures[0].sig,
                 sigstore_pb.pae_compat(envelope.payload),
                 ec.ECDSA(ec_key.get_ec_key_hash(public_key)),
