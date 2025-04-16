@@ -65,6 +65,32 @@ def pae(raw_payload: bytes) -> bytes:
     return b" ".join([pae_str.encode("utf-8"), raw_payload])
 
 
+def pae_compat(raw_payload: bytes) -> bytes:
+    """Generates the PAE encoding of statement from the payload.
+
+    This is the same as `pae`, but using the version as defined in v0.2.0 of the
+    `model_signing` library. Due to a bug in that implementation, signatures
+    generated at that version have to be verified using this compat patch. The
+    issue is that the raw payload, which is bytes, is added to a string and then
+    encoded back as bytes, so we get additional escape characters included.
+
+    Args:
+        payload: The raw payload to encode.
+
+    Returns:
+        The encoded statement from the payload.
+    """
+    payload_type = signing._IN_TOTO_JSON_PAYLOAD_TYPE
+    payload_type_length = len(payload_type)
+    payload_length = len(raw_payload)
+    # Notice bug here!
+    pae_str = (
+        f"DSSEV1 {payload_type_length} {payload_type} "
+        f"{payload_length} {raw_payload}"
+    )
+    return pae_str.encode("utf-8")
+
+
 class Signature(signing.Signature):
     """Sigstore signature support, wrapping around `bundle_pb.Bundle`."""
 

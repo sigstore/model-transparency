@@ -19,6 +19,7 @@ import logging
 import pathlib
 
 import certifi
+from cryptography import exceptions
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
@@ -141,11 +142,22 @@ class Verifier(sigstore_pb.Verifier):
     def _verify_bundle(self, bundle: bundle_pb.Bundle) -> tuple[str, bytes]:
         public_key = self._verify_certificates(bundle.verification_material)
         envelope = bundle.dsse_envelope
-        public_key.verify(
-            envelope.signatures[0].sig,
-            sigstore_pb.pae(envelope.payload),
-            ec.ECDSA(ec_key.get_ec_key_hash(public_key)),
-        )
+        try:
+            public_key.verify(
+                envelope.signatures[0].sig,
+                sigstore_pb.pae(envelope.payload),
+                ec.ECDSA(ec_key.get_ec_key_hash(public_key)),
+            )
+        except exceptions.InvalidSignature:
+            # Compatibility layer with pre 1.0 release
+            # Here, we patch over a bug in `pae` which mixed unicode `str` and
+            # `bytes`. As a result, additional escape characters were added to
+            # the material that got signed over.
+            self._public_key.verify(
+                envelope.signatures[0].sig,
+                sigstore_pb.pae_compat(envelope.payload),
+                ec.ECDSA(ec_key.get_ec_key_hash(public_key)),
+            )
 
         return envelope.payload_type, envelope.payload
 
