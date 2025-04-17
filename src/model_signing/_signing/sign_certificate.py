@@ -19,6 +19,7 @@ import logging
 import pathlib
 
 import certifi
+from cryptography import exceptions
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
@@ -141,11 +142,28 @@ class Verifier(sigstore_pb.Verifier):
     def _verify_bundle(self, bundle: bundle_pb.Bundle) -> tuple[str, bytes]:
         public_key = self._verify_certificates(bundle.verification_material)
         envelope = bundle.dsse_envelope
-        public_key.verify(
-            envelope.signatures[0].sig,
-            sigstore_pb.pae(envelope.payload),
-            ec.ECDSA(ec_key.get_ec_key_hash(public_key)),
-        )
+        try:
+            public_key.verify(
+                envelope.signatures[0].sig,
+                sigstore_pb.pae(envelope.payload),
+                ec.ECDSA(ec_key.get_ec_key_hash(public_key)),
+            )
+        except exceptions.InvalidSignature:
+            # Compatibility layer with pre 1.0 release
+            # Here, we patch over a bug in `pae` which mixed unicode `str` and
+            # `bytes`. As a result, additional escape characters were added to
+            # the material that got signed over.
+            public_key.verify(
+                envelope.signatures[0].sig,
+                sigstore_pb.pae_compat(envelope.payload),
+                # Note another bug here: the v0.2 signatures were generated with
+                # hardcoded SHA256 hash, instead of the one that matches the
+                # key type. To verify those signatures, we have to hardcode this
+                # here too (instead of `ec_key.get_ec_key_hash(public_key)`).
+                # For the hardcode path see:
+                # https://github.com/sigstore/model-transparency/blob/9737f0e28349bf43897857ada7beaa22ec18e9a6/src/model_signing/signature/key.py#L103
+                ec.ECDSA(hashes.SHA256()),
+            )
 
         return envelope.payload_type, envelope.payload
 

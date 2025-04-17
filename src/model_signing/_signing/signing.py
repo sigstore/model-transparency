@@ -67,6 +67,10 @@ _IN_TOTO_STATEMENT_TYPE: str = "https://in-toto.io/Statement/v1"
 _PREDICATE_TYPE: str = "https://model_signing/signature/v1.0"
 
 
+# The expected model signature predicate type for v0.2 (compat)
+_PREDICATE_TYPE_COMPAT: str = "https://model_signing/Digests/v0.1"
+
+
 def dsse_payload_to_manifest(dsse_payload: dict[str, Any]) -> manifest.Manifest:
     """Builds a manifest from the DSSE payload read from a signature.
 
@@ -84,6 +88,8 @@ def dsse_payload_to_manifest(dsse_payload: dict[str, Any]) -> manifest.Manifest:
     """
     obtained_predicate_type = dsse_payload["predicateType"]
     if obtained_predicate_type != _PREDICATE_TYPE:
+        if obtained_predicate_type == _PREDICATE_TYPE_COMPAT:
+            return dsse_payload_to_manifest_compat(dsse_payload)
         raise ValueError(
             f"Predicate type mismatch, expected {_PREDICATE_TYPE}, "
             f"got {obtained_predicate_type}"
@@ -117,6 +123,46 @@ def dsse_payload_to_manifest(dsse_payload: dict[str, Any]) -> manifest.Manifest:
             f"but the included resources hash to {obtained_digest}"
         )
 
+    return manifest.Manifest(model_name, items, serialization)
+
+
+def dsse_payload_to_manifest_compat(
+    dsse_payload: dict[str, Any],
+) -> manifest.Manifest:
+    """Builds a manifest from the DSSE payload read from a signature.
+
+    This is the same as `dsse_payload_to_manifest` but using a DSSE payload as
+    defined at v0.2 release. This was experimental but got used in production
+    before v1.0 so we need to patch support to it while verifiers migrate to the
+    forward compatible format defined by v1.0.
+
+    Args:
+        payload: The in-toto DSSE envelope to convert to manifest.
+
+    Returns:
+        A manifest representing the signed model.
+
+    Raises:
+        ValueError: The payload cannot be deserialized to a manifest.
+    """
+    # Model name is not defined, use a constant.
+    model_name = "compat-undefined-not-present"
+
+    # Serialization format is not present, build a fake one.
+    serialization = manifest.SerializationType.from_args(
+        {"method": "files", "hash_type": "sha256", "allow_symlinks": "false"}
+    )
+
+    # The only field with actual content is the subject.
+    items = []
+    for subject in dsse_payload["subject"]:
+        name = subject["name"]
+        algorithm = "sha256"  # hardcoded, the only supported one
+        digest_value = subject["digest"][algorithm]
+        digest = hashing.Digest(algorithm, bytes.fromhex(digest_value))
+        items.append(serialization.new_item(name, digest))
+
+    # There is no verification that the manifest is missing items at this point.
     return manifest.Manifest(model_name, items, serialization)
 
 
