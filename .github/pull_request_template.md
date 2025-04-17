@@ -17,6 +17,7 @@ Thank you :)
 
 - [ ] All commits are signed-off, using [DCO](https://en.wikipedia.org/wiki/Developer_Certificate_of_Origin)
 - [ ] All new code has docstrings and type annotations
+- [ ] All new code is covered by tests. Aim for at least 90% coverage. CI is configured to highlight lines not covered by tests.
 - [ ] Public facing changes are paired with documentation changes
 - [ ] Release note has been added to CHANGELOG.md if needed
 
