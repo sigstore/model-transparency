@@ -156,7 +156,13 @@ class Verifier(sigstore_pb.Verifier):
             public_key.verify(
                 envelope.signatures[0].sig,
                 sigstore_pb.pae_compat(envelope.payload),
-                ec.ECDSA(ec_key.get_ec_key_hash(public_key)),
+                # Note another bug here: the v0.2 signatures were generated with
+                # hardcoded SHA256 hash, instead of the one that matches the
+                # key type. To verify those signatures, we have to hardcode this
+                # here too (instead of `ec_key.get_ec_key_hash(public_key)`).
+                # For the hardcode path see:
+                # https://github.com/sigstore/model-transparency/blob/9737f0e28349bf43897857ada7beaa22ec18e9a6/src/model_signing/signature/key.py#L103
+                ec.ECDSA(hashes.SHA256()),
             )
 
         return envelope.payload_type, envelope.payload
