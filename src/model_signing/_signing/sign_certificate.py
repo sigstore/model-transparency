@@ -99,10 +99,20 @@ class Signer(ec_key.Signer):
         )
 
 
-def _log_cert_fingerprint(cert, hash_alg: hashes.Hash) -> None:
-    fp = cert.fingerprint(hash_alg)
+def _log_certificate_fingerprint(
+    where: str, certificate: x509.Certificate, hash_algorithm: hashes.Hash
+) -> None:
+    """Log the fingerprint of a certificate, for debugging.
+
+    Args:
+        where: Location of where this gets called from, useful for debugging.
+        certificate: Certificate to compute fingerprint of and log.
+        hash_algorithm: The algorithm used to compute the fingerprint.
+    """
+    fp = certificate.fingerprint(hash_algorithm)
     logger.info(
-        f"{hash_alg.name} Fingerprint: {':'.join(f'{b:02X}' for b in fp)}"
+        f"[{where:^8}] {hash_algorithm.name} "
+        f"Fingerprint: {':'.join(f'{b:02X}' for b in fp)}"
     )
 
 
@@ -135,7 +145,9 @@ class Verifier(sigstore_pb.Verifier):
         self._store = crypto.X509Store()
         for certificate in certificates:
             if self._log_fingerprints:
-                _log_cert_fingerprint(certificate, hashes.SHA256())
+                _log_certificate_fingerprint(
+                    "init", certificate, hashes.SHA256()
+                )
             self._store.add_cert(crypto.X509.from_cryptography(certificate))
 
     @override
@@ -182,7 +194,7 @@ class Verifier(sigstore_pb.Verifier):
         def _to_openssl_certificate(certificate_bytes, log_fingerprints):
             cert = x509.load_der_x509_certificate(certificate_bytes)
             if log_fingerprints:
-                _log_cert_fingerprint(cert, hashes.SHA256())
+                _log_certificate_fingerprint("verify", cert, hashes.SHA256())
             return crypto.X509.from_cryptography(cert)
 
         signing_chain = verification_material.x509_certificate_chain
