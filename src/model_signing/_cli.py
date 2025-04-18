@@ -81,6 +81,14 @@ _private_key_option = click.option(
     help="Path to the private key, as a PEM-encoded file.",
 )
 
+# Decorator for the commonly used option to set a PKCS #11 URI
+_pkcs11_uri_option = click.option(
+    "--pkcs11_uri",
+    type=str,
+    metavar="PKCS11_URI",
+    required=True,
+    help="PKCS #11 URI of the private key.",
+)
 
 # Decorator for the commonly used option to pass a certificate chain to
 # establish root of trust (when signing or verifying using certificates).
@@ -101,11 +109,26 @@ _sigstore_staging_option = click.option(
     help="Use Sigstore's staging instance.",
 )
 
+# Decorator for the commonly used option to pass the signing key's certificate
+_signing_certificate_option = click.option(
+    "--signing_certificate",
+    type=pathlib.Path,
+    metavar="CERTIFICATE_PATH",
+    required=True,
+    help="Path to the signing certificate, as a PEM-encoded file.",
+)
+
 
 class _PKICmdGroup(click.Group):
     """A custom group to configure the supported PKI methods."""
 
-    _supported_modes = ["sigstore", "key", "certificate"]
+    _supported_modes = [
+        "sigstore",
+        "key",
+        "certificate",
+        "pkcs11-key",
+        "pkcs11-certificate",
+    ]
 
     def get_command(
         self, ctx: click.Context, cmd_name: str
@@ -283,19 +306,54 @@ def _sign_private_key(
     click.echo("Signing succeeded")
 
 
+@_sign.command(name="pkcs11-key")
+@_model_path_argument
+@_ignore_paths_option
+@_ignore_git_paths_option
+@_write_signature_option
+@_pkcs11_uri_option
+def _sign_pkcs11_key(
+    model_path: pathlib.Path,
+    ignore_paths: Iterable[pathlib.Path],
+    ignore_git_paths: bool,
+    signature: pathlib.Path,
+    pkcs11_uri: str,
+) -> None:
+    """Sign using a private key using a PKCS #11 URI.
+
+    Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
+    (as per `--signature` option). Files in IGNORE_PATHS are not part of the
+    signature.
+
+    Traditionally, signing could be achieved by using a public/private key pair.
+    Pass the PKCS #11 URI of the signing key using `--pkcs11_uri`.
+
+    Note that this method does not provide a way to tie to the identity of the
+    signer, outside of pairing the keys. Also note that we don't offer key
+    management protocols.
+    """
+    try:
+        model_signing.signing.Config().use_pkcs11_signer(
+            pkcs11_uri=pkcs11_uri
+        ).set_hashing_config(
+            model_signing.hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).sign(model_path, signature)
+    except Exception as err:
+        click.echo(f"Signing failed with error: {err}", err=True)
+    else:
+        click.echo("Signing succeeded")
+
+
 @_sign.command(name="certificate")
 @_model_path_argument
 @_ignore_paths_option
 @_ignore_git_paths_option
 @_write_signature_option
 @_private_key_option
-@click.option(
-    "--signing_certificate",
-    type=pathlib.Path,
-    metavar="CERTIFICATE_PATH",
-    required=True,
-    help="Path to the signing certificate, as a PEM-encoded file.",
-)
+@_signing_certificate_option
 @_certificate_root_of_trust_option
 def _sign_certificate(
     model_path: pathlib.Path,
@@ -338,6 +396,57 @@ def _sign_certificate(
         sys.exit(1)
 
     click.echo("Signing succeeded")
+
+
+@_sign.command(name="pkcs11-certificate")
+@_model_path_argument
+@_ignore_paths_option
+@_ignore_git_paths_option
+@_write_signature_option
+@_pkcs11_uri_option
+@_signing_certificate_option
+@_certificate_root_of_trust_option
+def _sign_pkcs11_certificate(
+    model_path: pathlib.Path,
+    ignore_paths: Iterable[pathlib.Path],
+    ignore_git_paths: bool,
+    signature: pathlib.Path,
+    pkcs11_uri: str,
+    signing_certificate: pathlib.Path,
+    certificate_chain: Iterable[pathlib.Path],
+) -> None:
+    """Sign using a certificate.
+
+    Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
+    (as per `--signature` option). Files in IGNORE_PATHS are not part of the
+    signature.
+
+    Traditionally, signing can be achieved by using keys from a certificate.
+    The certificate can also provide the identity of the signer, making this
+    method more informative than just using a public/private key pair for
+    signing. Pass the PKCS #11 URI of the private signing key using
+    `--pkcs11_uri` and then signing certificate via `--signing_certificate`.
+    Optionally, pass a certificate chain via `--certificate_chain` to establish
+    root of trust (this option can be repeated as needed, or all cerificates
+    could be placed in a single file).
+
+    Note that we don't offer certificate and key management protocols.
+    """
+    try:
+        model_signing.signing.Config().use_pkcs11_certificate_signer(
+            pkcs11_uri=pkcs11_uri,
+            signing_certificate=signing_certificate,
+            certificate_chain=certificate_chain,
+        ).set_hashing_config(
+            model_signing.hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).sign(model_path, signature)
+    except Exception as err:
+        click.echo(f"Signing failed with error: {err}", err=True)
+    else:
+        click.echo("Signing succeeded")
 
 
 @main.group(name="verify", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
