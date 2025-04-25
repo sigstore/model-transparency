@@ -95,7 +95,7 @@ For the demo, we will use the `bert-base-uncased` model, which can be obtained
 via:
 
 ```bash
-[...]$ git clone --depth=1 "https://huggingface.co/bert-based-uncased
+[...]$ git clone --depth=1 "https://huggingface.co/bert-base-uncased"
 ```
 
 We remove the `.git` directory since that should not be included in the
