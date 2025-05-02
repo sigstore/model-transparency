@@ -129,8 +129,12 @@ class Serializer(serialization.Serializer):
                 frozenset(list(self._ignore_paths) + rel_ignore_paths),
             )
 
+        model_name = model_path.name
+        if not model_name or model_name == "..":
+            model_name = os.path.basename(model_path.resolve())
+
         return manifest.Manifest(
-            model_path.name, manifest_items, self._serialization_description
+            model_name, manifest_items, self._serialization_description
         )
 
     def _compute_hash(

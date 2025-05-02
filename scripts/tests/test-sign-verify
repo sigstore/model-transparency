@@ -84,3 +84,117 @@ if [ "${res}" != "${exp}" ]; then
 	echo "Actual  : ${res}"
 	exit 1
 fi
+
+# Enter the model directory and sign and verify there
+pushd "${TMPDIR}" &>/dev/null || exit 1
+
+echo
+echo "Testing 'sign key' when in model directory"
+
+if ! python -m model_signing \
+	sign key \
+	--signature "$(basename "${sigfile}")" \
+	--private_key "${DIR}/keys/certificate/signing-key.pem" \
+	--ignore-paths "$(basename "${ignorefile}")" \
+	. ; then
+	echo "Error: 'sign key' failed"
+	exit 1
+fi
+
+if ! python -m model_signing \
+	verify key \
+	--signature "$(basename "${sigfile}")" \
+	--public_key "${DIR}/keys/certificate/signing-key-pub.pem" \
+	--ignore-paths "$(basename "${ignorefile}")" \
+	. ; then
+	echo "Error: 'verify key' failed"
+	exit 1
+fi
+
+# Check which files are part of signature
+res=$(get_signed_files "${sigfile}")
+exp='["signme-1","signme-2"]'
+if [ "${res}" != "${exp}" ]; then
+	echo "Error: Unexpected files were signed"
+	echo "Expected: ${exp}"
+	echo "Actual  : ${res}"
+	exit 1
+fi
+
+echo
+echo "Testing 'sign/verify' certificate when in model directory"
+
+if ! python -m model_signing \
+	sign certificate \
+	--signature "$(basename "${sigfile}")" \
+	--private_key "${DIR}/keys/certificate/signing-key.pem" \
+	--signing_certificate "${DIR}/keys/certificate/signing-key-cert.pem" \
+	--certificate_chain "${DIR}/keys/certificate/int-ca-cert.pem" \
+	--ignore-paths "$(basename "${ignorefile}")" \
+	. ; then
+	echo "Error: 'sign key' failed"
+	exit 1
+fi
+
+if ! python -m model_signing \
+	verify certificate \
+	--signature "$(basename "${sigfile}")" \
+	--certificate_chain "${DIR}/keys/certificate/ca-cert.pem" \
+	--ignore-paths "$(basename "${ignorefile}")" \
+	. ; then
+	echo "Error: 'sign key' failed"
+	exit 1
+fi
+
+# Check which files are part of signature
+res=$(get_signed_files "${sigfile}")
+exp='["signme-1","signme-2"]'
+if [ "${res}" != "${exp}" ]; then
+	echo "Error: Unexpected files were signed"
+	echo "Expected: ${exp}"
+	echo "Actual  : ${res}"
+	exit 1
+fi
+
+echo
+echo "Testing 'sign/verify' certificate when in subdir of model directory and using '..'"
+
+rm -f "$(basename "${sigfile}")"
+mkdir subdir
+pushd subdir 1>/dev/null || exit 1
+
+if ! python -m model_signing \
+	sign certificate \
+	--signature "../$(basename "${sigfile}")" \
+	--private_key "${DIR}/keys/certificate/signing-key.pem" \
+	--signing_certificate "${DIR}/keys/certificate/signing-key-cert.pem" \
+	--certificate_chain "${DIR}/keys/certificate/int-ca-cert.pem" \
+	--ignore-paths "../$(basename "${ignorefile}")" \
+	.. ; then
+	echo "Error: 'sign key' failed"
+	exit 1
+fi
+
+popd 1>/dev/null || exit 1   # exit subdir
+
+if ! python -m model_signing \
+	verify certificate \
+	--signature "$(basename "${sigfile}")" \
+	--certificate_chain "${DIR}/keys/certificate/ca-cert.pem" \
+	--ignore-paths "$(basename "${ignorefile}")" \
+	. ; then
+	echo "Error: 'sign key' failed"
+	exit 1
+fi
+
+# Check which files are part of signature
+res=$(get_signed_files "${sigfile}")
+exp='["signme-1","signme-2"]'
+if [ "${res}" != "${exp}" ]; then
+	echo "Error: Unexpected files were signed"
+	echo "Expected: ${exp}"
+	echo "Actual  : ${res}"
+	exit 1
+fi
+
+popd 1>/dev/null || exit 1
