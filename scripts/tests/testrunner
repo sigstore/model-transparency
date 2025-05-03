@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+# Check availability of utilities.
+for util in jq; do
+	if ! type -P "${util}" >/dev/null; then
+		echo "Could not find '${util}' in PATH."
+		exit 1
+	fi
+done
+
+DIR=$(dirname "$0")
+
+cd "${DIR}" || exit 1
+
+for tc in test-*; do
+	echo -e "\n>>> Running ${tc}"
+	./"${tc}" || exit 1
+done
+
+exit 0
