@@ -142,6 +142,9 @@ class Config:
 
     def hash(self, model_path: PathLike) -> manifest.Manifest:
         """Hashes a model using the current configuration."""
+        if os.path.basename(model_path) == ".":
+            model_path = pathlib.Path(os.getcwd())
+
         ignored_paths = [path for path in self._ignored_paths]
         if self._ignore_git_paths:
             ignored_paths.extend(
@@ -327,6 +330,13 @@ class Config:
         Returns:
             The new hashing configuration with a new set of ignored paths.
         """
-        self._ignored_paths = frozenset({pathlib.Path(p) for p in paths})
+        paths = [
+            p
+            if os.path.dirname(p) != ""
+            else pathlib.Path(os.path.join(os.getcwd(), os.path.basename(p)))
+            for p in paths
+        ]
+        self._ignored_paths = frozenset(paths)
+
         self._ignore_git_paths = ignore_git_paths
         return self
