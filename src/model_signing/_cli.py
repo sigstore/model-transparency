@@ -21,9 +21,14 @@ import sys
 from typing import Optional
 
 import click
+from opentelemetry import trace
+from opentelemetry.instrumentation import auto_instrumentation
 
 import model_signing
 
+
+auto_instrumentation.initialize()
+tracer = trace.get_tracer(__name__)
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 
@@ -239,22 +244,30 @@ def _sign_sigstore(
     Passing the `--use_staging` flag would use that instance instead of the
     production one.
     """
-    try:
-        model_signing.signing.Config().use_sigstore_signer(
-            use_ambient_credentials=use_ambient_credentials,
-            use_staging=use_staging,
-            identity_token=identity_token,
-        ).set_hashing_config(
-            model_signing.hashing.Config().set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
-            )
-        ).sign(model_path, signature)
-    except Exception as err:
-        click.echo(f"Signing failed with error: {err}", err=True)
-        sys.exit(1)
+    with tracer.start_as_current_span("Sign") as span:
+        span.set_attribute("sigstore.sign_method", "sigstore")
+        span.set_attribute("sigstore.model_path", str(model_path))
+        span.set_attribute("sigstore.signature", str(signature))
+        span.set_attribute(
+            "sigstore.use_ambient_credentials", use_ambient_credentials
+        )
+        span.set_attribute("sigstore.use_staging", use_staging)
+        try:
+            model_signing.signing.Config().use_sigstore_signer(
+                use_ambient_credentials=use_ambient_credentials,
+                use_staging=use_staging,
+                identity_token=identity_token,
+            ).set_hashing_config(
+                model_signing.hashing.Config().set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+            ).sign(model_path, signature)
+        except Exception as err:
+            click.echo(f"Signing failed with error: {err}", err=True)
+            sys.exit(1)
 
-    click.echo("Signing succeeded")
+        click.echo("Signing succeeded")
 
 
 @_sign.command(name="key")
@@ -505,22 +518,29 @@ def _verify_sigstore(
     provider for the signature. If these don't match what is provided in the
     signature, verification would fail.
     """
-    try:
-        model_signing.verifying.Config().use_sigstore_verifier(
-            identity=identity,
-            oidc_issuer=identity_provider,
-            use_staging=use_staging,
-        ).set_hashing_config(
-            model_signing.hashing.Config().set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
-            )
-        ).verify(model_path, signature)
-    except Exception as err:
-        click.echo(f"Verification failed with error: {err}", err=True)
-        sys.exit(1)
+    with tracer.start_as_current_span("Verify") as span:
+        span.set_attribute("sigstore.method", "sigstore")
+        span.set_attribute("sigstore.model_path", str(model_path))
+        span.set_attribute("sigstore.signature", str(signature))
+        span.set_attribute("sigstore.identity", identity)
+        span.set_attribute("sigstore.oidc_issuer", identity_provider)
+        span.set_attribute("sigstore.use_staging", use_staging)
+        try:
+            model_signing.verifying.Config().use_sigstore_verifier(
+                identity=identity,
+                oidc_issuer=identity_provider,
+                use_staging=use_staging,
+            ).set_hashing_config(
+                model_signing.hashing.Config().set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+            ).verify(model_path, signature)
+        except Exception as err:
+            click.echo(f"Verification failed with error: {err}", err=True)
+            sys.exit(1)
 
-    click.echo("Verification succeeded")
+        click.echo("Verification succeeded")
 
 
 @_verify.command(name="key")
