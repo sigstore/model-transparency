@@ -35,6 +35,11 @@ dependencies = [
   "PyKCS11",
   "sigstore",
   "typing_extensions",
+  "opentelemetry-api",
+  "opentelemetry-sdk",
+  "opentelemetry-distro",
+  "opentelemetry-instrumentation",
+  "opentelemetry-instrumentation-urllib3",
 ]
 requires-python = ">=3.9"
 keywords = [

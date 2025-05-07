@@ -9,6 +9,8 @@ All versions prior to 1.0.0 are untracked.
 
 ## [Unreleased]
 
+- Added support trace sigstore sign and verify operations using OpenTelemetry.
+
 ## [1.0.1] - 2024-04-18
 
 ### Added
