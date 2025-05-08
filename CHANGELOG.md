@@ -14,6 +14,7 @@ All versions prior to 1.0.0 are untracked.
 ### Added
 - Added support for pre v1.0 signatures used in production. This is only provided for verification and replicates the experimental behavior at v0.2, bug for bug.
 - Added support for displaying fingerprints of certificates when using signing certificates
+- Added support for signing and verifying using private Sigstore instances (`--trust_config`).
 
 ### Fixed
 - Fix bug in CLI scripts where even if signature verification failed, the script would also output that verification passed and exit with success error code.
