@@ -6,9 +6,14 @@ signfile1="${TMPDIR}/signme-1"
 signfile2="${TMPDIR}/signme-2"
 ignorefile="${TMPDIR}/ignore"
 sigfile="${TMPDIR}/model.sig"
+gitignore="${TMPDIR}/.gitignore"
+
 echo "signme-1" > "${signfile1}"
 echo "signme-2" > "${signfile2}"
 echo "ignore" > "${ignorefile}"
+echo "dontsign" > "${gitignore}"
+mkdir "${TMPDIR}/.git"
+echo "dontsign" > "${TMPDIR}/.git/config"
 
 cleanup()
 {
