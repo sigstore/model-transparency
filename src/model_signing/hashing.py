@@ -145,7 +145,15 @@ class Config:
         ignored_paths = [path for path in self._ignored_paths]
         if self._ignore_git_paths:
             ignored_paths.extend(
-                [".git/", ".gitattributes", ".github/", ".gitignore"]
+                [
+                    os.path.join(model_path, p)
+                    for p in [
+                        ".git/",
+                        ".gitattributes",
+                        ".github/",
+                        ".gitignore",
+                    ]
+                ]
             )
 
         return self._serializer.serialize(
