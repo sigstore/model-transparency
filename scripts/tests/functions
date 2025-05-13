@@ -1,0 +1,10 @@
+
+# Get the list of files that were signed
+get_signed_files()
+{
+	local sigfile="$1"
+
+	jq -r .dsseEnvelope.payload < "${sigfile}" | \
+		base64 -d | \
+		jq -c '.predicate.resources | map(.name)'
+}

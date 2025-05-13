@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+DIR=${PWD}/$(dirname "$0")
+TMPDIR=$(mktemp -d) || exit 1
+signfile1="${TMPDIR}/signme-1"
+signfile2="${TMPDIR}/signme-2"
+ignorefile="${TMPDIR}/ignore"
+sigfile="${TMPDIR}/model.sig"
+echo "signme-1" > "${signfile1}"
+echo "signme-2" > "${signfile2}"
+echo "ignore" > "${ignorefile}"
+
+cleanup()
+{
+	rm -rf "${TMPDIR}"
+}
+trap cleanup EXIT QUIT
+
+source "${DIR}/functions"
+
+echo "Testing 'sign/verify key'"
+
+if ! python -m model_signing \
+	sign key \
+	--signature "${sigfile}" \
+	--private_key ./keys/certificate/signing-key.pem \
+	--ignore-paths "${ignorefile}" \
+	"${TMPDIR}"; then
+	echo "Error: 'sign key' failed"
+	exit 1
+fi
+
+if ! python -m model_signing \
+	verify key \
+	--signature "${sigfile}" \
+	--public_key ./keys/certificate/signing-key-pub.pem \
+	--ignore-paths "${ignorefile}" \
+	"${TMPDIR}"; then
+	echo "Error: 'verify key' failed"
+	exit 1
+fi
+
+# Check which files are part of signature
+res=$(get_signed_files "${sigfile}")
+exp='["signme-1","signme-2"]'
+if [ "${res}" != "${exp}" ]; then
+	echo "Error: Unexpected files were signed"
+	echo "Expected: ${exp}"
+	echo "Actual  : ${res}"
+	exit 1
+fi
+
+echo
+echo "Testing 'sign/verify' certificate"
+
+if ! python -m model_signing \
+	sign certificate \
+	--signature "${sigfile}" \
+	--private_key ./keys/certificate/signing-key.pem \
+	--signing_certificate ./keys/certificate/signing-key-cert.pem \
+	--certificate_chain ./keys/certificate/int-ca-cert.pem \
+	--ignore-paths "${ignorefile}" \
+	"${TMPDIR}"; then
+	echo "Error: 'sign key' failed"
+	exit 1
+fi
+
+if ! python -m model_signing \
+	verify certificate \
+	--signature "${sigfile}" \
+	--certificate_chain ./keys/certificate/ca-cert.pem \
+	--ignore-paths "${ignorefile}" \
+	"${TMPDIR}"; then
+	echo "Error: 'sign key' failed"
+	exit 1
+fi
+
+# Check which files are part of signature
+res=$(get_signed_files "${sigfile}")
+exp='["signme-1","signme-2"]'
+if [ "${res}" != "${exp}" ]; then
+	echo "Error: Unexpected files were signed"
+	echo "Expected: ${exp}"
+	echo "Actual  : ${res}"
+	exit 1
+fi
