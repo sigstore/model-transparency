@@ -97,6 +97,11 @@ class Config:
 
         if self._hashing_config is None:
             self._guess_hashing_config(expected_manifest)
+        if "ignore_paths" in expected_manifest.serialization_type:
+            self._hashing_config.add_ignored_paths(
+                model_path=model_path,
+                paths=expected_manifest.serialization_type["ignore_paths"],
+            )
         actual_manifest = self._hashing_config.hash(model_path)
 
         if actual_manifest != expected_manifest:
@@ -127,6 +132,7 @@ class Config:
             self._hashing_config = hashing.Config().use_file_serialization(
                 hashing_algorithm=args["hash_type"],
                 allow_symlinks=args["allow_symlinks"],
+                ignore_paths=args.get("ignore_paths", frozenset()),
             )
         elif method == "shards":
             self._hashing_config = hashing.Config().use_shard_serialization(

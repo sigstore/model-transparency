@@ -339,7 +339,11 @@ class _FileSerialization(SerializationType):
     @classmethod
     @override
     def _from_args(cls, args: dict[str, Any]) -> Self:
-        return cls(args["hash_type"], args["allow_symlinks"])
+        return cls(
+            args["hash_type"],
+            args["allow_symlinks"],
+            args.get("ignore_paths", frozenset()),
+        )
 
     @override
     def new_item(self, name: str, digest: hashing.Digest) -> ManifestItem:
