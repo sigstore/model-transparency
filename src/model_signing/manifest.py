@@ -305,7 +305,12 @@ class SerializationType(metaclass=abc.ABCMeta):
 class _FileSerialization(SerializationType):
     method: Final[str] = "files"
 
-    def __init__(self, hash_type: str, allow_symlinks: bool = False):
+    def __init__(
+        self,
+        hash_type: str,
+        allow_symlinks: bool = False,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
+    ):
         """Records the manifest serialization type for serialization by files.
 
         We only need to record the hashing engine used and whether symlinks are
@@ -317,15 +322,19 @@ class _FileSerialization(SerializationType):
         """
         self._hash_type = hash_type
         self._allow_symlinks = allow_symlinks
+        self._ignore_paths = [str(p) for p in ignore_paths]
 
     @property
     @override
     def serialization_parameters(self) -> dict[str, Any]:
-        return {
+        res = {
             "method": self.method,
             "hash_type": self._hash_type,
             "allow_symlinks": self._allow_symlinks,
         }
+        if self._ignore_paths:
+            res["ignore_paths"] = self._ignore_paths
+        return res
 
     @classmethod
     @override
