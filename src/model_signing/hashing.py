@@ -337,7 +337,11 @@ class Config:
         Returns:
             The new hashing configuration with a new set of ignored paths.
         """
-        self._ignored_paths = frozenset({pathlib.Path(p) for p in paths})
+        # Use relpath to possibly fix weird paths like '../a/b' -> 'b'
+        # when '../a/' is a no-op
+        self._ignored_paths = frozenset(
+            {pathlib.Path(os.path.relpath(p)) for p in paths}
+        )
         self._ignore_git_paths = ignore_git_paths
         return self
 
