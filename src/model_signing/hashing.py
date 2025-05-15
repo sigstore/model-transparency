@@ -142,7 +142,14 @@ class Config:
 
     def hash(self, model_path: PathLike) -> manifest.Manifest:
         """Hashes a model using the current configuration."""
-        ignored_paths = [path for path in self._ignored_paths]
+        # All paths in ignored_paths must have model_path as prefix
+        ignored_paths = []
+        for p in self._ignored_paths:
+            rp = os.path.relpath(p, model_path)
+            # rp may start with "../" if it is not relative to model_path
+            if not rp.startswith("../"):
+                ignored_paths.append(pathlib.Path(os.path.join(model_path, rp)))
+
         if self._ignore_git_paths:
             ignored_paths.extend(
                 [
