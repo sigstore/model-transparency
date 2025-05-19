@@ -215,6 +215,13 @@ class Payload:
           "method": "files",
           "hash_type": "sha256",
           "allow_symlinks": true
+          "ignore_paths": [
+            "model.sig",
+            ".git",
+            ".gitattributes",
+            ".github",
+            ".gitignore"
+          ],
         },
         "resources": [
           {

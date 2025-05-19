@@ -142,10 +142,25 @@ class Config:
 
     def hash(self, model_path: PathLike) -> manifest.Manifest:
         """Hashes a model using the current configuration."""
-        ignored_paths = [path for path in self._ignored_paths]
+        # All paths in ignored_paths must have model_path as prefix
+        ignored_paths = []
+        for p in self._ignored_paths:
+            rp = os.path.relpath(p, model_path)
+            # rp may start with "../" if it is not relative to model_path
+            if not rp.startswith("../"):
+                ignored_paths.append(pathlib.Path(os.path.join(model_path, rp)))
+
         if self._ignore_git_paths:
             ignored_paths.extend(
-                [".git/", ".gitattributes", ".github/", ".gitignore"]
+                [
+                    os.path.join(model_path, p)
+                    for p in [
+                        ".git/",
+                        ".gitattributes",
+                        ".github/",
+                        ".gitignore",
+                    ]
+                ]
             )
 
         return self._serializer.serialize(
@@ -237,6 +252,7 @@ class Config:
         chunk_size: int = 1048576,
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ) -> Self:
         """Configures serialization to build a manifest of (file, hash) pairs.
 
@@ -263,6 +279,7 @@ class Config:
             self._build_file_hasher_factory(hashing_algorithm, chunk_size),
             max_workers=max_workers,
             allow_symlinks=allow_symlinks,
+            ignore_paths=ignore_paths,
         )
         return self
 
@@ -327,6 +344,24 @@ class Config:
         Returns:
             The new hashing configuration with a new set of ignored paths.
         """
-        self._ignored_paths = frozenset({pathlib.Path(p) for p in paths})
+        # Use relpath to possibly fix weird paths like '../a/b' -> 'b'
+        # when '../a/' is a no-op
+        self._ignored_paths = frozenset(
+            {pathlib.Path(os.path.relpath(p)) for p in paths}
+        )
         self._ignore_git_paths = ignore_git_paths
         return self
+
+    def add_ignored_paths(
+        self, *, model_path: PathLike, paths: Iterable[PathLike]
+    ) -> None:
+        """Add more paths to ignore to existing set of paths.
+
+        Args:
+            model_path: The path to the model
+            paths: Additional paths to ignore. All path must be relative to
+                   the model directory.
+        """
+        newset = set(self._ignored_paths)
+        newset.update([os.path.join(model_path, p) for p in paths])
+        self._ignored_paths = newset
