@@ -44,6 +44,7 @@ def base_path() -> Path:
 def populate_tmpdir(tmp_path: Path) -> Path:
     Path(tmp_path / "signme-1").write_text("signme-1")
     Path(tmp_path / "signme-2").write_text("signme-2")
+    Path(tmp_path / ".gitignore").write_text(".foo")
     return tmp_path
 
 
@@ -127,7 +128,18 @@ class TestSigstoreSigning:
             use_staging=True,
         ).verify(sample_model_folder, signature_path)
 
-        assert ["signme-1", "signme-2"] == get_signed_files(signature_path)
+        assert [
+            "d0/f00",
+            "d0/f01",
+            "d0/f02",
+            "d1/f10",
+            "d1/f11",
+            "d1/f12",
+            "f0",
+            "f1",
+            "f2",
+            "f3",
+        ] == get_signed_files(signature_path)
 
 
 class TestKeySigning:
@@ -160,6 +172,22 @@ class TestKeySigning:
                 ignore_git_paths=ignore_git_paths,
             )
         ).verify(model_path, signature)
+
+        assert [".gitignore", "signme-1", "signme-2"] == get_signed_files(
+            signature
+        )
+
+        # Ignore git paths now
+        ignore_git_paths = True
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key, password=password
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).sign(model_path, signature)
 
         assert ["signme-1", "signme-2"] == get_signed_files(signature)
 
@@ -203,5 +231,23 @@ class TestCertificateSigning:
                 ignore_git_paths=ignore_git_paths,
             )
         ).verify(model_path, signature)
+
+        assert [".gitignore", "signme-1", "signme-2"] == get_signed_files(
+            signature
+        )
+
+        # Ignore git paths now
+        ignore_git_paths = True
+
+        signing.Config().use_certificate_signer(
+            private_key=private_key,
+            signing_certificate=signing_certificate,
+            certificate_chain=certificate_chain,
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).sign(model_path, signature)
 
         assert ["signme-1", "signme-2"] == get_signed_files(signature)
