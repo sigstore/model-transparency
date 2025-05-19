@@ -15,6 +15,7 @@
 """Tests for the top level API."""
 
 from base64 import b64decode
+from collections.abc import Iterable
 from datetime import datetime
 from datetime import timedelta
 import json
@@ -33,6 +34,14 @@ from model_signing import verifying
 
 # Directory with testdata for this test
 TESTDATA = Path(__file__).parent / "../scripts/tests"
+
+# The default set of git related files that are ignored
+GIT_IGNORE_PATHS: Iterable[str] = [
+    ".git",
+    ".gitattributes",
+    ".gitignore",
+    ".github",
+]
 
 
 @pytest.fixture
@@ -53,6 +62,27 @@ def get_signed_files(modelsig: Path) -> list[str]:
         signature = json.load(file)
     payload = json.loads(b64decode(signature["dsseEnvelope"]["payload"]))
     return [entry["name"] for entry in payload["predicate"]["resources"]]
+
+
+def get_ignore_paths(modelsig: Path) -> list[str]:
+    with open(modelsig, "r") as file:
+        signature = json.load(file)
+    payload = json.loads(b64decode(signature["dsseEnvelope"]["payload"]))
+    ignore_paths = payload["predicate"]["serialization"]["ignore_paths"]
+    ignore_paths.sort()
+    return ignore_paths
+
+
+def check_ignore_paths(
+    modelsig: Path,
+    ignore_git_paths: bool,
+    ignore_paths: Iterable[str] = frozenset(),
+) -> None:
+    ignore_paths = list(ignore_paths)
+    if ignore_git_paths:
+        ignore_paths += GIT_IGNORE_PATHS
+    ignore_paths.sort()
+    assert ignore_paths == get_ignore_paths(modelsig)
 
 
 _MIN_VALIDITY = timedelta(minutes=1)
@@ -140,6 +170,7 @@ class TestSigstoreSigning:
             "f2",
             "f3",
         ] == get_signed_files(signature_path)
+        check_ignore_paths(signature_path, True, [])
 
 
 class TestKeySigning:
@@ -176,8 +207,10 @@ class TestKeySigning:
         assert [".gitignore", "signme-1", "signme-2"] == get_signed_files(
             signature
         )
+        check_ignore_paths(signature, ignore_git_paths, ["model.sig"])
 
-        # Ignore git paths now
+        # Ignore git paths and other files now
+        ignore_paths = [Path(model_path / "ignored")]
         ignore_git_paths = True
 
         signing.Config().use_elliptic_key_signer(
@@ -190,6 +223,9 @@ class TestKeySigning:
         ).sign(model_path, signature)
 
         assert ["signme-1", "signme-2"] == get_signed_files(signature)
+        check_ignore_paths(
+            signature, ignore_git_paths, ["model.sig", "ignored"]
+        )
 
 
 class TestCertificateSigning:
@@ -235,8 +271,10 @@ class TestCertificateSigning:
         assert [".gitignore", "signme-1", "signme-2"] == get_signed_files(
             signature
         )
+        check_ignore_paths(signature, ignore_git_paths, ["model.sig"])
 
         # Ignore git paths now
+        ignore_paths = [Path(model_path / "ignored")]
         ignore_git_paths = True
 
         signing.Config().use_certificate_signer(
@@ -251,3 +289,6 @@ class TestCertificateSigning:
         ).sign(model_path, signature)
 
         assert ["signme-1", "signme-2"] == get_signed_files(signature)
+        check_ignore_paths(
+            signature, ignore_git_paths, ["model.sig", "ignored"]
+        )
