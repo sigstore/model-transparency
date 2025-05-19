@@ -19,14 +19,39 @@ from datetime import datetime
 from datetime import timedelta
 import json
 import os
+from pathlib import Path
 import subprocess
 from tempfile import TemporaryDirectory
 import time
 
 import pytest
 
+from model_signing import hashing
 from model_signing import signing
 from model_signing import verifying
+
+
+# Directory with testdata for this test
+TESTDATA = Path(__file__).parent / "../scripts/tests"
+
+
+@pytest.fixture
+def base_path() -> Path:
+    return Path(__file__).parent
+
+
+@pytest.fixture
+def populate_tmpdir(tmp_path: Path) -> Path:
+    Path(tmp_path / "signme-1").write_text("signme-1")
+    Path(tmp_path / "signme-2").write_text("signme-2")
+    return tmp_path
+
+
+def get_signed_files(modelsig: Path) -> list[str]:
+    with open(modelsig, "r") as file:
+        signature = json.load(file)
+    payload = json.loads(b64decode(signature["dsseEnvelope"]["payload"]))
+    return [entry["name"] for entry in payload["predicate"]["resources"]]
 
 
 _MIN_VALIDITY = timedelta(minutes=1)
@@ -101,3 +126,82 @@ class TestSigstoreSigning:
             oidc_issuer=expected_oidc_issuer,
             use_staging=True,
         ).verify(sample_model_folder, signature_path)
+
+        assert ["signme-1", "signme-2"] == get_signed_files(signature_path)
+
+
+class TestKeySigning:
+    def test_sign_and_verify(self, base_path, populate_tmpdir):
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        ignore_paths = []
+        ignore_git_paths = False
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        password = None
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key, password=password
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).sign(model_path, signature)
+
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).verify(model_path, signature)
+
+        assert ["signme-1", "signme-2"] == get_signed_files(signature)
+
+
+class TestCertificateSigning:
+    def test_sign_and_verify(self, base_path, populate_tmpdir):
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        ignore_paths = []
+        ignore_git_paths = False
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        signing_certificate = Path(
+            TESTDATA / "keys/certificate/signing-key-cert.pem"
+        )
+        certificate_chain = [
+            Path(TESTDATA / "keys/certificate/int-ca-cert.pem")
+        ]
+        log_fingerprints = False
+
+        signing.Config().use_certificate_signer(
+            private_key=private_key,
+            signing_certificate=signing_certificate,
+            certificate_chain=certificate_chain,
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).sign(model_path, signature)
+
+        certificate_chain = [Path(TESTDATA / "keys/certificate/ca-cert.pem")]
+
+        verifying.Config().use_certificate_verifier(
+            certificate_chain=certificate_chain,
+            log_fingerprints=log_fingerprints,
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).verify(model_path, signature)
+
+        assert ["signme-1", "signme-2"] == get_signed_files(signature)
