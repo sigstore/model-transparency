@@ -347,7 +347,7 @@ class Config:
         # Use relpath to possibly fix weird paths like '../a/b' -> 'b'
         # when '../a/' is a no-op
         self._ignored_paths = frozenset(
-            {pathlib.Path(os.path.relpath(p)) for p in paths}
+            {pathlib.Path(p).resolve() for p in paths}
         )
         self._ignore_git_paths = ignore_git_paths
         return self
