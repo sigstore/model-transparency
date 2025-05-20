@@ -85,6 +85,13 @@ def check_ignore_paths(
     assert ignore_paths == get_ignore_paths(modelsig)
 
 
+def get_model_name(modelsig: Path) -> str:
+    with open(modelsig, "r") as file:
+        signature = json.load(file)
+    payload = json.loads(b64decode(signature["dsseEnvelope"]["payload"]))
+    return payload["subject"][0]["name"]
+
+
 _MIN_VALIDITY = timedelta(minutes=1)
 _MAX_RETRY_TIME = timedelta(minutes=5)
 _RETRY_SLEEP_SECS = 30
@@ -171,6 +178,9 @@ class TestSigstoreSigning:
             "f3",
         ] == get_signed_files(signature_path)
         check_ignore_paths(signature_path, True, [])
+        assert get_model_name(signature_path) == os.path.basename(
+            sample_model_folder
+        )
 
 
 class TestKeySigning:
@@ -208,6 +218,7 @@ class TestKeySigning:
             signature
         )
         check_ignore_paths(signature, ignore_git_paths, ["model.sig"])
+        assert get_model_name(signature) == os.path.basename(model_path)
 
         # Ignore git paths and other files now
         ignore_paths = [Path(model_path / "ignored")]
@@ -226,6 +237,7 @@ class TestKeySigning:
         check_ignore_paths(
             signature, ignore_git_paths, ["model.sig", "ignored"]
         )
+        assert get_model_name(signature) == os.path.basename(model_path)
 
 
 class TestCertificateSigning:
@@ -272,6 +284,7 @@ class TestCertificateSigning:
             signature
         )
         check_ignore_paths(signature, ignore_git_paths, ["model.sig"])
+        assert get_model_name(signature) == os.path.basename(model_path)
 
         # Ignore git paths now
         ignore_paths = [Path(model_path / "ignored")]
@@ -292,3 +305,4 @@ class TestCertificateSigning:
         check_ignore_paths(
             signature, ignore_git_paths, ["model.sig", "ignored"]
         )
+        assert get_model_name(signature) == os.path.basename(model_path)
