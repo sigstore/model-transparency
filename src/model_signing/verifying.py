@@ -139,6 +139,7 @@ class Config:
                 hashing_algorithm=args["hash_type"],
                 shard_size=args["shard_size"],
                 allow_symlinks=args["allow_symlinks"],
+                ignore_paths=args.get("ignore_paths", frozenset()),
             )
         else:
             raise ValueError("Cannot guess the hashing configuration")

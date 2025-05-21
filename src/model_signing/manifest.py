@@ -355,7 +355,11 @@ class _ShardSerialization(SerializationType):
     method: Final[str] = "shards"
 
     def __init__(
-        self, hash_type: str, shard_size: int, allow_symlinks: bool = False
+        self,
+        hash_type: str,
+        shard_size: int,
+        allow_symlinks: bool = False,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ):
         """Records the manifest serialization type for serialization by files.
 
@@ -367,26 +371,34 @@ class _ShardSerialization(SerializationType):
         Args:
             hash_type: A string representation of the hash algorithm.
             allow_symlinks: Controls whether symbolic links are included.
+            ignore_paths: Paths of files to ignore.
         """
         self._hash_type = hash_type
         self._allow_symlinks = allow_symlinks
         self._shard_size = shard_size
+        self._ignore_paths = [str(p) for p in ignore_paths]
 
     @property
     @override
     def serialization_parameters(self) -> dict[str, Any]:
-        return {
+        res = {
             "method": self.method,
             "hash_type": self._hash_type,
             "shard_size": self._shard_size,
             "allow_symlinks": self._allow_symlinks,
         }
+        if self._ignore_paths:
+            res["ignore_paths"] = self._ignore_paths
+        return res
 
     @classmethod
     @override
     def _from_args(cls, args: dict[str, Any]) -> Self:
         return cls(
-            args["hash_type"], args["shard_size"], args["allow_symlinks"]
+            args["hash_type"],
+            args["shard_size"],
+            args["allow_symlinks"],
+            args.get("ignore_paths", frozenset()),
         )
 
     @override

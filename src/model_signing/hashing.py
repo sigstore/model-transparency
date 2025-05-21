@@ -291,6 +291,7 @@ class Config:
         shard_size: int = 1_000_000_000,
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ) -> Self:
         """Configures serialization to build a manifest of (shard, hash) pairs.
 
@@ -311,6 +312,7 @@ class Config:
             allow_symlinks: Controls whether symbolic links are included. If a
               symlink is present but the flag is `False` (default) the
               serialization would raise an error.
+            ignore_paths: Paths of files to ignore.
 
         Returns:
             The new hashing configuration with the new serialization method.
@@ -321,6 +323,7 @@ class Config:
             ),
             max_workers=max_workers,
             allow_symlinks=allow_symlinks,
+            ignore_paths=ignore_paths,
         )
         return self
 
