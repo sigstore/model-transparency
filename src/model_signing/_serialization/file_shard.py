@@ -17,6 +17,7 @@
 from collections.abc import Callable, Iterable
 import concurrent.futures
 import itertools
+import os
 import pathlib
 from typing import Optional
 
@@ -64,6 +65,7 @@ class Serializer(serialization.Serializer):
         *,
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
+        ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ):
         """Initializes an instance to serialize a model with this serializer.
 
@@ -78,10 +80,12 @@ class Serializer(serialization.Serializer):
             allow_symlinks: Controls whether symbolic links are included. If a
               symlink is present but the flag is `False` (default) the
               serialization would raise an error.
+            ignore_paths: The paths of files to ignore.
         """
         self._hasher_factory = sharded_hasher_factory
         self._max_workers = max_workers
         self._allow_symlinks = allow_symlinks
+        self._ignore_paths = ignore_paths
 
         # Precompute some private values only once by using a mock file hasher.
         # None of the arguments used to build the hasher are used.
@@ -93,6 +97,7 @@ class Serializer(serialization.Serializer):
             hasher._content_hasher.digest_name,
             self._shard_size,
             self._allow_symlinks,
+            self._ignore_paths,
         )
 
     @override
@@ -142,8 +147,29 @@ class Serializer(serialization.Serializer):
             for future in concurrent.futures.as_completed(futures):
                 manifest_items.append(future.result())
 
+        # Recreate serialization_description for new ignore_paths
+        if ignore_paths:
+            rel_ignore_paths = []
+            for p in ignore_paths:
+                rp = os.path.relpath(p, model_path)
+                # rp may start with "../" if it is not relative to model_path
+                if not rp.startswith("../"):
+                    rel_ignore_paths.append(pathlib.Path(rp))
+
+            hasher = self._hasher_factory(pathlib.Path(), 0, 1)
+            self._serialization_description = manifest._ShardSerialization(
+                hasher._content_hasher.digest_name,
+                self._shard_size,
+                self._allow_symlinks,
+                frozenset(list(self._ignore_paths) + rel_ignore_paths),
+            )
+
+        model_name = model_path.name
+        if not model_name or model_name == "..":
+            model_name = os.path.basename(model_path.resolve())
+
         return manifest.Manifest(
-            model_path.name, manifest_items, self._serialization_description
+            model_name, manifest_items, self._serialization_description
         )
 
     def _get_shards(
