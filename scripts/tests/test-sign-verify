@@ -84,6 +84,7 @@ if [ "${res}" != "${exp}" ]; then
 	echo "Actual  : ${res}"
 	exit 1
 fi
+check_model_name "${sigfile}" "$(basename "${TMPDIR}")"
 
 # Enter the model directory and sign and verify there
 pushd "${TMPDIR}" &>/dev/null || exit 1
@@ -120,6 +121,7 @@ if [ "${res}" != "${exp}" ]; then
 	echo "Actual  : ${res}"
 	exit 1
 fi
+check_model_name "${sigfile}" "$(basename "${TMPDIR}")"
 
 echo
 echo "Testing 'sign/verify' certificate when in model directory"
@@ -155,6 +157,7 @@ if [ "${res}" != "${exp}" ]; then
 	echo "Actual  : ${res}"
 	exit 1
 fi
+check_model_name "${sigfile}" "$(basename "${TMPDIR}")"
 
 echo
 echo "Testing 'sign/verify' certificate when in subdir of model directory and using '..'"
@@ -196,5 +199,6 @@ if [ "${res}" != "${exp}" ]; then
 	echo "Actual  : ${res}"
 	exit 1
 fi
+check_model_name "${sigfile}" "$(basename "${TMPDIR}")"
 
 popd 1>/dev/null || exit 1

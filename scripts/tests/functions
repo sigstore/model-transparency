@@ -8,3 +8,29 @@ get_signed_files()
 		base64 -d | \
 		jq -c '.predicate.resources | map(.name)'
 }
+
+# Get the name of the model from the subject
+get_model_name()
+{
+	local sigfile="$1"
+
+	jq -r .dsseEnvelope.payload < "${sigfile}" | \
+		base64 -d | \
+		jq -r '.subject[0].name'
+}
+
+check_model_name()
+{
+	local sigfile="$1"
+	local exp="$2"
+
+	local act
+
+	act=$(get_model_name "${sigfile}")
+	if [ "${act}" != "${exp}" ]; then
+		echo "Error: Name of model in signature is wrong"
+		echo "expected: ${exp}"
+		echo "  actual: ${act}"
+		exit 1
+	fi
+}
