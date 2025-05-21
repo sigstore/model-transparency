@@ -343,8 +343,9 @@ def _sign_pkcs11_key(
         ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
-    else:
-        click.echo("Signing succeeded")
+        sys.exit(1)
+
+    click.echo("Signing succeeded")
 
 
 @_sign.command(name="certificate")
@@ -445,8 +446,9 @@ def _sign_pkcs11_certificate(
         ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
-    else:
-        click.echo("Signing succeeded")
+        sys.exit(1)
+
+    click.echo("Signing succeeded")
 
 
 @main.group(name="verify", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
