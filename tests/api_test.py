@@ -306,3 +306,76 @@ class TestCertificateSigning:
             signature, ignore_git_paths, ["model.sig", "ignored"]
         )
         assert get_model_name(signature) == os.path.basename(model_path)
+
+    def test_sign_and_verify_sharded(self, base_path, populate_tmpdir):
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        ignore_paths = []
+        ignore_git_paths = False
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        signing_certificate = Path(
+            TESTDATA / "keys/certificate/signing-key-cert.pem"
+        )
+        certificate_chain = [
+            Path(TESTDATA / "keys/certificate/int-ca-cert.pem")
+        ]
+        log_fingerprints = False
+
+        signing.Config().use_certificate_signer(
+            private_key=private_key,
+            signing_certificate=signing_certificate,
+            certificate_chain=certificate_chain,
+        ).set_hashing_config(
+            hashing.Config()
+            .set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+            .use_shard_serialization()
+        ).sign(model_path, signature)
+
+        certificate_chain = [Path(TESTDATA / "keys/certificate/ca-cert.pem")]
+
+        verifying.Config().use_certificate_verifier(
+            certificate_chain=certificate_chain,
+            log_fingerprints=log_fingerprints,
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        )
+        # .verify(model_path, signature)
+
+        assert [
+            ".gitignore:0:4",
+            "signme-1:0:8",
+            "signme-2:0:8",
+        ] == get_signed_files(signature)
+        check_ignore_paths(signature, ignore_git_paths, ["model.sig"])
+        assert get_model_name(signature) == os.path.basename(model_path)
+
+        # Ignore git paths now
+        ignore_paths = [Path(model_path / "ignored")]
+        ignore_git_paths = True
+
+        signing.Config().use_certificate_signer(
+            private_key=private_key,
+            signing_certificate=signing_certificate,
+            certificate_chain=certificate_chain,
+        ).set_hashing_config(
+            hashing.Config()
+            .set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+            .use_shard_serialization()
+        ).sign(model_path, signature)
+
+        assert ["signme-1:0:8", "signme-2:0:8"] == get_signed_files(signature)
+        check_ignore_paths(
+            signature, ignore_git_paths, ["model.sig", "ignored"]
+        )
+        assert get_model_name(signature) == os.path.basename(model_path)
