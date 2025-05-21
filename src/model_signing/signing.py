@@ -87,7 +87,8 @@ class Config:
     def __init__(self):
         """Initializes the default configuration for signing."""
         self._hashing_config = hashing.Config()
-        self.use_sigstore_signer()
+        # lazy initialize default signer at signing to avoid network calls
+        self._signer = None
 
     def sign(
         self, model_path: hashing.PathLike, signature_path: hashing.PathLike
@@ -98,6 +99,8 @@ class Config:
             model_path: The path to the model to sign.
             signature_path: The path of the resulting signature.
         """
+        if not self._signer:
+            self._signer = self.use_sigstore_signer()
         manifest = self._hashing_config.hash(model_path)
         payload = signing.Payload(manifest)
         signature = self._signer.sign(payload)
