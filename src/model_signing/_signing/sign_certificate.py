@@ -136,13 +136,7 @@ class Verifier(sigstore_pb.Verifier):
         self._log_fingerprints = log_fingerprints
 
         if not certificate_chain_paths:
-            os_certs = certifi.where()
-            if isinstance(os_certs, list):
-                certificate_chain_paths = [pathlib.Path(p) for p in os_certs]
-            elif isinstance(os_certs, str):
-                certificate_chain_paths = [pathlib.Path(os_certs)]
-            else:
-                raise ValueError("Could not determine signing certificates")
+            certificate_chain_paths = [pathlib.Path(certifi.where())]
 
         certificates = x509.load_pem_x509_certificates(
             b"".join([path.read_bytes() for path in certificate_chain_paths])
