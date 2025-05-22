@@ -9,6 +9,8 @@ All versions prior to 1.0.0 are untracked.
 
 ## [Unreleased]
 
+- cli: `model_signing sign` now supports the `--oauth-force-oob` option (default: False)
+
 ## [1.0.1] - 2024-04-18
 
 ### Added

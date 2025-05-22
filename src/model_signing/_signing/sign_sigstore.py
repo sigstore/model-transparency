@@ -67,6 +67,7 @@ class Signer(signing.Signer):
         use_ambient_credentials: bool = True,
         use_staging: bool = False,
         identity_token: Optional[str] = None,
+        force_oob: bool = False,
     ):
         """Initializes Sigstore signers.
 
@@ -83,6 +84,11 @@ class Signer(signing.Signer):
               identity via OIDC will start.
             use_staging: Use staging configurations, instead of production. This
               is supposed to be set to True only when testing. Default is False.
+            force_oob: If True, forces an out-of-band (OOB) OAuth flow. If set,
+              the OAuth authentication will not attempt to open the default web
+              browser. Instead, it will display a URL and code for manual
+              authentication. Default is False, which means the browser will be
+              opened automatically if possible.
             identity_token: An explicit identity token to use when signing,
               taking precedence over any ambient credential or OAuth workflow.
         """
@@ -98,6 +104,7 @@ class Signer(signing.Signer):
 
         self._use_ambient_credentials = use_ambient_credentials
         self._identity_token = identity_token
+        self._force_oob = force_oob
 
     def _get_identity_token(self) -> sigstore_oidc.IdentityToken:
         """Obtains an identity token to use in signing.
@@ -114,7 +121,7 @@ class Signer(signing.Signer):
             if token:
                 return sigstore_oidc.IdentityToken(token)
 
-        return self._issuer.identity_token(force_oob=True)
+        return self._issuer.identity_token(force_oob=self._force_oob)
 
     @override
     def sign(self, payload: signing.Payload) -> Signature:

@@ -214,6 +214,15 @@ def _sign() -> None:
         "from OIDC flow or from the environment."
     ),
 )
+@click.option(
+    "--oauth_force_oob",
+    is_flag=True,
+    default=False,
+    help=(
+        "Force an out-of-band OAuth flow and do not automatically start "
+        "the default web browser."
+    ),
+)
 def _sign_sigstore(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
@@ -221,6 +230,7 @@ def _sign_sigstore(
     signature: pathlib.Path,
     use_ambient_credentials: bool,
     use_staging: bool,
+    oauth_force_oob: bool,
     identity_token: Optional[str] = None,
 ) -> None:
     """Sign using Sigstore (DEFAULT signing method).
@@ -244,6 +254,7 @@ def _sign_sigstore(
             use_ambient_credentials=use_ambient_credentials,
             use_staging=use_staging,
             identity_token=identity_token,
+            force_oob=oauth_force_oob,
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
