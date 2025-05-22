@@ -25,9 +25,6 @@ import click
 import model_signing
 
 
-logging.basicConfig(format="%(message)s", level=logging.INFO)
-
-
 # Decorator for the commonly used argument for the model path.
 _model_path_argument = click.argument(
     "model_path", type=pathlib.Path, metavar="MODEL_PATH"
@@ -608,6 +605,9 @@ def _verify_certificate(
 
     Note that we don't offer certificate and key management protocols.
     """
+    if log_fingerprints:
+        logging.basicConfig(format="%(message)s", level=logging.INFO)
+
     try:
         model_signing.verifying.Config().use_certificate_verifier(
             certificate_chain=certificate_chain,
