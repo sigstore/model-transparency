@@ -10,6 +10,7 @@ All versions prior to 1.0.0 are untracked.
 ## [Unreleased]
 
 - cli: `model_signing sign` now supports the `--oauth-force-oob` option (default: False)
+- Added support for signing and verifying using private Sigstore instances (`--trust_config`).
 
 ## [1.0.1] - 2024-04-18
 
