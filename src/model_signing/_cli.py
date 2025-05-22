@@ -52,10 +52,10 @@ _read_signature_option = click.option(
 
 # Decorator for the commonly used option for the custom trust configuration.
 _trust_config_option = click.option(
-        "--trust_config",
-        type=pathlib.Path,
-        metavar="TRUST_CONFIG_PATH",
-        help="The client trust configuration to use",
+    "--trust_config",
+    type=pathlib.Path,
+    metavar="TRUST_CONFIG_PATH",
+    help="The client trust configuration to use",
 )
 
 # Decorator for the commonly used option to ignore certain paths
@@ -257,16 +257,17 @@ def _sign_sigstore(
     production one.
 
     Additionally, you can specify a custom trust configuration JSON file using
-    the `--trust_config` flag. This allows you to fully customize the PKI 
-    (Private Key Infrastructure) used in the signing process. By providing a 
-    `--trust_config`, you can define your own transparency logs, certificate 
-    authorities, and other trust settings, enabling full control over the 
+    the `--trust_config` flag. This allows you to fully customize the PKI
+    (Private Key Infrastructure) used in the signing process. By providing a
+    `--trust_config`, you can define your own transparency logs, certificate
+    authorities, and other trust settings, enabling full control over the
     trust model, including which PKI to use for signature verification.
 
-    If `--trust_config` is not provided, the default Sigstore instance is 
-    used, which is pre-configured with Sigstore’s own trusted transparency logs 
-    and certificate authorities. This provides a ready-to-use default trust model 
-    for most use cases but may not be suitable for custom or highly regulated environments.
+    If `--trust_config` is not provided, the default Sigstore instance is
+    used, which is pre-configured with Sigstore’s own trusted transparency
+    logs and certificate authorities. This provides a ready-to-use default
+    trust model for most use cases but may not be suitable for custom or
+    highly regulated environments.
     """
     try:
         model_signing.signing.Config().use_sigstore_signer(
@@ -495,10 +496,11 @@ def _verify() -> None:
     signature is assumed to be generated via Sigstore (as if invoking `sigstore`
     subcommand).
 
-    To enable verification with custom PKI configurations, use the `--trust_config` option. 
-    This allows you to specify your own set of trusted public keys, transparency logs, and 
-    certificate authorities for verifying the signature. If not provided, the default Sigstore 
-    instance and its associated public keys, logs, and authorities are used. 
+    To enable verification with custom PKI configurations, use the
+    `--trust_config` option. This allows you to specify your own set of trusted
+    public keys, transparency logs, and certificate authorities for verifying
+    the signature. If not provided, the default Sigstore instance and its
+    associated public keys, logs, and authorities are used.
 
     Use each subcommand's `--help` option for details on each mode.
     """

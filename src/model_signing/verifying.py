@@ -165,10 +165,11 @@ class Config:
               certificate used for the signature.
             use_staging: Use staging configurations, instead of production. This
               is supposed to be set to True only when testing. Default is False.
-            trust_config: A path to a custom trust configuration. When provided, 
-              the signature verification process will rely on the supplied 
-              PKI and trust configurations, instead of the default Sigstore setup. 
-              If not specified, the default Sigstore configuration is used.
+            trust_config: A path to a custom trust configuration. When provided,
+              the signature verification process will rely on the supplied
+              PKI and trust configurations, instead of the default Sigstore
+              setup. If not specified, the default Sigstore configuration
+              is used.
 
         Return:
             The new verification configuration.
@@ -178,7 +179,7 @@ class Config:
             identity=identity,
             oidc_issuer=oidc_issuer,
             use_staging=use_staging,
-            trust_config=trust_config
+            trust_config=trust_config,
         )
         return self
 

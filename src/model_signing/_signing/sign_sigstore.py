@@ -93,20 +93,28 @@ class Signer(signing.Signer):
               opened automatically if possible.
             identity_token: An explicit identity token to use when signing,
               taking precedence over any ambient credential or OAuth workflow.
-            trust_config: A path to a custom trust configuration. When provided, 
-              the signature verification process will rely on the supplied 
-              PKI and trust configurations, instead of the default Sigstore setup. 
-              If not specified, the default Sigstore configuration is used.
+            trust_config: A path to a custom trust configuration. When
+              provided, the signature verification process will rely on the
+              supplied PKI and trust configurations, instead of the default
+              Sigstore setup. If not specified, the default Sigstore
+              configuration is used.
         """
-
         # Selecting the signing context to use
         if use_staging:
             self._signing_context = sigstore_signer.SigningContext.staging()
             self._issuer = sigstore_oidc.Issuer.staging()
         elif trust_config is not None:
-            use_trust_config = ClientTrustConfig.from_json(trust_config.read_text())
-            self._signing_context = sigstore_signer.SigningContext._from_trust_config(use_trust_config)
-            self._issuer = sigstore_oidc.Issuer(use_trust_config._inner.signing_config.oidc_url)
+            use_trust_config = ClientTrustConfig.from_json(
+                trust_config.read_text()
+            )
+            self._signing_context = (
+                sigstore_signer.SigningContext._from_trust_config(
+                    use_trust_config
+                )
+            )
+            self._issuer = sigstore_oidc.Issuer(
+                use_trust_config._inner.signing_config.oidc_url
+            )
         else:
             self._signing_context = sigstore_signer.SigningContext.production()
             if oidc_issuer is not None:
@@ -161,7 +169,7 @@ class Verifier(signing.Verifier):
         identity: str,
         oidc_issuer: str,
         use_staging: bool = False,
-        trust_config: Optional[pathlib.Path] = None
+        trust_config: Optional[pathlib.Path] = None,
     ):
         """Initializes Sigstore verifiers.
 
@@ -175,16 +183,21 @@ class Verifier(signing.Verifier):
               certificate used for the signature.
             use_staging: Use staging configurations, instead of production. This
               is supposed to be set to True only when testing. Default is False.
-            trust_config: A path to a custom trust configuration. When provided, 
-              the signature verification process will rely on the supplied 
-              PKI and trust configurations, instead of the default Sigstore setup. 
-              If not specified, the default Sigstore configuration is used.
+            trust_config: A path to a custom trust configuration. When provided,
+              the signature verification process will rely on the supplied
+              PKI and trust configurations, instead of the default Sigstore
+              setup. If not specified, the default Sigstore configuration
+              is used.
         """
         if use_staging:
             self._verifier = sigstore_verifier.Verifier.staging()
         elif trust_config is not None:
-            use_trust_config = ClientTrustConfig.from_json(trust_config.read_text())
-            self._verifier = sigstore_verifier.Verifier._from_trust_config(use_trust_config)
+            use_trust_config = ClientTrustConfig.from_json(
+                trust_config.read_text()
+            )
+            self._verifier = sigstore_verifier.Verifier._from_trust_config(
+                use_trust_config
+            )
         else:
             self._verifier = sigstore_verifier.Verifier.production()
 

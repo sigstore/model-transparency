@@ -79,10 +79,13 @@ def sign(model_path: hashing.PathLike, signature_path: hashing.PathLike):
 class Config:
     """Configuration to use when signing models.
 
-    Currently, we support signing with Sigstore (both the public instance and staging instance),
-    signing with private keys, signing with signing certificates, and signing with custom PKI configurations 
-    using the `--trust_config` option. This allows users to bring their own trust configuration to sign and verify
-    models. Other signing modes may be added in the future.
+    Currently, we support signing with Sigstore (both the public
+    instance and staging instance), signing with private keys,
+    signing with signing certificates, and signing with custom
+    PKI configurations using the `--trust_config` option.
+    This allows users to bring their own trust configuration
+    to sign and verify models. Other signing modes may be
+    added in the future.
     """
 
     def __init__(self):
@@ -151,10 +154,11 @@ class Config:
               opened automatically if possible.
             identity_token: An explicit identity token to use when signing,
               taking precedence over any ambient credential or OAuth workflow.
-            trust_config: A path to a custom trust configuration. When provided, 
-              the signature verification process will rely on the supplied 
-              PKI and trust configurations, instead of the default Sigstore setup. 
-              If not specified, the default Sigstore configuration is used.
+            trust_config: A path to a custom trust configuration. When provided,
+              the signature verification process will rely on the supplied
+              PKI and trust configurations, instead of the default Sigstore
+              setup. If not specified, the default Sigstore configuration
+              is used.
 
 
         Return:
