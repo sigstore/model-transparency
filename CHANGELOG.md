@@ -9,7 +9,8 @@ All versions prior to 1.0.0 are untracked.
 
 ## [Unreleased]
 
-- cli: `model_signing sign` now supports the `--oauth-force-oob` option (default: False)
+- cli: `model_signing sign` now supports the `--oauth_force_oob` option (default: False)
+- Added support for specifying `--client_id` and `--client_secret` for OIDC authentication.
 
 ## [1.0.1] - 2024-04-18
 
