@@ -9,6 +9,13 @@ All versions prior to 1.0.0 are untracked.
 
 ## [Unreleased]
 
+- Added support for signing with PKCS #11 devices
+- Fix handling of certificate that has no KeyUsage
+- Fix ignoring of git-related files
+- Record files in signature that were ignored when signature was created and automatically ignore those files when verifying signature
+- Adjust model name when signing and verifying in model_path '.' and other fixes related to file paths
+- Fix and test the sharded file hasher
+- Added tests for verifying signatures created with v0.3.1
 - cli: `model_signing sign` now supports the `--oauth_force_oob` option (default: False)
 - Added support for specifying `--client_id` and `--client_secret` for OIDC authentication.
 
