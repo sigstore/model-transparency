@@ -126,6 +126,8 @@ class Config:
         use_staging: bool = False,
         force_oob: bool = False,
         identity_token: Optional[str] = None,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
     ) -> Self:
         """Configures the signing to be performed with Sigstore.
 
@@ -149,6 +151,17 @@ class Config:
               opened automatically if possible.
             identity_token: An explicit identity token to use when signing,
               taking precedence over any ambient credential or OAuth workflow.
+            client_id: An optional client ID to use when performing OIDC-based
+              authentication. This is typically used to identify the
+              application making the request to the OIDC provider. If not
+              provided, the default client ID configured by Sigstore will be
+              used.
+            client_secret: An optional client secret to use along with the
+              client ID when authenticating with the OIDC provider. This is
+              required for confidential clients that need to prove their
+              identity to the OIDC provider. If not provided, it is assumed
+              that the client is public or the provider does not require a
+              secret.
 
         Return:
             The new signing configuration.
@@ -159,6 +172,8 @@ class Config:
             use_staging=use_staging,
             identity_token=identity_token,
             force_oob=force_oob,
+            client_id=client_id,
+            client_secret=client_secret,
         )
         return self
 
