@@ -34,6 +34,9 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
+_DEFAULT_CLIENT_ID = "sigstore"
+_DEFAULT_CLIENT_SECRET = ""
+
 
 class Signature(signing.Signature):
     """Sigstore signature support, wrapping around `sigstore_models.Bundle`."""
@@ -67,6 +70,9 @@ class Signer(signing.Signer):
         use_ambient_credentials: bool = True,
         use_staging: bool = False,
         identity_token: Optional[str] = None,
+        force_oob: bool = False,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
     ):
         """Initializes Sigstore signers.
 
@@ -83,8 +89,24 @@ class Signer(signing.Signer):
               identity via OIDC will start.
             use_staging: Use staging configurations, instead of production. This
               is supposed to be set to True only when testing. Default is False.
+            force_oob: If True, forces an out-of-band (OOB) OAuth flow. If set,
+              the OAuth authentication will not attempt to open the default web
+              browser. Instead, it will display a URL and code for manual
+              authentication. Default is False, which means the browser will be
+              opened automatically if possible.
             identity_token: An explicit identity token to use when signing,
               taking precedence over any ambient credential or OAuth workflow.
+             client_id: An optional client ID to use when performing OIDC-based
+              authentication. This is typically used to identify the
+              application making the request to the OIDC provider. If not
+              provided, the default client ID configured by Sigstore will be
+              used.
+            client_secret: An optional client secret to use along with the
+              client ID when authenticating with the OIDC provider. This is
+              required for confidential clients that need to prove their
+              identity to the OIDC provider. If not provided, it is assumed
+              that the client is public or the provider does not require a
+              secret.
         """
         if use_staging:
             self._signing_context = sigstore_signer.SigningContext.staging()
@@ -98,6 +120,9 @@ class Signer(signing.Signer):
 
         self._use_ambient_credentials = use_ambient_credentials
         self._identity_token = identity_token
+        self._force_oob = force_oob
+        self._client_id = client_id or _DEFAULT_CLIENT_ID
+        self._client_secret = client_secret or _DEFAULT_CLIENT_SECRET
 
     def _get_identity_token(self) -> sigstore_oidc.IdentityToken:
         """Obtains an identity token to use in signing.
@@ -114,7 +139,11 @@ class Signer(signing.Signer):
             if token:
                 return sigstore_oidc.IdentityToken(token)
 
-        return self._issuer.identity_token(force_oob=True)
+        return self._issuer.identity_token(
+            force_oob=self._force_oob,
+            client_id=self._client_id,
+            client_secret=self._client_secret,
+        )
 
     @override
     def sign(self, payload: signing.Payload) -> Signature:
