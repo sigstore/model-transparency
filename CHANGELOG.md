@@ -24,6 +24,8 @@ All versions prior to 1.0.0 are untracked.
 - Implemented public key identifier hash matching for bundle verification
 - Add warning for older verification material formats (e.g., raw public key bytes) during verification, recommending re-signing
 - Added guidance to `README.md` on how to install `model-signing` with PKCS#11 support.
+- Added support for signing and verifying using private Sigstore instances (`--trust_config`)
+- By default (when `--trust_config` is not used) the whole trust configuration now comes from the TUF repository
 
 ## [1.0.1] - 2024-04-18
 

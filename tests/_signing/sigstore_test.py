@@ -128,8 +128,7 @@ def mocked_sigstore_signer():
         mocked_context.signer.return_value = signer
 
         mocked_signing_context = mocked_objects["SigningContext"]
-        mocked_signing_context.staging.return_value = mocked_context
-        mocked_signing_context.production.return_value = mocked_context
+        mocked_signing_context.from_trust_config.return_value = mocked_context
 
         yield mocked_objects
 
@@ -140,8 +139,7 @@ def mocked_sigstore_verifier():
         sigstore.sigstore_verifier, "Verifier", autospec=True
     ) as mocked_verifier:
         mocked_verifier.verify_dsse = _mocked_verify_dsse
-        mocked_verifier.staging = lambda: mocked_verifier
-        mocked_verifier.production = lambda: mocked_verifier
+        mocked_verifier.return_value = mocked_verifier
         yield mocked_verifier
 
 
@@ -154,7 +152,7 @@ def mocked_sigstore_verifier_bad_payload():
         sigstore.sigstore_verifier, "Verifier", autospec=True
     ) as mocked_verifier:
         mocked_verifier.verify_dsse = _verify_dsse
-        mocked_verifier.staging = lambda: mocked_verifier
+        mocked_verifier.return_value = mocked_verifier
         yield mocked_verifier
 
 
