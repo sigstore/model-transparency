@@ -66,6 +66,10 @@ class Serializer(serialization.Serializer):
             hasher.digest_name, self._allow_symlinks, self._ignore_paths
         )
 
+    def set_allow_symlinks(self, allow_symlinks: bool) -> None:
+        """Set whether following symlinks is allowed."""
+        self._allow_symlinks = allow_symlinks
+
     @override
     def serialize(
         self,
