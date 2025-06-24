@@ -164,6 +164,11 @@ echo "Testing 'sign/verify' certificate when in subdir of model directory and us
 
 rm -f "$(basename "${sigfile}")"
 mkdir subdir
+
+# Create a symlink'ed file
+echo "foo" > subdir/symlinked
+ln -s subdir/symlinked symlink
+
 pushd subdir 1>/dev/null || exit 1
 
 if ! python -m model_signing \
@@ -173,6 +178,7 @@ if ! python -m model_signing \
 	--signing_certificate "${DIR}/keys/certificate/signing-key-cert.pem" \
 	--certificate_chain "${DIR}/keys/certificate/int-ca-cert.pem" \
 	--ignore-paths "../$(basename "${ignorefile}")" \
+	--allow_symlinks \
 	.. ; then
 	echo "Error: 'sign key' failed"
 	exit 1
@@ -185,6 +191,7 @@ if ! python -m model_signing \
 	--signature "$(basename "${sigfile}")" \
 	--certificate_chain "${DIR}/keys/certificate/ca-cert.pem" \
 	--ignore-paths "$(basename "${ignorefile}")" \
+	--allow_symlinks \
 	. ; then
 	echo "Error: 'sign key' failed"
 	exit 1
@@ -192,7 +199,7 @@ fi
 
 # Check which files are part of signature
 res=$(get_signed_files "${sigfile}")
-exp='["signme-1","signme-2"]'
+exp='["signme-1","signme-2","subdir/symlinked","symlink"]'
 if [ "${res}" != "${exp}" ]; then
 	echo "Error: Unexpected files were signed"
 	echo "Expected: ${exp}"
