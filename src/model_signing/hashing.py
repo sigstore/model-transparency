@@ -139,6 +139,7 @@ class Config:
         self._ignored_paths = frozenset()
         self._ignore_git_paths = True
         self.use_file_serialization()
+        self._allow_symlinks = False
 
     def hash(self, model_path: PathLike) -> manifest.Manifest:
         """Hashes a model using the current configuration."""
@@ -162,6 +163,8 @@ class Config:
                     ]
                 ]
             )
+
+        self._serializer.set_allow_symlinks(self._allow_symlinks)
 
         return self._serializer.serialize(
             pathlib.Path(model_path), ignore_paths=ignored_paths
@@ -368,3 +371,8 @@ class Config:
         newset = set(self._ignored_paths)
         newset.update([os.path.join(model_path, p) for p in paths])
         self._ignored_paths = newset
+
+    def set_allow_symlinks(self, allow_symlinks: bool) -> Self:
+        """Set whether following symlinks is allowed."""
+        self._allow_symlinks = allow_symlinks
+        return self

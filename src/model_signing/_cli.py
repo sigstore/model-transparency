@@ -115,6 +115,14 @@ _signing_certificate_option = click.option(
     help="Path to the signing certificate, as a PEM-encoded file.",
 )
 
+# Decorator for the commonly used option to allow symlinks
+_allow_symlinks_option = click.option(
+    "--allow_symlinks",
+    type=bool,
+    is_flag=True,
+    help="Whether to allow following symlinks when signing or verifying files.",
+)
+
 
 class _PKICmdGroup(click.Group):
     """A custom group to configure the supported PKI methods."""
@@ -194,6 +202,7 @@ def _sign() -> None:
 @_model_path_argument
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_allow_symlinks_option
 @_write_signature_option
 @_sigstore_staging_option
 @click.option(
@@ -236,6 +245,7 @@ def _sign_sigstore(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    allow_symlinks: bool,
     signature: pathlib.Path,
     use_ambient_credentials: bool,
     use_staging: bool,
@@ -269,10 +279,12 @@ def _sign_sigstore(
             client_id=client_id,
             client_secret=client_secret,
         ).set_hashing_config(
-            model_signing.hashing.Config().set_ignored_paths(
+            model_signing.hashing.Config()
+            .set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
             )
+            .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
@@ -285,6 +297,7 @@ def _sign_sigstore(
 @_model_path_argument
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_allow_symlinks_option
 @_write_signature_option
 @_private_key_option
 @click.option(
@@ -297,6 +310,7 @@ def _sign_private_key(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    allow_symlinks: bool,
     signature: pathlib.Path,
     private_key: pathlib.Path,
     password: Optional[str] = None,
@@ -318,10 +332,12 @@ def _sign_private_key(
         model_signing.signing.Config().use_elliptic_key_signer(
             private_key=private_key, password=password
         ).set_hashing_config(
-            model_signing.hashing.Config().set_ignored_paths(
+            model_signing.hashing.Config()
+            .set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
             )
+            .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
@@ -334,12 +350,14 @@ def _sign_private_key(
 @_model_path_argument
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_allow_symlinks_option
 @_write_signature_option
 @_pkcs11_uri_option
 def _sign_pkcs11_key(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    allow_symlinks: bool,
     signature: pathlib.Path,
     pkcs11_uri: str,
 ) -> None:
@@ -360,10 +378,12 @@ def _sign_pkcs11_key(
         model_signing.signing.Config().use_pkcs11_signer(
             pkcs11_uri=pkcs11_uri
         ).set_hashing_config(
-            model_signing.hashing.Config().set_ignored_paths(
+            model_signing.hashing.Config()
+            .set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
             )
+            .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
@@ -376,6 +396,7 @@ def _sign_pkcs11_key(
 @_model_path_argument
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_allow_symlinks_option
 @_write_signature_option
 @_private_key_option
 @_signing_certificate_option
@@ -384,6 +405,7 @@ def _sign_certificate(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    allow_symlinks: bool,
     signature: pathlib.Path,
     private_key: pathlib.Path,
     signing_certificate: pathlib.Path,
@@ -411,10 +433,12 @@ def _sign_certificate(
             signing_certificate=signing_certificate,
             certificate_chain=certificate_chain,
         ).set_hashing_config(
-            model_signing.hashing.Config().set_ignored_paths(
+            model_signing.hashing.Config()
+            .set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
             )
+            .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
@@ -427,6 +451,7 @@ def _sign_certificate(
 @_model_path_argument
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_allow_symlinks_option
 @_write_signature_option
 @_pkcs11_uri_option
 @_signing_certificate_option
@@ -435,6 +460,7 @@ def _sign_pkcs11_certificate(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    allow_symlinks: bool,
     signature: pathlib.Path,
     pkcs11_uri: str,
     signing_certificate: pathlib.Path,
@@ -463,10 +489,12 @@ def _sign_pkcs11_certificate(
             signing_certificate=signing_certificate,
             certificate_chain=certificate_chain,
         ).set_hashing_config(
-            model_signing.hashing.Config().set_ignored_paths(
+            model_signing.hashing.Config()
+            .set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
             )
+            .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
@@ -497,6 +525,7 @@ def _verify() -> None:
 @_read_signature_option
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_allow_symlinks_option
 @_sigstore_staging_option
 @click.option(
     "--identity",
@@ -517,6 +546,7 @@ def _verify_sigstore(
     signature: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    allow_symlinks: bool,
     identity: str,
     identity_provider: str,
     use_staging: bool,
@@ -537,10 +567,12 @@ def _verify_sigstore(
             oidc_issuer=identity_provider,
             use_staging=use_staging,
         ).set_hashing_config(
-            model_signing.hashing.Config().set_ignored_paths(
+            model_signing.hashing.Config()
+            .set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
             )
+            .set_allow_symlinks(allow_symlinks)
         ).verify(model_path, signature)
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
@@ -554,6 +586,7 @@ def _verify_sigstore(
 @_read_signature_option
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_allow_symlinks_option
 @click.option(
     "--public_key",
     type=pathlib.Path,
@@ -566,6 +599,7 @@ def _verify_private_key(
     signature: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    allow_symlinks: bool,
     public_key: pathlib.Path,
 ) -> None:
     """Verity using a public key (paired with a private one).
@@ -585,10 +619,12 @@ def _verify_private_key(
         model_signing.verifying.Config().use_elliptic_key_verifier(
             public_key=public_key
         ).set_hashing_config(
-            model_signing.hashing.Config().set_ignored_paths(
+            model_signing.hashing.Config()
+            .set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
             )
+            .set_allow_symlinks(allow_symlinks)
         ).verify(model_path, signature)
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
@@ -602,6 +638,7 @@ def _verify_private_key(
 @_read_signature_option
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_allow_symlinks_option
 @_certificate_root_of_trust_option
 @click.option(
     "--log_fingerprints",
@@ -616,6 +653,7 @@ def _verify_certificate(
     signature: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    allow_symlinks: bool,
     certificate_chain: Iterable[pathlib.Path],
     log_fingerprints: bool,
 ) -> None:
@@ -640,10 +678,12 @@ def _verify_certificate(
             certificate_chain=certificate_chain,
             log_fingerprints=log_fingerprints,
         ).set_hashing_config(
-            model_signing.hashing.Config().set_ignored_paths(
+            model_signing.hashing.Config()
+            .set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
             )
+            .set_allow_symlinks(allow_symlinks)
         ).verify(model_path, signature)
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
