@@ -105,7 +105,7 @@ class Signer(sigstore_pb.Signer):
                 sigstore_pb.pae(raw_payload),
                 ec.ECDSA(get_ec_key_hash(self._private_key.public_key())),
             ),
-            keyid=None,
+            keyid="",
         )
 
         envelope = intoto_pb.Envelope(
