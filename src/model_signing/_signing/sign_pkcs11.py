@@ -172,7 +172,7 @@ class Signer(sigstore_pb.Signer):
         # Convert plain r & s signature values to ASN.1
         sig = DSASignature.from_p1363(rs_sig).dump()
 
-        raw_signature = intoto_pb.Signature(sig=sig, keyid=None)
+        raw_signature = intoto_pb.Signature(sig=sig, keyid="")
 
         envelope = intoto_pb.Envelope(
             payload=raw_payload,
