@@ -17,8 +17,10 @@ All versions prior to 1.0.0 are untracked.
 - Fix and test the sharded file hasher
 - Added tests for verifying signatures created with v0.3.1
 - cli: `model_signing sign` now supports the `--oauth_force_oob` option (default: False)
-- Added support for specifying `--client_id` and `--client_secret` for OIDC authentication.
+- Added support for specifying `--client_id` and `--client_secret` for OIDC authentication
 - cli: Added support for `--allow_symlinks` option
+- Added support for signing and verifying using private Sigstore instances (`--trust_config`)
+- By default (when `--trust_config` is not used) the whole trust configuration now comes from the TUF repository
 
 ## [1.0.1] - 2024-04-18
 
