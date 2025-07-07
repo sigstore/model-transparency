@@ -73,8 +73,8 @@ installer = "pip"
 parallel = true
 randomize = true
 extra-args = ["-m", "not integration"]
-extra-dependencies = [
-    "PyKCS11",
+features = [
+    "pkcs11",
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
@@ -119,7 +119,9 @@ Use `hatch run type:check` to check types.
 extra-dependencies = [
   "pytest",
   "pytype",
-  "PyKCS11",
+]
+features = [
+    "pkcs11",
 ]
 installer = "pip"
 python = "3.12"
