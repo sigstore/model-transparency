@@ -19,6 +19,7 @@ All versions prior to 1.0.0 are untracked.
 - cli: `model_signing sign` now supports the `--oauth_force_oob` option (default: False)
 - Added support for specifying `--client_id` and `--client_secret` for OIDC authentication.
 - cli: Added support for `--allow_symlinks` option
+- Added more informative signature mismatch errors: The `ValueError` raised during model verification when a signature mismatch occurs now includes detailed information
 
 ## [1.0.1] - 2024-04-18
 
