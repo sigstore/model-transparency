@@ -50,7 +50,6 @@ from typing import Optional
 from model_signing import hashing
 from model_signing._signing import sign_certificate as certificate
 from model_signing._signing import sign_ec_key as ec_key
-from model_signing._signing import sign_pkcs11 as pkcs11
 from model_signing._signing import sign_sigstore as sigstore
 from model_signing._signing import signing
 
@@ -238,6 +237,13 @@ class Config:
         Return:
             The new signing configuration.
         """
+        try:
+            from model_signing._signing import sign_pkcs11 as pkcs11
+        except ImportError as e:
+            raise RuntimeError(
+                "PKCS #11 functionality requires the 'pkcs11' extra. "
+                "Install with 'pip install model-signing[pkcs11]'."
+            ) from e
         self._signer = pkcs11.Signer(pkcs11_uri, module_paths)
         return self
 
@@ -264,6 +270,14 @@ class Config:
         Return:
             The new signing configuration.
         """
+        try:
+            from model_signing._signing import sign_pkcs11 as pkcs11
+        except ImportError as e:
+            raise RuntimeError(
+                "PKCS #11 functionality requires the 'pkcs11' extra. "
+                "Install with 'pip install model-signing[pkcs11]'."
+            ) from e
+
         self._signer = pkcs11.CertSigner(
             pkcs11_uri,
             signing_certificate,
