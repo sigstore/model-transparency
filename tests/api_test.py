@@ -165,7 +165,7 @@ class TestSigstoreSigning:
             use_staging=True,
         ).verify(sample_model_folder, signature_path)
 
-        assert [
+        assert get_signed_files(signature_path) == [
             "d0/f00",
             "d0/f01",
             "d0/f02",
@@ -176,7 +176,7 @@ class TestSigstoreSigning:
             "f1",
             "f2",
             "f3",
-        ] == get_signed_files(signature_path)
+        ]
         check_ignore_paths(signature_path, True, [])
         assert get_model_name(signature_path) == os.path.basename(
             sample_model_folder
@@ -214,9 +214,11 @@ class TestKeySigning:
             )
         ).verify(model_path, signature)
 
-        assert [".gitignore", "signme-1", "signme-2"] == get_signed_files(
-            signature
-        )
+        assert get_signed_files(signature) == [
+            ".gitignore",
+            "signme-1",
+            "signme-2",
+        ]
         check_ignore_paths(signature, ignore_git_paths, ["model.sig"])
         assert get_model_name(signature) == os.path.basename(model_path)
 
@@ -233,7 +235,7 @@ class TestKeySigning:
             )
         ).sign(model_path, signature)
 
-        assert ["signme-1", "signme-2"] == get_signed_files(signature)
+        assert get_signed_files(signature) == ["signme-1", "signme-2"]
         check_ignore_paths(
             signature, ignore_git_paths, ["model.sig", "ignored"]
         )
@@ -280,9 +282,11 @@ class TestCertificateSigning:
             )
         ).verify(model_path, signature)
 
-        assert [".gitignore", "signme-1", "signme-2"] == get_signed_files(
-            signature
-        )
+        assert get_signed_files(signature) == [
+            ".gitignore",
+            "signme-1",
+            "signme-2",
+        ]
         check_ignore_paths(signature, ignore_git_paths, ["model.sig"])
         assert get_model_name(signature) == os.path.basename(model_path)
 
@@ -301,7 +305,7 @@ class TestCertificateSigning:
             )
         ).sign(model_path, signature)
 
-        assert ["signme-1", "signme-2"] == get_signed_files(signature)
+        assert get_signed_files(signature) == ["signme-1", "signme-2"]
         check_ignore_paths(
             signature, ignore_git_paths, ["model.sig", "ignored"]
         )
@@ -349,11 +353,11 @@ class TestCertificateSigning:
         )
         # .verify(model_path, signature)
 
-        assert [
+        assert get_signed_files(signature) == [
             ".gitignore:0:4",
             "signme-1:0:8",
             "signme-2:0:8",
-        ] == get_signed_files(signature)
+        ]
         check_ignore_paths(signature, ignore_git_paths, ["model.sig"])
         assert get_model_name(signature) == os.path.basename(model_path)
 
@@ -374,7 +378,7 @@ class TestCertificateSigning:
             .use_shard_serialization()
         ).sign(model_path, signature)
 
-        assert ["signme-1:0:8", "signme-2:0:8"] == get_signed_files(signature)
+        assert get_signed_files(signature) == ["signme-1:0:8", "signme-2:0:8"]
         check_ignore_paths(
             signature, ignore_git_paths, ["model.sig", "ignored"]
         )
