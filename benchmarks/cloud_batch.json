@@ -1,0 +1,62 @@
+{
+    "taskGroups": [
+        {
+            "taskSpec": {
+                "runnables": [
+                    {
+                        "container": {
+                            "imageUri": "ghcr.io/sigstore/model-transparency-benchmarks:${TAG}",
+                            "entrypoint": "/bin/sh",
+                            "commands": [
+                                "-c",
+                                "benchmarks/run.sh ${MODEL} /mnt/disks/models /mnt/disks/gcs/${OUTPUT_FILE}"
+                            ]
+                        }
+                    }
+                ],
+                "computeResource": {
+                    "cpuMilli": 16000,
+                    "memoryMib": 65536
+                },
+                "volumes": [
+                    {
+                        "gcs": {
+                            "remotePath": "model-transparency-benchmarks"
+                        },
+                        "mountPath": "/mnt/disks/gcs"
+                    },
+                    {
+                        "deviceName": "models",
+                        "mountPath": "/mnt/disks/models",
+                        "mountOptions": "rw,async"
+                    }
+                ],
+                "maxRetryCount": 0,
+                "maxRunDuration": "7200s"
+            },
+            "taskCount": 1,
+            "parallelism": 1
+        }
+    ],
+    "allocationPolicy": {
+        "instances": [
+            {
+                "policy": {
+                    "machineType": "c2d-standard-16",
+                    "disks": [
+                        {
+                            "newDisk": {
+                                "sizeGb": 375,
+                                "type": "local-ssd"
+                            },
+                            "deviceName": "models"
+                        }
+                    ]
+                }
+            }
+        ]
+    },
+    "logsPolicy": {
+        "destination": "CLOUD_LOGGING"
+    }
+}
