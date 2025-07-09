@@ -63,16 +63,16 @@ def _check_supported_ec_key(public_key: ec.EllipticCurvePublicKey):
 
 
 def encode_ec_public_key(public_key: PyKCS11.CK_OBJECT_HANDLE) -> PublicKeyInfo:
-    obj_d = public_key.to_dict()
+    ec_params, ec_point = public_key.session.getAttributeValue(
+        public_key, [PyKCS11.CKA_EC_PARAMS, PyKCS11.CKA_EC_POINT]
+    )
     return PublicKeyInfo(
         {
             "algorithm": {
                 "algorithm": "ec",
-                "parameters": ECDomainParameters.load(
-                    bytes(obj_d["CKA_EC_PARAMS"])
-                ),
+                "parameters": ECDomainParameters.load(bytes(ec_params)),
             },
-            "public_key": bytes(OctetString.load(bytes(obj_d["CKA_EC_POINT"]))),
+            "public_key": bytes(OctetString.load(bytes(ec_point))),
         }
     ).dump()
 
@@ -145,10 +145,12 @@ class Signer(sigstore_pb.Signer):
             cka_id = tuple([x for x in id])
 
         for obj in self.session.findObjects([(PyKCS11.CKA_CLASS, clas)]):
-            obj_d = obj.to_dict()
-            if label is not None and label != obj_d.get("CKA_LABEL"):
+            obj_label, obj_id = obj.session.getAttributeValue(
+                obj, [PyKCS11.CKA_LABEL, PyKCS11.CKA_ID]
+            )
+            if label is not None and label != obj_label:
                 continue
-            if cka_id is not None and cka_id != obj_d.get("CKA_ID"):
+            if cka_id is not None and cka_id != obj_id:
                 continue
             return obj
         raise ValueError(f"Could not find any object with {msg}")
