@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from collections.abc import Iterable
+import hashlib
 import pathlib
 from typing import Optional
 
@@ -191,26 +192,16 @@ class Signer(sigstore_pb.Signer):
     def _get_verification_material(self) -> bundle_pb.VerificationMaterial:
         """Returns the verification material to include in the bundle."""
         public_key = self._public_key
-        key_size = public_key.curve.key_size
 
-        # TODO: Once Python 3.9 support is deprecated revert to using `match`
-        if key_size == 256:
-            key_details = common_pb.PublicKeyDetails.PKIX_ECDSA_P256_SHA_256
-        elif key_size == 384:
-            key_details = common_pb.PublicKeyDetails.PKIX_ECDSA_P384_SHA_384
-        elif key_size == 521:
-            key_details = common_pb.PublicKeyDetails.PKIX_ECDSA_P521_SHA_512
-        else:
-            raise ValueError(f"Unexpected key size {key_size}")
+        raw_bytes = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+
+        hash_bytes = hashlib.sha256(raw_bytes).digest().hex()
 
         return bundle_pb.VerificationMaterial(
-            public_key=common_pb.PublicKey(
-                raw_bytes=public_key.public_bytes(
-                    encoding=serialization.Encoding.PEM,
-                    format=serialization.PublicFormat.SubjectPublicKeyInfo,
-                ),
-                key_details=key_details,
-            )
+            public_key=common_pb.PublicKeyIdentifier(hint=hash_bytes)
         )
 
 

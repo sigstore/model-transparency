@@ -22,6 +22,7 @@ validation does not allow those.
 """
 
 import abc
+import json
 import pathlib
 import sys
 from typing import cast
@@ -110,7 +111,8 @@ class Signature(signing.Signature):
     @override
     def read(cls, path: pathlib.Path) -> Self:
         content = path.read_text()
-        return cls(bundle_pb.Bundle().from_json(content))
+        parsed_dict = json.loads(content)
+        return cls(bundle_pb.Bundle().from_dict(parsed_dict))
 
 
 class Signer(signing.Signer):
