@@ -22,6 +22,7 @@ All versions prior to 1.0.0 are untracked.
 - Fix Bundle deserialization error caused by null keyid in DSSE signatures; keyid now serializes as an empty string
 - Implemented public key identifier hash matching for bundle verification
 - Add warning for older verification material formats (e.g., raw public key bytes) during verification, recommending re-signing
+- Added guidance to `README.md` on how to install `model-signing` with PKCS#11 support.
 
 ## [1.0.1] - 2024-04-18
 

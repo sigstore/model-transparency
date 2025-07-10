@@ -32,7 +32,6 @@ dependencies = [
   "click",
   "cryptography",
   "in-toto-attestation",
-  "PyKCS11",
   "sigstore",
   "typing_extensions",
 ]
@@ -45,6 +44,11 @@ keywords = [
   "ML security",
   "AI supply chain security",
   "ML supply chain security",
+]
+
+[project.optional-dependencies]
+pkcs11 = [
+    "PyKCS11",
 ]
 
 [project.scripts]
@@ -69,6 +73,9 @@ installer = "pip"
 parallel = true
 randomize = true
 extra-args = ["-m", "not integration"]
+features = [
+    "pkcs11",
+]
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.9", "3.10", "3.11", "3.12", "3.13"]
@@ -112,6 +119,9 @@ Use `hatch run type:check` to check types.
 extra-dependencies = [
   "pytest",
   "pytype",
+]
+features = [
+    "pkcs11",
 ]
 installer = "pip"
 python = "3.12"
