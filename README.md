@@ -36,7 +36,7 @@ We support generating signatures via [Sigstore](https://www.sigstore.dev/), a
 tool for making code signatures transparent without requiring management of
 cryptographic key material. But we also support traditional signing methods, so
 models can be signed with public keys or signing certificates as well as
-PKCS #11 enabled devices.
+PKCS #11 enabled devices *(install with `pip install model-signing[pkcs11]` to enable this functionality)*.
 
 The signing part creates a
 [sigstore bundle](https://github.com/sigstore/protobuf-specs/blob/main/protos/sigstore_bundle.proto)

@@ -14,6 +14,7 @@
 
 """Signers and verifiers using elliptic curve keys."""
 
+import hashlib
 import pathlib
 from typing import Optional
 
@@ -125,26 +126,16 @@ class Signer(sigstore_pb.Signer):
     def _get_verification_material(self) -> bundle_pb.VerificationMaterial:
         """Returns the verification material to include in the bundle."""
         public_key = self._private_key.public_key()
-        key_size = public_key.curve.key_size
 
-        # TODO: Once Python 3.9 support is deprecated revert to using `match`
-        if key_size == 256:
-            key_details = common_pb.PublicKeyDetails.PKIX_ECDSA_P256_SHA_256
-        elif key_size == 384:
-            key_details = common_pb.PublicKeyDetails.PKIX_ECDSA_P384_SHA_384
-        elif key_size == 521:
-            key_details = common_pb.PublicKeyDetails.PKIX_ECDSA_P521_SHA_512
-        else:
-            raise ValueError(f"Unexpected key size {key_size}")
+        raw_bytes = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+
+        hash_bytes = hashlib.sha256(raw_bytes).digest().hex()
 
         return bundle_pb.VerificationMaterial(
-            public_key=common_pb.PublicKey(
-                raw_bytes=public_key.public_bytes(
-                    encoding=serialization.Encoding.PEM,
-                    format=serialization.PublicFormat.SubjectPublicKeyInfo,
-                ),
-                key_details=key_details,
-            )
+            public_key=common_pb.PublicKeyIdentifier(hint=hash_bytes)
         )
 
 
@@ -165,9 +156,28 @@ class Verifier(sigstore_pb.Verifier):
 
     @override
     def _verify_bundle(self, bundle: bundle_pb.Bundle) -> tuple[str, bytes]:
-        # TODO: This method currently does not verify that the public key
-        # matches what is included in the signature's verification material.
-        # Instead, the verification material is completely ignored right now.
+        raw_bytes = self._public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+
+        hash_bytes = hashlib.sha256(raw_bytes).digest().hex()
+
+        if bundle.verification_material.public_key.hint:
+            key_hint = bundle.verification_material.public_key.hint
+            if key_hint != hash_bytes:
+                raise ValueError(
+                    "Key mismatch: The public key hash in the signature's "
+                    "verification material does not match the provided "
+                    "public key. "
+                )
+        else:
+            print(
+                "WARNING: This model's signature uses an older "
+                "verification material format. Please re-sign "
+                "with an updated signer to use a public key "
+                "identifier hash. "
+            )
 
         envelope = bundle.dsse_envelope
         try:

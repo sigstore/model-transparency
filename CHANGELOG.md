@@ -17,9 +17,13 @@ All versions prior to 1.0.0 are untracked.
 - Fix and test the sharded file hasher
 - Added tests for verifying signatures created with v0.3.1
 - cli: `model_signing sign` now supports the `--oauth_force_oob` option (default: False)
-- Added support for specifying `--client_id` and `--client_secret` for OIDC authentication.
+- Added support for specifying `--client_id` and `--client_secret` for OIDC authentication
 - cli: Added support for `--allow_symlinks` option
 - Added more informative signature mismatch errors: The `ValueError` raised during model verification when a signature mismatch occurs now includes detailed information
+- Fix Bundle deserialization error caused by null keyid in DSSE signatures; keyid now serializes as an empty string
+- Implemented public key identifier hash matching for bundle verification
+- Add warning for older verification material formats (e.g., raw public key bytes) during verification, recommending re-signing
+- Added guidance to `README.md` on how to install `model-signing` with PKCS#11 support.
 
 ## [1.0.1] - 2024-04-18
 
