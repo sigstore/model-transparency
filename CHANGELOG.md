@@ -19,6 +19,7 @@ All versions prior to 1.0.0 are untracked.
 - cli: `model_signing sign` now supports the `--oauth_force_oob` option (default: False)
 - Added support for specifying `--client_id` and `--client_secret` for OIDC authentication.
 - cli: Added support for `--allow_symlinks` option
+- Added guidance to `README.md` on how to install `model-signing` with PKCS#11 support.
 
 ## [1.0.1] - 2024-04-18
 
