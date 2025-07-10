@@ -105,7 +105,48 @@ class Config:
         actual_manifest = self._hashing_config.hash(model_path)
 
         if actual_manifest != expected_manifest:
-            raise ValueError("Signature mismatch")
+            diff_message = self._get_manifest_diff(
+                actual_manifest, expected_manifest
+            )
+            raise ValueError(f"Signature mismatch: {diff_message}")
+
+    def _get_manifest_diff(self, actual, expected) -> list[str]:
+        diffs = []
+
+        actual_hashes = {
+            rd.identifier: rd.digest for rd in actual.resource_descriptors()
+        }
+        expected_hashes = {
+            rd.identifier: rd.digest for rd in expected.resource_descriptors()
+        }
+
+        extra_actual_files = set(actual_hashes.keys()) - set(
+            expected_hashes.keys()
+        )
+        if extra_actual_files:
+            diffs.append(
+                f"Extra files found in model '{actual.model_name}': "
+                f"{', '.join(sorted(extra_actual_files))}"
+            )
+
+        missing_actual_files = set(expected_hashes.keys()) - set(
+            actual_hashes.keys()
+        )
+        if missing_actual_files:
+            diffs.append(
+                f"Missing files in model '{actual.model_name}': "
+                f"{', '.join(sorted(missing_actual_files))}"
+            )
+
+        common_files = set(actual_hashes.keys()) & set(expected_hashes.keys())
+        for identifier in sorted(common_files):
+            if actual_hashes[identifier] != expected_hashes[identifier]:
+                diffs.append(
+                    f"Hash mismatch for '{identifier}': "
+                    f"Expected '{expected_hashes[identifier]}', "
+                    f"Actual '{actual_hashes[identifier]}'"
+                )
+        return diffs
 
     def set_hashing_config(self, hashing_config: hashing.Config) -> Self:
         """Sets the new configuration for hashing models.
