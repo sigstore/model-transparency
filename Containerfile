@@ -1,4 +1,4 @@
-# Copyright 2024 The Sigstore Authors
+# Copyright 2025 The Sigstore Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""For the stable high-level API, see model_signing.api."""
+# Default
+ARG BUILD_TYPE=minimal
 
-__version__ = "0.1.1"
+FROM python:3.13-slim AS base_builder
 
-FROM python:3.13-slim
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    g++ \
+    swig
 
-COPY pyproject.toml ./
-COPY src ./src
+FROM base_builder AS minimal_install
+WORKDIR /app
+COPY . /app
+RUN pip install .
 
-RUN python -m pip install model_signing
+FROM base_builder AS full_install
+WORKDIR /app
+COPY . /app
+RUN pip install .[pkcs11,otel]
 
-ENTRYPOINT ["/usr/local/bin/model_signing"]
+FROM python:3.13-slim AS minimal_image
+COPY --from=minimal_install /usr/local/bin /usr/local/bin
+COPY --from=minimal_install /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 
+FROM python:3.13-slim AS full_image
+COPY --from=full_install /usr/local/bin /usr/local/bin
+COPY --from=full_install /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+
+FROM ${BUILD_TYPE}_image AS final_image
+
+ENTRYPOINT ["model_signing"]
 CMD ["--help"]
+
+ARG APP_VERSION="1.0.1"
+
+LABEL org.opencontainers.image.title="Model Transparency Library" \
+      org.opencontainers.image.description="Supply chain security for ML" \
+      org.opencontainers.image.version="$APP_VERSION" \
+      org.opencontainers.image.authors="The Sigstore Authors <sigstore-dev@googlegroups.com>" \
+      org.opencontainers.image.licenses="Apache-2.0" \
