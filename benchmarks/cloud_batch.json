@@ -9,7 +9,7 @@
                             "entrypoint": "/bin/sh",
                             "commands": [
                                 "-c",
-                                "benchmarks/run.sh ${MODEL} /mnt/disks/models /mnt/disks/gcs/${OUTPUT_FILE}"
+                                "benchmarks/run.sh /mnt/disks/models /mnt/disks/gcs ${TAG}"
                             ]
                         }
                     }

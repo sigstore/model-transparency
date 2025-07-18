@@ -81,7 +81,6 @@ jobs:
     permissions:
       id-token: 'write'
     env:
-      MODEL: deepseek-ai/DeepSeek-R1-Distill-Qwen-14B
       TAG: ${{needs.publish-benchmark-container.outputs.head}}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -92,11 +91,10 @@ jobs:
           workload_identity_provider: projects/306323169285/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
           service_account: 'model-transparency-gha@sigstore-infra-playground.iam.gserviceaccount.com'
       - run: |
-          export OUTPUT_FILE=$(date --utc +%Y%m%d%H%M%S)_$TAG.json
           gcloud batch jobs submit \
             --job-prefix=bench \
             --project sigstore-infra-playground \
             --location us-central1 \
             --config - <<EOF
-            $(envsubst '$TAG','$MODEL','$OUTPUT_FILE' < benchmarks/cloud_batch.json)
+            $(envsubst '$TAG' < benchmarks/cloud_batch.json)
             EOF

@@ -14,7 +14,7 @@
 
 FROM python:3.13-slim
 
-RUN python -m pip install --no-cache-dir hatch huggingface_hub[cli]
+RUN python -m pip install --no-cache-dir hatch
 
 COPY pyproject.toml LICENSE README.md ./
 COPY src ./src
