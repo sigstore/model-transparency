@@ -5,7 +5,7 @@
                 "runnables": [
                     {
                         "container": {
-                            "imageUri": "ghcr.io/sigstore/model-transparency-benchmarks:${TAG}",
+                            "imageUri": "ghcr.io/spencerschrock/model-transparency-benchmarks:${TAG}",
                             "entrypoint": "/bin/sh",
                             "commands": [
                                 "-c",

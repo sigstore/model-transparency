@@ -55,7 +55,7 @@ jobs:
         with:
           containerfiles: |
             ./benchmarks/Containerfile
-          image: ghcr.io/sigstore/model-transparency-benchmarks
+          image: ghcr.io/spencerschrock/model-transparency-benchmarks
           tags: "latest ${{ steps.config.outputs.head }}"
           archs: amd64
           oci: false
@@ -75,26 +75,26 @@ jobs:
           image: ${{ steps.build_image.outputs.image }}
           tags: ${{ steps.build_image.outputs.tags }}
           registry: ghcr.io
-  submit-cloud-batch:
-    needs: publish-benchmark-container
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: 'write'
-    env:
-      TAG: ${{needs.publish-benchmark-container.outputs.head}}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          ref: ${{needs.publish-benchmark-container.outputs.head}}
-      - uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
-        with:
-          workload_identity_provider: projects/306323169285/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
-          service_account: 'model-transparency-gha@sigstore-infra-playground.iam.gserviceaccount.com'
-      - run: |
-          gcloud batch jobs submit \
-            --job-prefix=bench \
-            --project sigstore-infra-playground \
-            --location us-central1 \
-            --config - <<EOF
-            $(envsubst '$TAG' < benchmarks/cloud_batch.json)
-            EOF
+  # submit-cloud-batch:
+  #   needs: publish-benchmark-container
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     id-token: 'write'
+  #   env:
+  #     TAG: ${{needs.publish-benchmark-container.outputs.head}}
+  #   steps:
+  #     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+  #       with:
+  #         ref: ${{needs.publish-benchmark-container.outputs.head}}
+  #     - uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
+  #       with:
+  #         workload_identity_provider: projects/306323169285/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
+  #         service_account: 'model-transparency-gha@sigstore-infra-playground.iam.gserviceaccount.com'
+  #     - run: |
+  #         gcloud batch jobs submit \
+  #           --job-prefix=bench \
+  #           --project sigstore-infra-playground \
+  #           --location us-central1 \
+  #           --config - <<EOF
+  #           $(envsubst '$TAG' < benchmarks/cloud_batch.json)
+  #           EOF
