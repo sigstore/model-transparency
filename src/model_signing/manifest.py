@@ -442,6 +442,9 @@ class Manifest:
     def __eq__(self, other: Self):
         return self._item_to_digest == other._item_to_digest
 
+    def __lt__(self, other: Self):
+        return self._item_to_digest.items() < other._item_to_digest.items()
+
     def resource_descriptors(self) -> Iterator[_ResourceDescriptor]:
         """Yields each resource from the manifest, one by one."""
         for item, digest in sorted(self._item_to_digest.items()):
