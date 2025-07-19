@@ -118,7 +118,6 @@ _signing_certificate_option = click.option(
 # Decorator for the commonly used option to allow symlinks
 _allow_symlinks_option = click.option(
     "--allow_symlinks",
-    type=bool,
     is_flag=True,
     help="Whether to allow following symlinks when signing or verifying files.",
 )
