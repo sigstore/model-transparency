@@ -86,6 +86,14 @@ _ignore_git_paths_option = click.option(
     help="Ignore git-related files when signing or verifying.",
 )
 
+# Decorator for the commonly used option to ignore all unsigned files
+_ignore_unsigned_files_option = click.option(
+    "--ignore_unsigned_files/--no-ignore_unsigned_files",
+    type=bool,
+    show_default=True,
+    help="Ignore all files that were not originally signed.",
+)
+
 # Decorator for the commonly used option to set the path to the private key
 # (when using non-Sigstore PKI).
 _private_key_option = click.option(
@@ -598,6 +606,7 @@ def _verify() -> None:
     required=True,
     help="The expected identity provider (e.g., https://accounts.example.com).",
 )
+@_ignore_unsigned_files_option
 def _verify_sigstore(
     model_path: pathlib.Path,
     signature: pathlib.Path,
@@ -607,6 +616,7 @@ def _verify_sigstore(
     identity: str,
     identity_provider: str,
     use_staging: bool,
+    ignore_unsigned_files: bool,
 ) -> None:
     """Verify using Sigstore (DEFAULT verification method).
 
@@ -637,7 +647,9 @@ def _verify_sigstore(
                     ignore_git_paths=ignore_git_paths,
                 )
                 .set_allow_symlinks(allow_symlinks)
-            ).verify(model_path, signature)
+            ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+                model_path, signature
+            )
         except Exception as err:
             click.echo(f"Verification failed with error: {err}", err=True)
             sys.exit(1)
@@ -658,6 +670,7 @@ def _verify_sigstore(
     required=True,
     help="Path to the public key used for verification.",
 )
+@_ignore_unsigned_files_option
 def _verify_private_key(
     model_path: pathlib.Path,
     signature: pathlib.Path,
@@ -665,6 +678,7 @@ def _verify_private_key(
     ignore_git_paths: bool,
     allow_symlinks: bool,
     public_key: pathlib.Path,
+    ignore_unsigned_files: bool,
 ) -> None:
     """Verity using a public key (paired with a private one).
 
@@ -689,7 +703,9 @@ def _verify_private_key(
                 ignore_git_paths=ignore_git_paths,
             )
             .set_allow_symlinks(allow_symlinks)
-        ).verify(model_path, signature)
+        ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+            model_path, signature
+        )
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
         sys.exit(1)
@@ -712,6 +728,7 @@ def _verify_private_key(
     show_default=True,
     help="Log SHA256 fingerprints of all certificates.",
 )
+@_ignore_unsigned_files_option
 def _verify_certificate(
     model_path: pathlib.Path,
     signature: pathlib.Path,
@@ -720,6 +737,7 @@ def _verify_certificate(
     allow_symlinks: bool,
     certificate_chain: Iterable[pathlib.Path],
     log_fingerprints: bool,
+    ignore_unsigned_files: bool,
 ) -> None:
     """Verify using a certificate.
 
@@ -748,7 +766,9 @@ def _verify_certificate(
                 ignore_git_paths=ignore_git_paths,
             )
             .set_allow_symlinks(allow_symlinks)
-        ).verify(model_path, signature)
+        ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+            model_path, signature
+        )
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
         sys.exit(1)

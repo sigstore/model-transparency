@@ -141,7 +141,12 @@ class Config:
         self.use_file_serialization()
         self._allow_symlinks = False
 
-    def hash(self, model_path: PathLike) -> manifest.Manifest:
+    def hash(
+        self,
+        model_path: PathLike,
+        *,
+        files_to_hash: Optional[Iterable[PathLike]] = None,
+    ) -> manifest.Manifest:
         """Hashes a model using the current configuration."""
         # All paths in ignored_paths must have model_path as prefix
         ignored_paths = []
@@ -167,7 +172,9 @@ class Config:
         self._serializer.set_allow_symlinks(self._allow_symlinks)
 
         return self._serializer.serialize(
-            pathlib.Path(model_path), ignore_paths=ignored_paths
+            pathlib.Path(model_path),
+            ignore_paths=ignored_paths,
+            files_to_hash=files_to_hash,
         )
 
     def _build_stream_hasher(
