@@ -61,7 +61,7 @@ if ! python -m model_signing \
 	--certificate_chain ./keys/certificate/int-ca-cert.pem \
 	--ignore-paths "${ignorefile}" \
 	"${TMPDIR}"; then
-	echo "Error: 'sign key' failed"
+	echo "Error: 'sign certificate' failed"
 	exit 1
 fi
 
@@ -71,7 +71,7 @@ if ! python -m model_signing \
 	--certificate_chain ./keys/certificate/ca-cert.pem \
 	--ignore-paths "${ignorefile}" \
 	"${TMPDIR}"; then
-	echo "Error: 'sign key' failed"
+	echo "Error: 'verify certificate' failed"
 	exit 1
 fi
 
@@ -134,7 +134,7 @@ if ! python -m model_signing \
 	--certificate_chain "${DIR}/keys/certificate/int-ca-cert.pem" \
 	--ignore-paths "$(basename "${ignorefile}")" \
 	. ; then
-	echo "Error: 'sign key' failed"
+	echo "Error: 'sign certificate' failed"
 	exit 1
 fi
 
@@ -144,7 +144,7 @@ if ! python -m model_signing \
 	--certificate_chain "${DIR}/keys/certificate/ca-cert.pem" \
 	--ignore-paths "$(basename "${ignorefile}")" \
 	. ; then
-	echo "Error: 'sign key' failed"
+	echo "Error: 'verify certificate' failed"
 	exit 1
 fi
 
@@ -180,7 +180,7 @@ if ! python -m model_signing \
 	--ignore-paths "../$(basename "${ignorefile}")" \
 	--allow_symlinks \
 	.. ; then
-	echo "Error: 'sign key' failed"
+	echo "Error: 'sign certificate' failed"
 	exit 1
 fi
 
@@ -193,7 +193,7 @@ if ! python -m model_signing \
 	--ignore-paths "$(basename "${ignorefile}")" \
 	--allow_symlinks \
 	. ; then
-	echo "Error: 'sign key' failed"
+	echo "Error: 'verify certificate' failed"
 	exit 1
 fi
 
