@@ -73,6 +73,7 @@ class Config:
         self._hashing_config = None
         self._verifier = None
         self._uses_sigstore = False
+        self._ignore_unsigned_files = False
 
     def verify(
         self, model_path: hashing.PathLike, signature_path: hashing.PathLike
@@ -102,9 +103,17 @@ class Config:
                 model_path=model_path,
                 paths=expected_manifest.serialization_type["ignore_paths"],
             )
+
         actual_manifest = self._hashing_config.hash(model_path)
 
-        if actual_manifest != expected_manifest:
+        if self._ignore_unsigned_files:
+            # actual manifest must not be a subset of the expected manifest
+            if actual_manifest < expected_manifest:
+                diff_message = self._get_manifest_diff(
+                    actual_manifest, expected_manifest
+                )
+                raise ValueError(f"xSignature mismatch: {diff_message}")
+        elif actual_manifest != expected_manifest:
             diff_message = self._get_manifest_diff(
                 actual_manifest, expected_manifest
             )
@@ -162,6 +171,18 @@ class Config:
             The new signing configuration.
         """
         self._hashing_config = hashing_config
+        return self
+
+    def set_ignore_unsigned_files(self, ignore_unsigned_files: bool) -> Self:
+        """Sets whether files that were not signed are to be ignored.
+
+        This method allows to ignore those files that are not part of the
+        manifest and therefor were not originally signed.
+
+        Args:
+            ignore_unsigned_files: whether to ignore unsigned files
+        """
+        self._ignore_unsigned_files = ignore_unsigned_files
         return self
 
     def _guess_hashing_config(self, source_manifest: manifest.Manifest) -> None:
