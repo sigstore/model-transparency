@@ -50,6 +50,14 @@ keywords = [
 pkcs11 = [
     "PyKCS11",
 ]
+otel = [
+  "opentelemetry-api",
+  "opentelemetry-sdk",
+  "opentelemetry-distro",
+  "opentelemetry-instrumentation",
+  "opentelemetry-instrumentation-urllib3",
+  "opentelemetry-exporter-otlp",
+]
 
 [project.scripts]
 model_signing = "model_signing._cli:main"
