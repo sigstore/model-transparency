@@ -34,11 +34,6 @@ dependencies = [
   "in-toto-attestation",
   "sigstore",
   "typing_extensions",
-  "opentelemetry-api",
-  "opentelemetry-sdk",
-  "opentelemetry-distro",
-  "opentelemetry-instrumentation",
-  "opentelemetry-instrumentation-urllib3",
 ]
 requires-python = ">=3.9"
 keywords = [
@@ -54,6 +49,14 @@ keywords = [
 [project.optional-dependencies]
 pkcs11 = [
     "PyKCS11",
+]
+otel = [
+  "opentelemetry-api",
+  "opentelemetry-sdk",
+  "opentelemetry-distro",
+  "opentelemetry-instrumentation",
+  "opentelemetry-instrumentation-urllib3",
+  "opentelemetry-exporter-otlp",
 ]
 
 [project.scripts]
