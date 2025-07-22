@@ -111,8 +111,8 @@ class Signature(signing.Signature):
     @override
     def read(cls, path: pathlib.Path) -> Self:
         content = path.read_text()
-        parsed_dict = json.loads(content)
-        return cls(bundle_pb.Bundle().from_dict(parsed_dict))
+        inner = bundle_pb.Bundle.from_dict(json.loads(content))
+        return cls(inner)
 
 
 class Signer(signing.Signer):
