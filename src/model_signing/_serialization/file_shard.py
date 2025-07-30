@@ -110,6 +110,7 @@ class Serializer(serialization.Serializer):
         model_path: pathlib.Path,
         *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
+        files_to_hash: Optional[Iterable[pathlib.Path]] = None,
     ) -> manifest.Manifest:
         """Serializes the model given by the `model_path` argument.
 
@@ -118,6 +119,8 @@ class Serializer(serialization.Serializer):
             ignore_paths: The paths to ignore during serialization. If a
               provided path is a directory, all children of the directory are
               ignored.
+            files_to_hash: Opitonal list of files that are to be hashed;
+              ignore all others
 
         Returns:
             The model's serialized manifest.
@@ -131,7 +134,11 @@ class Serializer(serialization.Serializer):
         # Python3.12 is the minimum supported version, the glob can be replaced
         # with `pathlib.Path.walk` for a clearer interface, and some speed
         # improvement.
-        for path in itertools.chain((model_path,), model_path.glob("**/*")):
+        if files_to_hash is None:
+            files_to_hash = itertools.chain(
+                (model_path,), model_path.glob("**/*")
+            )
+        for path in files_to_hash:
             serialization.check_file_or_directory(
                 path, allow_symlinks=self._allow_symlinks
             )
