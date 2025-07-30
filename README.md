@@ -221,6 +221,61 @@ the PKCS #11 device and store it in a file in PEM format. With can then use:
        --public_key key.pub  /path/to/your/model
 ```
 
+#### OpenTelemetry Support
+
+Model signing supports optional distributed tracing and observability through OpenTelemetry. This allows you to monitor signing operations, track performance, and integrate with observability platforms.
+
+To enable OpenTelemetry support, install the optional dependencies:
+
+```bash
+pip install model-signing[otel]
+```
+
+Once installed, OpenTelemetry will automatically instrument the signing operations. You can configure the telemetry collection using standard OpenTelemetry environment variables:
+
+```bash
+# Configure OTLP endpoint (e.g., Jaeger, Zipkin)
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+
+# Set service name for traces
+export OTEL_SERVICE_NAME=model-signing
+
+# Configure exporters (default: otlp)
+export OTEL_TRACES_EXPORTER=otlp
+export OTEL_METRICS_EXPORTER=none
+```
+
+Example with tracing enabled:
+
+```bash
+# Start Jaeger (example using Docker)
+docker run -d --name jaeger \
+  -p 16686:16686 \
+  -p 4317:4317 \
+  jaegertracing/all-in-one:latest
+
+# Sign with tracing
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
+OTEL_SERVICE_NAME=model-signing \
+OTEL_TRACES_EXPORTER=otlp \
+OTEL_METRICS_EXPORTER=none \
+model_signing sign bert-base-uncased
+```
+
+#### Logging Configuration
+
+The `model-signing` CLI supports configurable logging levels to help with debugging and monitoring:
+
+```bash
+# Enable debug logging on the command line
+model_signing --log-level debug sign bert-base-uncased
+
+# Or using environment variable
+MODEL_SIGNING_LOG_LEVEL=debug model_signing sign bert-base-uncased
+```
+
+Available log levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+
 ### Model Signing API
 
 We offer an API which can be used in integrations with ML frameworks, ML

@@ -15,6 +15,7 @@
 """The main entry-point for the model_signing package."""
 
 from collections.abc import Iterable, Sequence
+import contextlib
 import logging
 import pathlib
 import sys
@@ -23,6 +24,23 @@ from typing import Optional
 import click
 
 import model_signing
+
+
+class NoOpTracer:
+    def start_as_current_span(self, name):
+        @contextlib.contextmanager
+        def noop_context():
+            class NoOpSpan:
+                def set_attribute(self, key, value):
+                    pass
+
+            yield NoOpSpan()
+
+        return noop_context()
+
+
+# Global tracer variable, we will initialized this within the main() function
+tracer = None
 
 
 # Decorator for the commonly used argument for the model path.
@@ -175,11 +193,43 @@ class _PKICmdGroup(click.Group):
     ),
 )
 @click.version_option(model_signing.__version__, "--version")
-def main() -> None:
+@click.option(
+    "--log-level",
+    type=click.Choice(
+        ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False
+    ),
+    default="INFO",
+    show_default=True,
+    help="Set the logging level. This can also be set via the "
+    "MODEL_SIGNING_LOG_LEVEL env var.",
+)
+def main(log_level: str) -> None:
     """ML model signing and verification.
 
     Use each subcommand's `--help` option for details on each mode.
     """
+    global tracer
+
+    logging.basicConfig(
+        format="%(message)s", level=getattr(logging, log_level.upper())
+    )
+
+    try:
+        from opentelemetry import trace  # type: ignore[import-error]
+        from opentelemetry.instrumentation import (
+            auto_instrumentation,  # type: ignore[import-error]
+        )
+
+        auto_instrumentation.initialize()
+        tracer = trace.get_tracer(__name__)
+    except ImportError:
+        logging.info("OpenTelemetry not installed. Tracing is disabled.")
+        tracer = NoOpTracer()
+    except Exception as e:
+        logging.error(
+            f"Failed to initialize OpenTelemetry auto instrumentation: {e}"
+        )
+        sys.exit(1)
 
 
 @main.group(name="sign", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
@@ -269,27 +319,35 @@ def _sign_sigstore(
     Passing the `--use_staging` flag would use that instance instead of the
     production one.
     """
-    try:
-        model_signing.signing.Config().use_sigstore_signer(
-            use_ambient_credentials=use_ambient_credentials,
-            use_staging=use_staging,
-            identity_token=identity_token,
-            force_oob=oauth_force_oob,
-            client_id=client_id,
-            client_secret=client_secret,
-        ).set_hashing_config(
-            model_signing.hashing.Config()
-            .set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
-            )
-            .set_allow_symlinks(allow_symlinks)
-        ).sign(model_path, signature)
-    except Exception as err:
-        click.echo(f"Signing failed with error: {err}", err=True)
-        sys.exit(1)
+    with tracer.start_as_current_span("Sign") as span:
+        span.set_attribute("sigstore.sign_method", "sigstore")
+        span.set_attribute("sigstore.model_path", str(model_path))
+        span.set_attribute("sigstore.signature", str(signature))
+        span.set_attribute(
+            "sigstore.use_ambient_credentials", use_ambient_credentials
+        )
+        span.set_attribute("sigstore.use_staging", use_staging)
+        try:
+            model_signing.signing.Config().use_sigstore_signer(
+                use_ambient_credentials=use_ambient_credentials,
+                use_staging=use_staging,
+                identity_token=identity_token,
+                force_oob=oauth_force_oob,
+                client_id=client_id,
+                client_secret=client_secret,
+            ).set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+                .set_allow_symlinks(allow_symlinks)
+            ).sign(model_path, signature)
+        except Exception as err:
+            click.echo(f"Signing failed with error: {err}", err=True)
+            sys.exit(1)
 
-    click.echo("Signing succeeded")
+        click.echo("Signing succeeded")
 
 
 @_sign.command(name="key")
@@ -560,24 +618,31 @@ def _verify_sigstore(
     provider for the signature. If these don't match what is provided in the
     signature, verification would fail.
     """
-    try:
-        model_signing.verifying.Config().use_sigstore_verifier(
-            identity=identity,
-            oidc_issuer=identity_provider,
-            use_staging=use_staging,
-        ).set_hashing_config(
-            model_signing.hashing.Config()
-            .set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
-            )
-            .set_allow_symlinks(allow_symlinks)
-        ).verify(model_path, signature)
-    except Exception as err:
-        click.echo(f"Verification failed with error: {err}", err=True)
-        sys.exit(1)
+    with tracer.start_as_current_span("Verify") as span:
+        span.set_attribute("sigstore.method", "sigstore")
+        span.set_attribute("sigstore.model_path", str(model_path))
+        span.set_attribute("sigstore.signature", str(signature))
+        span.set_attribute("sigstore.identity", identity)
+        span.set_attribute("sigstore.oidc_issuer", identity_provider)
+        span.set_attribute("sigstore.use_staging", use_staging)
+        try:
+            model_signing.verifying.Config().use_sigstore_verifier(
+                identity=identity,
+                oidc_issuer=identity_provider,
+                use_staging=use_staging,
+            ).set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+                .set_allow_symlinks(allow_symlinks)
+            ).verify(model_path, signature)
+        except Exception as err:
+            click.echo(f"Verification failed with error: {err}", err=True)
+            sys.exit(1)
 
-    click.echo("Verification succeeded")
+        click.echo("Verification succeeded")
 
 
 @_verify.command(name="key")
