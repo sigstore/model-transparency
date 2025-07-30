@@ -75,23 +75,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Build Image
-        id: build_image
-        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2.13
-        with:
-          containerfiles: |
-            ./Containerfile
-          image: ghcr.io/sigstore/model-transparency-cli
-          tags: "latest ${{ github.event.release.tag_name }}"
-          archs: amd64
-          oci: false
-
-      - id: docker_meta
-        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
-        with:
-          images: ${{ steps.build_image.outputs.image }}
-          tags: type=sha,format=long,type=ref,event=branch
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         id: registry_login
@@ -100,19 +83,72 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push To GHCR
-        uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2.8
-        id: push
+      - name: Build minimal image
+        id: build_minimal_image
+        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2.13
         with:
-          image: ${{ steps.build_image.outputs.image }}
-          tags: ${{ steps.build_image.outputs.tags }}
+          containerfiles: |
+            ./Containerfile
+          image: sigstore/model-transparency-cli
+          tags: "${{ github.event.release.tag_name }}-minimal"
+          archs: amd64
+          oci: false
+          build-args: |
+            BUILD_TYPE=minimal
+
+      - id: docker_meta_minimal
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+        with:
+          images: ${{ steps.build_minimal_image.outputs.image }}
+          tags: type=sha,format=long,type=ref,event=branch
+
+      - name: Push minimal image to GHCR
+        uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2.8
+        id: push_minimal
+        with:
+          image: ${{ steps.build_minimal_image.outputs.image }}
+          tags: ${{ steps.build_minimal_image.outputs.tags }}
           registry: ghcr.io
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
           subject-name: ghcr.io/sigstore/model-transparency-cli
-          subject-digest: ${{ steps.push.outputs.digest }}
+          subject-digest: ${{ steps.push_minimal.outputs.digest }}
+          push-to-registry: true
+
+      - name: Build full image
+        id: build_full_image
+        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2.13
+        with:
+          containerfiles: |
+            ./Containerfile
+          image: sigstore/model-transparency-cli
+          tags: "latest ${{ github.event.release.tag_name }}"
+          archs: amd64
+          oci: false
+          build-args: |
+            BUILD_TYPE=full
+
+      - id: docker_meta_full
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+        with:
+          images: ${{ steps.build_full_image.outputs.image }}
+          tags: type=sha,format=long,type=ref,event=branch
+
+      - name: Push full image to GHCR
+        uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2.8
+        id: push_full
+        with:
+          image: ${{ steps.build_full_image.outputs.image }}
+          tags: ${{ steps.build_full_image.outputs.tags }}
+          registry: ghcr.io
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+        with:
+          subject-name: ghcr.io/sigstore/model-transparency-cli
+          subject-digest: ${{ steps.push_full.outputs.digest }}
           push-to-registry: true
 
   # TODO: Create and publish release notes
