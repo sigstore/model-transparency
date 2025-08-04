@@ -61,7 +61,7 @@ if ! python -m model_signing \
 	--certificate_chain ./keys/certificate/int-ca-cert.pem \
 	--ignore-paths "${ignorefile}" \
 	"${TMPDIR}"; then
-	echo "Error: 'sign key' failed"
+	echo "Error: 'sign certificate' failed"
 	exit 1
 fi
 
@@ -71,7 +71,7 @@ if ! python -m model_signing \
 	--certificate_chain ./keys/certificate/ca-cert.pem \
 	--ignore-paths "${ignorefile}" \
 	"${TMPDIR}"; then
-	echo "Error: 'sign key' failed"
+	echo "Error: 'verify certificate' failed"
 	exit 1
 fi
 
@@ -134,7 +134,7 @@ if ! python -m model_signing \
 	--certificate_chain "${DIR}/keys/certificate/int-ca-cert.pem" \
 	--ignore-paths "$(basename "${ignorefile}")" \
 	. ; then
-	echo "Error: 'sign key' failed"
+	echo "Error: 'sign certificate' failed"
 	exit 1
 fi
 
@@ -144,7 +144,7 @@ if ! python -m model_signing \
 	--certificate_chain "${DIR}/keys/certificate/ca-cert.pem" \
 	--ignore-paths "$(basename "${ignorefile}")" \
 	. ; then
-	echo "Error: 'sign key' failed"
+	echo "Error: 'verify certificate' failed"
 	exit 1
 fi
 
@@ -158,6 +158,40 @@ if [ "${res}" != "${exp}" ]; then
 	exit 1
 fi
 check_model_name "${sigfile}" "$(basename "${TMPDIR}")"
+
+echo
+echo "Creating a symlink, that is not part of the signature, to make signature verification fail (1)"
+
+echo "foo" > symlinked
+ln -s symlinked symlink
+
+if python -m model_signing \
+	verify certificate \
+	--signature "$(basename "${sigfile}")" \
+	--certificate_chain "${DIR}/keys/certificate/ca-cert.pem" \
+	--ignore-paths "$(basename "${ignorefile}")" \
+	. ; then
+	echo "Error: 'verify certificate' succeeded after new file (symlink) was created"
+	exit 1
+fi
+
+# This should pass without having to pass --allow_symlinks since the symlink
+# will be ignored
+echo
+echo "Pass signature verification by ignoring any unsigned files or symlinks"
+if ! python -m model_signing \
+	verify certificate \
+	--signature "$(basename "${sigfile}")" \
+	--certificate_chain "${DIR}/keys/certificate/ca-cert.pem" \
+	--ignore-paths "$(basename "${ignorefile}")" \
+	--ignore_unsigned_files \
+	. ; then
+	echo "Error: 'verify certificate' failed with --ignore_unsigned_files while passing --allow_symlinks"
+	exit 1
+fi
+
+
+rm -f symlinked symlink
 
 echo
 echo "Testing 'sign/verify' certificate when in subdir of model directory and using '..'"
@@ -180,7 +214,7 @@ if ! python -m model_signing \
 	--ignore-paths "../$(basename "${ignorefile}")" \
 	--allow_symlinks \
 	.. ; then
-	echo "Error: 'sign key' failed"
+	echo "Error: 'sign certificate' failed"
 	exit 1
 fi
 
@@ -193,7 +227,7 @@ if ! python -m model_signing \
 	--ignore-paths "$(basename "${ignorefile}")" \
 	--allow_symlinks \
 	. ; then
-	echo "Error: 'sign key' failed"
+	echo "Error: 'verify certificate' failed"
 	exit 1
 fi
 
@@ -207,5 +241,72 @@ if [ "${res}" != "${exp}" ]; then
 	exit 1
 fi
 check_model_name "${sigfile}" "$(basename "${TMPDIR}")"
+
+echo
+echo "Creating a symlink, that is not part of the signature, to make signature verification fail (2)"
+
+# Create another symlinked file
+ln -s subdir/symlinked symlink2
+
+echo
+echo "Fail signature verification by NOT ignoring any unsigned (symlinks)"
+if python -m model_signing \
+	verify certificate \
+	--signature "$(basename "${sigfile}")" \
+	--certificate_chain "${DIR}/keys/certificate/ca-cert.pem" \
+	--ignore-paths "$(basename "${ignorefile}")" \
+	--allow_symlinks \
+	. ; then
+	echo "Error: 'verify certificate' succeeded after new file (symlink) was created"
+	exit 1
+fi
+
+echo
+echo "Pass signature verification by ignoring any unsigned files"
+if ! python -m model_signing \
+	verify certificate \
+	--signature "$(basename "${sigfile}")" \
+	--certificate_chain "${DIR}/keys/certificate/ca-cert.pem" \
+	--ignore-paths "$(basename "${ignorefile}")" \
+	--allow_symlinks \
+	--ignore_unsigned_files \
+	. ; then
+	echo "Error: 'verify certificate' failed with --ignore_unsigned_files to ignore symlink"
+	exit 1
+fi
+
+rm symlink2
+
+# Create a simple new file
+echo
+echo "Creating a regular file that is not part of the signature"
+touch newfile
+
+echo
+echo "Fail signature verification by NOT ignoring any unsigned files (symlinks)"
+if python -m model_signing \
+	verify certificate \
+	--signature "$(basename "${sigfile}")" \
+	--certificate_chain "${DIR}/keys/certificate/ca-cert.pem" \
+	--ignore-paths "$(basename "${ignorefile}")" \
+	--allow_symlinks \
+	. ; then
+	echo "Error: 'verify certificate' succeeded after new file was created"
+	exit 1
+fi
+
+echo
+echo "Pass signature verification by ignoring any unsigned files"
+if ! python -m model_signing \
+	verify certificate \
+	--signature "$(basename "${sigfile}")" \
+	--certificate_chain "${DIR}/keys/certificate/ca-cert.pem" \
+	--ignore-paths "$(basename "${ignorefile}")" \
+	--allow_symlinks \
+	--ignore_unsigned_files \
+	. ; then
+	echo "Error: 'verify certificate' failed with --ignore_unsigned_files to ignore regular file"
+	exit 1
+fi
 
 popd 1>/dev/null || exit 1

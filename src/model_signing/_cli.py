@@ -15,6 +15,7 @@
 """The main entry-point for the model_signing package."""
 
 from collections.abc import Iterable, Sequence
+import contextlib
 import logging
 import pathlib
 import sys
@@ -23,6 +24,23 @@ from typing import Optional
 import click
 
 import model_signing
+
+
+class NoOpTracer:
+    def start_as_current_span(self, name):
+        @contextlib.contextmanager
+        def noop_context():
+            class NoOpSpan:
+                def set_attribute(self, key, value):
+                    pass
+
+            yield NoOpSpan()
+
+        return noop_context()
+
+
+# Global tracer variable, we will initialized this within the main() function
+tracer = None
 
 
 # Decorator for the commonly used argument for the model path.
@@ -66,6 +84,14 @@ _ignore_git_paths_option = click.option(
     default=True,
     show_default=True,
     help="Ignore git-related files when signing or verifying.",
+)
+
+# Decorator for the commonly used option to ignore all unsigned files
+_ignore_unsigned_files_option = click.option(
+    "--ignore_unsigned_files/--no-ignore_unsigned_files",
+    type=bool,
+    show_default=True,
+    help="Ignore all files that were not originally signed.",
 )
 
 # Decorator for the commonly used option to set the path to the private key
@@ -118,10 +144,24 @@ _signing_certificate_option = click.option(
 # Decorator for the commonly used option to allow symlinks
 _allow_symlinks_option = click.option(
     "--allow_symlinks",
-    type=bool,
     is_flag=True,
     help="Whether to allow following symlinks when signing or verifying files.",
 )
+
+
+def _resolve_ignore_paths(
+    model_path: pathlib.Path, paths: Iterable[pathlib.Path]
+) -> list[pathlib.Path]:
+    model_root = model_path.resolve()
+    cwd = pathlib.Path.cwd()
+    resolved_paths = []
+    for p in paths:
+        candidate = (p if p.is_absolute() else (cwd / p)).resolve()
+        try:
+            resolved_paths.append(candidate.relative_to(model_root))
+        except ValueError:
+            continue
+    return resolved_paths
 
 
 class _PKICmdGroup(click.Group):
@@ -176,11 +216,43 @@ class _PKICmdGroup(click.Group):
     ),
 )
 @click.version_option(model_signing.__version__, "--version")
-def main() -> None:
+@click.option(
+    "--log-level",
+    type=click.Choice(
+        ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False
+    ),
+    default="INFO",
+    show_default=True,
+    help="Set the logging level. This can also be set via the "
+    "MODEL_SIGNING_LOG_LEVEL env var.",
+)
+def main(log_level: str) -> None:
     """ML model signing and verification.
 
     Use each subcommand's `--help` option for details on each mode.
     """
+    global tracer
+
+    logging.basicConfig(
+        format="%(message)s", level=getattr(logging, log_level.upper())
+    )
+
+    try:
+        from opentelemetry import trace  # type: ignore[import-error]
+        from opentelemetry.instrumentation import (
+            auto_instrumentation,  # type: ignore[import-error]
+        )
+
+        auto_instrumentation.initialize()
+        tracer = trace.get_tracer(__name__)
+    except ImportError:
+        logging.info("OpenTelemetry not installed. Tracing is disabled.")
+        tracer = NoOpTracer()
+    except Exception as e:
+        logging.error(
+            f"Failed to initialize OpenTelemetry auto instrumentation: {e}"
+        )
+        sys.exit(1)
 
 
 @main.group(name="sign", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
@@ -270,27 +342,37 @@ def _sign_sigstore(
     Passing the `--use_staging` flag would use that instance instead of the
     production one.
     """
-    try:
-        model_signing.signing.Config().use_sigstore_signer(
-            use_ambient_credentials=use_ambient_credentials,
-            use_staging=use_staging,
-            identity_token=identity_token,
-            force_oob=oauth_force_oob,
-            client_id=client_id,
-            client_secret=client_secret,
-        ).set_hashing_config(
-            model_signing.hashing.Config()
-            .set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
+    with tracer.start_as_current_span("Sign") as span:
+        span.set_attribute("sigstore.sign_method", "sigstore")
+        span.set_attribute("sigstore.model_path", str(model_path))
+        span.set_attribute("sigstore.signature", str(signature))
+        span.set_attribute(
+            "sigstore.use_ambient_credentials", use_ambient_credentials
+        )
+        span.set_attribute("sigstore.use_staging", use_staging)
+        try:
+            ignored = _resolve_ignore_paths(
+                model_path, list(ignore_paths) + [signature]
             )
-            .set_allow_symlinks(allow_symlinks)
-        ).sign(model_path, signature)
-    except Exception as err:
-        click.echo(f"Signing failed with error: {err}", err=True)
-        sys.exit(1)
+            model_signing.signing.Config().use_sigstore_signer(
+                use_ambient_credentials=use_ambient_credentials,
+                use_staging=use_staging,
+                identity_token=identity_token,
+                force_oob=oauth_force_oob,
+                client_id=client_id,
+                client_secret=client_secret,
+            ).set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=ignored, ignore_git_paths=ignore_git_paths
+                )
+                .set_allow_symlinks(allow_symlinks)
+            ).sign(model_path, signature)
+        except Exception as err:
+            click.echo(f"Signing failed with error: {err}", err=True)
+            sys.exit(1)
 
-    click.echo("Signing succeeded")
+        click.echo("Signing succeeded")
 
 
 @_sign.command(name="key")
@@ -329,14 +411,14 @@ def _sign_private_key(
     management protocols.
     """
     try:
+        ignored = _resolve_ignore_paths(
+            model_path, list(ignore_paths) + [signature]
+        )
         model_signing.signing.Config().use_elliptic_key_signer(
             private_key=private_key, password=password
         ).set_hashing_config(
             model_signing.hashing.Config()
-            .set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
-            )
+            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
             .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
@@ -375,14 +457,14 @@ def _sign_pkcs11_key(
     management protocols.
     """
     try:
+        ignored = _resolve_ignore_paths(
+            model_path, list(ignore_paths) + [signature]
+        )
         model_signing.signing.Config().use_pkcs11_signer(
             pkcs11_uri=pkcs11_uri
         ).set_hashing_config(
             model_signing.hashing.Config()
-            .set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
-            )
+            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
             .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
@@ -428,16 +510,16 @@ def _sign_certificate(
     Note that we don't offer certificate and key management protocols.
     """
     try:
+        ignored = _resolve_ignore_paths(
+            model_path, list(ignore_paths) + [signature]
+        )
         model_signing.signing.Config().use_certificate_signer(
             private_key=private_key,
             signing_certificate=signing_certificate,
             certificate_chain=certificate_chain,
         ).set_hashing_config(
             model_signing.hashing.Config()
-            .set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
-            )
+            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
             .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
@@ -484,16 +566,16 @@ def _sign_pkcs11_certificate(
     Note that we don't offer certificate and key management protocols.
     """
     try:
+        ignored = _resolve_ignore_paths(
+            model_path, list(ignore_paths) + [signature]
+        )
         model_signing.signing.Config().use_pkcs11_certificate_signer(
             pkcs11_uri=pkcs11_uri,
             signing_certificate=signing_certificate,
             certificate_chain=certificate_chain,
         ).set_hashing_config(
             model_signing.hashing.Config()
-            .set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
-            )
+            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
             .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
@@ -541,6 +623,7 @@ def _verify() -> None:
     required=True,
     help="The expected identity provider (e.g., https://accounts.example.com).",
 )
+@_ignore_unsigned_files_option
 def _verify_sigstore(
     model_path: pathlib.Path,
     signature: pathlib.Path,
@@ -550,6 +633,7 @@ def _verify_sigstore(
     identity: str,
     identity_provider: str,
     use_staging: bool,
+    ignore_unsigned_files: bool,
 ) -> None:
     """Verify using Sigstore (DEFAULT verification method).
 
@@ -561,24 +645,35 @@ def _verify_sigstore(
     provider for the signature. If these don't match what is provided in the
     signature, verification would fail.
     """
-    try:
-        model_signing.verifying.Config().use_sigstore_verifier(
-            identity=identity,
-            oidc_issuer=identity_provider,
-            use_staging=use_staging,
-        ).set_hashing_config(
-            model_signing.hashing.Config()
-            .set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
+    with tracer.start_as_current_span("Verify") as span:
+        span.set_attribute("sigstore.method", "sigstore")
+        span.set_attribute("sigstore.model_path", str(model_path))
+        span.set_attribute("sigstore.signature", str(signature))
+        span.set_attribute("sigstore.identity", identity)
+        span.set_attribute("sigstore.oidc_issuer", identity_provider)
+        span.set_attribute("sigstore.use_staging", use_staging)
+        try:
+            ignored = _resolve_ignore_paths(
+                model_path, list(ignore_paths) + [signature]
             )
-            .set_allow_symlinks(allow_symlinks)
-        ).verify(model_path, signature)
-    except Exception as err:
-        click.echo(f"Verification failed with error: {err}", err=True)
-        sys.exit(1)
+            model_signing.verifying.Config().use_sigstore_verifier(
+                identity=identity,
+                oidc_issuer=identity_provider,
+                use_staging=use_staging,
+            ).set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=ignored, ignore_git_paths=ignore_git_paths
+                )
+                .set_allow_symlinks(allow_symlinks)
+            ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+                model_path, signature
+            )
+        except Exception as err:
+            click.echo(f"Verification failed with error: {err}", err=True)
+            sys.exit(1)
 
-    click.echo("Verification succeeded")
+        click.echo("Verification succeeded")
 
 
 @_verify.command(name="key")
@@ -594,6 +689,7 @@ def _verify_sigstore(
     required=True,
     help="Path to the public key used for verification.",
 )
+@_ignore_unsigned_files_option
 def _verify_private_key(
     model_path: pathlib.Path,
     signature: pathlib.Path,
@@ -601,6 +697,7 @@ def _verify_private_key(
     ignore_git_paths: bool,
     allow_symlinks: bool,
     public_key: pathlib.Path,
+    ignore_unsigned_files: bool,
 ) -> None:
     """Verity using a public key (paired with a private one).
 
@@ -616,16 +713,18 @@ def _verify_private_key(
     management protocols.
     """
     try:
+        ignored = _resolve_ignore_paths(
+            model_path, list(ignore_paths) + [signature]
+        )
         model_signing.verifying.Config().use_elliptic_key_verifier(
             public_key=public_key
         ).set_hashing_config(
             model_signing.hashing.Config()
-            .set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
-            )
+            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
             .set_allow_symlinks(allow_symlinks)
-        ).verify(model_path, signature)
+        ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+            model_path, signature
+        )
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
         sys.exit(1)
@@ -648,6 +747,7 @@ def _verify_private_key(
     show_default=True,
     help="Log SHA256 fingerprints of all certificates.",
 )
+@_ignore_unsigned_files_option
 def _verify_certificate(
     model_path: pathlib.Path,
     signature: pathlib.Path,
@@ -656,6 +756,7 @@ def _verify_certificate(
     allow_symlinks: bool,
     certificate_chain: Iterable[pathlib.Path],
     log_fingerprints: bool,
+    ignore_unsigned_files: bool,
 ) -> None:
     """Verify using a certificate.
 
@@ -674,17 +775,19 @@ def _verify_certificate(
         logging.basicConfig(format="%(message)s", level=logging.INFO)
 
     try:
+        ignored = _resolve_ignore_paths(
+            model_path, list(ignore_paths) + [signature]
+        )
         model_signing.verifying.Config().use_certificate_verifier(
             certificate_chain=certificate_chain,
             log_fingerprints=log_fingerprints,
         ).set_hashing_config(
             model_signing.hashing.Config()
-            .set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
-                ignore_git_paths=ignore_git_paths,
-            )
+            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
             .set_allow_symlinks(allow_symlinks)
-        ).verify(model_path, signature)
+        ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+            model_path, signature
+        )
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
         sys.exit(1)

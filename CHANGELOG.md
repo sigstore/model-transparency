@@ -24,6 +24,9 @@ All versions prior to 1.0.0 are untracked.
 - Implemented public key identifier hash matching for bundle verification
 - Add warning for older verification material formats (e.g., raw public key bytes) during verification, recommending re-signing
 - Added guidance to `README.md` on how to install `model-signing` with PKCS#11 support.
+- Added support trace sigstore sign and verify operations using OpenTelemetry.
+- cli: Added support for `--ignore_unsigned_files` option
+- Implemented a new, minimal container image. This variant excludes optional dependencies (like OTel and PKCS#11) to reduce footprint, focusing solely on core signing and verification mechanisms.
 
 ## [1.0.1] - 2024-04-18
 
