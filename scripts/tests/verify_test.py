@@ -41,7 +41,7 @@ class TestVerify:
             public_key=public_key
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
+                paths=list(ignore_paths) + [signature.name],
                 ignore_git_paths=ignore_git_paths,
             )
         ).verify(model_path, signature)
@@ -61,7 +61,7 @@ class TestVerify:
             log_fingerprints=log_fingerprints,
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
+                paths=list(ignore_paths) + [signature.name],
                 ignore_git_paths=ignore_git_paths,
             )
         ).verify(model_path, signature)
@@ -83,7 +83,7 @@ class TestVerify:
             use_staging=use_staging,
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
+                paths=list(ignore_paths) + [signature.name],
                 ignore_git_paths=ignore_git_paths,
             )
         ).verify(model_path, signature)
@@ -101,7 +101,7 @@ class TestVerify:
             public_key=public_key
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
+                paths=list(ignore_paths) + [signature.name],
                 ignore_git_paths=ignore_git_paths,
             )
         ).verify(model_path, signature)
@@ -121,7 +121,7 @@ class TestVerify:
             log_fingerprints=log_fingerprints,
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
+                paths=list(ignore_paths) + [signature.name],
                 ignore_git_paths=ignore_git_paths,
             )
         ).verify(model_path, signature)
@@ -143,7 +143,7 @@ class TestVerify:
             use_staging=use_staging,
         ).set_hashing_config(
             model_signing.hashing.Config().set_ignored_paths(
-                paths=list(ignore_paths) + [signature],
+                paths=list(ignore_paths) + [signature.name],
                 ignore_git_paths=ignore_git_paths,
             )
         ).verify(model_path, signature)

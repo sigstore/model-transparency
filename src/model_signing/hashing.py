@@ -148,18 +148,23 @@ class Config:
         files_to_hash: Optional[Iterable[PathLike]] = None,
     ) -> manifest.Manifest:
         """Hashes a model using the current configuration."""
-        # All paths in ignored_paths must have model_path as prefix
+        # All paths in ``_ignored_paths`` are expected to be relative to the
+        # model directory. Join them to ``model_path`` and ensure they do not
+        # escape it.
+        model_path = pathlib.Path(model_path)
         ignored_paths = []
         for p in self._ignored_paths:
-            rp = os.path.relpath(p, model_path)
-            # rp may start with "../" if it is not relative to model_path
-            if not rp.startswith("../"):
-                ignored_paths.append(pathlib.Path(os.path.join(model_path, rp)))
+            full = model_path / p
+            try:
+                full.relative_to(model_path)
+            except ValueError:
+                continue
+            ignored_paths.append(full)
 
         if self._ignore_git_paths:
             ignored_paths.extend(
                 [
-                    os.path.join(model_path, p)
+                    model_path / p
                     for p in [
                         ".git/",
                         ".gitattributes",
@@ -357,11 +362,9 @@ class Config:
         Returns:
             The new hashing configuration with a new set of ignored paths.
         """
-        # Use relpath to possibly fix weird paths like '../a/b' -> 'b'
-        # when '../a/' is a no-op
-        self._ignored_paths = frozenset(
-            {pathlib.Path(p).resolve() for p in paths}
-        )
+        # Preserve the user-provided relative paths; they are resolved against
+        # the model directory later when hashing.
+        self._ignored_paths = frozenset(pathlib.Path(p) for p in paths)
         self._ignore_git_paths = ignore_git_paths
         return self
 
@@ -376,7 +379,15 @@ class Config:
                    the model directory.
         """
         newset = set(self._ignored_paths)
-        newset.update([os.path.join(model_path, p) for p in paths])
+        model_path = pathlib.Path(model_path)
+        for p in paths:
+            candidate = pathlib.Path(p)
+            full = model_path / candidate
+            try:
+                full.relative_to(model_path)
+            except ValueError:
+                continue
+            newset.add(candidate)
         self._ignored_paths = newset
 
     def set_allow_symlinks(self, allow_symlinks: bool) -> Self:
