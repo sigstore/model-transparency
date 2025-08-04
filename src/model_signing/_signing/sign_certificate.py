@@ -34,7 +34,7 @@ from model_signing._signing import sign_ec_key as ec_key
 from model_signing._signing import sign_sigstore_pb as sigstore_pb
 
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class Signer(ec_key.Signer):
