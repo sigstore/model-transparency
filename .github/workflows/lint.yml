@@ -79,6 +79,8 @@ jobs:
           persist-credentials: false
       - name: Set up Hatch
         uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
+      - name: Register pytype problem matcher
+        run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/pytype-problem-matcher.json"
       - name: Run type check
         run: hatch run type:check
 
@@ -96,3 +98,5 @@ jobs:
         uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
       - name: Run python linting
         run: hatch fmt --check
+        env:
+          RUFF_OUTPUT_FORMAT: github
