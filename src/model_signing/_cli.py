@@ -223,6 +223,7 @@ class _PKICmdGroup(click.Group):
     ),
     default="INFO",
     show_default=True,
+    metavar="LEVEL",
     help="Set the logging level. This can also be set via the "
     "MODEL_SIGNING_LOG_LEVEL env var.",
 )
@@ -246,7 +247,7 @@ def main(log_level: str) -> None:
         auto_instrumentation.initialize()
         tracer = trace.get_tracer(__name__)
     except ImportError:
-        logging.info("OpenTelemetry not installed. Tracing is disabled.")
+        logging.debug("OpenTelemetry not installed. Tracing is disabled.")
         tracer = NoOpTracer()
     except Exception as e:
         logging.error(
