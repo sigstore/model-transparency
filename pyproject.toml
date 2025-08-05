@@ -59,6 +59,10 @@ otel = [
   "opentelemetry-exporter-otlp",
 ]
 
+gpu = [
+  "torch",
+]
+
 [project.scripts]
 model_signing = "model_signing._cli:main"
 
