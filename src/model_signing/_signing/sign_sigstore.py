@@ -24,6 +24,7 @@ from sigstore import models as sigstore_models
 from sigstore import oidc as sigstore_oidc
 from sigstore import sign as sigstore_signer
 from sigstore import verify as sigstore_verifier
+from sigstore._internal.trust import ClientTrustConfig
 from typing_extensions import override
 
 from model_signing._signing import signing
@@ -73,6 +74,7 @@ class Signer(signing.Signer):
         force_oob: bool = False,
         client_id: Optional[str] = None,
         client_secret: Optional[str] = None,
+        trust_config: Optional[pathlib.Path] = None,
     ):
         """Initializes Sigstore signers.
 
@@ -107,17 +109,27 @@ class Signer(signing.Signer):
               identity to the OIDC provider. If not provided, it is assumed
               that the client is public or the provider does not require a
               secret.
+            trust_config: A path to a custom trust configuration. When
+              provided, the signature verification process will rely on the
+              supplied PKI and trust configurations, instead of the default
+              Sigstore setup. If not specified, the default Sigstore
+              configuration is used.
         """
-        if use_staging:
-            self._signing_context = sigstore_signer.SigningContext.staging()
-            self._issuer = sigstore_oidc.Issuer.staging()
+        # Initializes the signing and issuer contexts based on provided
+        # configuration.
+        if trust_config:
+            signing_cfg = ClientTrustConfig.from_json(trust_config.read_text())
+        elif use_staging:
+            signing_cfg = ClientTrustConfig.staging(offline=False)
         else:
-            self._signing_context = sigstore_signer.SigningContext.production()
-            if oidc_issuer is not None:
-                self._issuer = sigstore_oidc.Issuer(oidc_issuer)
-            else:
-                self._issuer = sigstore_oidc.Issuer.production()
+            signing_cfg = ClientTrustConfig.production(offline=False)
 
+        self._signing_context = (
+            sigstore_signer.SigningContext.from_trust_config(signing_cfg)
+        )
+        self._issuer = sigstore_oidc.Issuer(
+            signing_cfg.signing_config.get_oidc_url()
+        )
         self._use_ambient_credentials = use_ambient_credentials
         self._identity_token = identity_token
         self._force_oob = force_oob
@@ -166,7 +178,12 @@ class Verifier(signing.Verifier):
     """Signature verification using Sigstore."""
 
     def __init__(
-        self, *, identity: str, oidc_issuer: str, use_staging: bool = False
+        self,
+        *,
+        identity: str,
+        oidc_issuer: str,
+        use_staging: bool = False,
+        trust_config: Optional[pathlib.Path] = None,
     ):
         """Initializes Sigstore verifiers.
 
@@ -180,12 +197,22 @@ class Verifier(signing.Verifier):
               certificate used for the signature.
             use_staging: Use staging configurations, instead of production. This
               is supposed to be set to True only when testing. Default is False.
+            trust_config: A path to a custom trust configuration. When provided,
+              the signature verification process will rely on the supplied
+              PKI and trust configurations, instead of the default Sigstore
+              setup. If not specified, the default Sigstore configuration
+              is used.
         """
-        if use_staging:
-            self._verifier = sigstore_verifier.Verifier.staging()
+        if trust_config:
+            signing_cfg = ClientTrustConfig.from_json(trust_config.read_text())
+        elif use_staging:
+            signing_cfg = ClientTrustConfig.staging(offline=False)
         else:
-            self._verifier = sigstore_verifier.Verifier.production()
+            signing_cfg = ClientTrustConfig.production(offline=False)
 
+        self._verifier = sigstore_verifier.Verifier(
+            trusted_root=signing_cfg.trusted_root
+        )
         self._policy = sigstore_verifier.policy.Identity(
             identity=identity, issuer=oidc_issuer
         )
