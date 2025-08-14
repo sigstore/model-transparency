@@ -210,7 +210,7 @@ for signing:
 
 ```bash
 [...]$ model_signing sign pkcs11-key --signature model.sig \
-       --private_key "pkcs11:..." /path/to/your/model
+       --pkcs11_uri "pkcs11:..." /path/to/your/model
 ```
 
 For signature verification it is necessary to retrieve the public key from
