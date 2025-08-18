@@ -109,7 +109,39 @@ class TestPayload:
             ),
         )
 
-    # TODO: test restore manifest, with shards and without
+    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
+    def test_restore_manifest_file(self, request, model_fixture_name):
+        model = request.getfixturevalue(model_fixture_name)
+        serializer = file.Serializer(
+            self._file_hasher_factory, allow_symlinks=True
+        )
+        manifest = serializer.serialize(model)
+
+        payload = signing.Payload(manifest)
+        statement_dict = json_format.MessageToDict(payload.statement.pb)
+
+        restored = signing.dsse_payload_to_manifest(statement_dict)
+
+        assert restored == manifest
+        assert restored.model_name == manifest.model_name
+        assert restored.serialization_type == manifest.serialization_type
+
+    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
+    def test_restore_manifest_shard(self, request, model_fixture_name):
+        model = request.getfixturevalue(model_fixture_name)
+        serializer = file_shard.Serializer(
+            self._shard_hasher_factory, allow_symlinks=True
+        )
+        manifest = serializer.serialize(model)
+
+        payload = signing.Payload(manifest)
+        statement_dict = json_format.MessageToDict(payload.statement.pb)
+
+        restored = signing.dsse_payload_to_manifest(statement_dict)
+
+        assert restored == manifest
+        assert restored.model_name == manifest.model_name
+        assert restored.serialization_type == manifest.serialization_type
 
     def test_produces_valid_statements(self, sample_model_folder):
         serializer = file.Serializer(
