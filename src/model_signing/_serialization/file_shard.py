@@ -51,7 +51,7 @@ def _endpoints(step: int, end: int) -> Iterable[int]:
 
 
 class Serializer(serialization.Serializer):
-    """Model serializers that produces a manifest recording every file shard.
+    """Model serializer that produces a manifest recording every file shard.
 
     Traverses the model directory and creates digests for every file found,
     sharding the file in equal shards and computing the digests in parallel.
@@ -103,6 +103,13 @@ class Serializer(serialization.Serializer):
     def set_allow_symlinks(self, allow_symlinks: bool) -> None:
         """Set whether following symlinks is allowed."""
         self._allow_symlinks = allow_symlinks
+        hasher = self._hasher_factory(pathlib.Path(), 0, 1)
+        self._serialization_description = manifest._ShardSerialization(
+            hasher._content_hasher.digest_name,
+            self._shard_size,
+            self._allow_symlinks,
+            self._ignore_paths,
+        )
 
     @override
     def serialize(
@@ -119,8 +126,7 @@ class Serializer(serialization.Serializer):
             ignore_paths: The paths to ignore during serialization. If a
               provided path is a directory, all children of the directory are
               ignored.
-            files_to_hash: Opitonal list of files that are to be hashed;
-              ignore all others
+            files_to_hash: Optional list of files to hash; ignore all others
 
         Returns:
             The model's serialized manifest.
