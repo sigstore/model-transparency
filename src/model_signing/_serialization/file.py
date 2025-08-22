@@ -53,6 +53,7 @@ class Serializer(serialization.Serializer):
             allow_symlinks: Controls whether symbolic links are included. If a
               symlink is present but the flag is `False` (default) the
               serialization would raise an error.
+            ignore_paths: The paths of files to ignore.
         """
         self._hasher_factory = file_hasher_factory
         self._max_workers = max_workers
@@ -69,6 +70,10 @@ class Serializer(serialization.Serializer):
     def set_allow_symlinks(self, allow_symlinks: bool) -> None:
         """Set whether following symlinks is allowed."""
         self._allow_symlinks = allow_symlinks
+        hasher = self._hasher_factory(pathlib.Path())
+        self._serialization_description = manifest._FileSerialization(
+            hasher.digest_name, self._allow_symlinks, self._ignore_paths
+        )
 
     @override
     def serialize(

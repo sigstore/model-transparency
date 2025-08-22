@@ -302,6 +302,12 @@ class TestSerializer:
         ):
             _ = serializer.serialize(symlink_model_folder)
 
+    def test_set_allow_symlinks_updates_manifest(self, sample_model_file):
+        serializer = file.Serializer(self._hasher_factory)
+        serializer.set_allow_symlinks(True)
+        manifest = serializer.serialize(sample_model_file)
+        assert manifest.serialization_type["allow_symlinks"] is True
+
     def test_ignore_list_respects_directories(self, sample_model_folder):
         serializer = file.Serializer(self._hasher_factory)
         manifest1 = serializer.serialize(sample_model_folder)
