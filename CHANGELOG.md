@@ -27,6 +27,8 @@ All versions prior to 1.0.0 are untracked.
 - Added support trace sigstore sign and verify operations using OpenTelemetry.
 - cli: Added support for `--ignore_unsigned_files` option
 - Implemented a new, minimal container image. This variant excludes optional dependencies (like OTel and PKCS#11) to reduce footprint, focusing solely on core signing and verification mechanisms.
+- Added support for signing and verifying using private Sigstore instances (`--trust_config`)
+- By default (when `--trust_config` is not used) the whole trust configuration now comes from the TUF repository
 
 ## [1.0.1] - 2024-04-18
 
