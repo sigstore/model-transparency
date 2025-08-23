@@ -183,5 +183,8 @@ force-sort-within-sections = true
 lines-after-imports = 2
 single-line-exclusions = ["collections.abc", "typing"]
 
+[tool.ruff.lint.pep8-naming]
+ignore-names = ["TestOneInput"]
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"
