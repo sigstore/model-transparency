@@ -97,6 +97,8 @@ Use `hatch run +py=3... bench:chunk ${args}` to benchmark the chunk size paramet
 """
 extra-dependencies = [
   "numpy",
+  "psutil",
+  "py-cpuinfo",
 ]
 
 [[tool.hatch.envs.bench.matrix]]
@@ -125,6 +127,7 @@ description = """Custom environment for pytype.
 Use `hatch run type:check` to check types.
 """
 extra-dependencies = [
+  "py-cpuinfo",
   "pytest",
   "pytype",
 ]
