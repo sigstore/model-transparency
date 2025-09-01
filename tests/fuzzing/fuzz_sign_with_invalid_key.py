@@ -13,53 +13,62 @@
 # limitations under the License.
 
 import os
+from pathlib import Path
 import sys
 import tempfile
 
 # type: ignore
 import atheris
 from cryptography.hazmat.primitives import serialization
+from fuzz_utils import any_files
+from fuzz_utils import create_fuzz_files
 
 import model_signing
 
 
-def TestOneInput(data):
-    """Fuzzer running on OSS-Fuzz.
-
-    Create a random model and key file,
-    then sign with the random key file.
-    Parse the key early to ignore if invalid.
-    """
+def TestOneInput(data: bytes) -> None:
+    """Fuzzer on OSS-Fuzz: sign with a random key that parses as private."""
     fdp = atheris.FuzzedDataProvider(data)
 
-    pubkey_size = fdp.ConsumeIntInRange(0, 8 * 1024)
-    key_bytes = fdp.ConsumeBytes(pubkey_size)
+    # Generate a random (possibly invalid) private key blob.
+    key_size = fdp.ConsumeIntInRange(0, 8 * 1024)
+    key_bytes = fdp.ConsumeBytes(key_size)
     try:
         serialization.load_pem_private_key(
             key_bytes, password=None, unsafe_skip_rsa_key_validation=True
         )
-    except ValueError as e:
-        print(e)
+    except ValueError:
         return
 
-    with tempfile.TemporaryDirectory(prefix="mt_sign_only_") as tmpdir:
-        model_path = os.path.join(tmpdir, "model.bin")
-        model_size = fdp.ConsumeIntInRange(0, 64 * 1024)
-        with open(model_path, "wb") as f:
-            f.write(fdp.ConsumeBytes(model_size))
+    # Separate dirs: model tree vs. signature destination.
+    with (
+        tempfile.TemporaryDirectory(prefix="mt_sign_only_") as tmpdir,
+        tempfile.TemporaryDirectory(prefix="mt_sig_fuzz_") as sigdir,
+    ):
+        root = Path(tmpdir)
 
+        # Create 0..30 files with fuzzed paths and contents.
+        create_fuzz_files(root, fdp)
+
+        # Early return if there are NO files.
+        if not any_files(root):
+            return
+
+        # Persist the parsed private key.
         key_path = os.path.join(tmpdir, "fuzz.priv")
         with open(key_path, "wb") as f:
             f.write(key_bytes)
 
-        sig_path = os.path.join(tmpdir, "model.sig")
+        # Sign the directory root; signature goes elsewhere.
+        model_path = str(root)
+        sig_path = os.path.join(sigdir, "model.sig")
 
         scfg = model_signing.signing.Config()
         signer = scfg.use_elliptic_key_signer(private_key=key_path)
         _ = signer.sign(model_path, sig_path)
 
 
-def main():
+def main() -> None:
     atheris.instrument_all()
     atheris.Setup(sys.argv, TestOneInput)
     atheris.Fuzz()
