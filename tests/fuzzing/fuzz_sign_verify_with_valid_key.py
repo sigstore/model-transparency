@@ -14,6 +14,7 @@
 
 import atexit
 import os
+from pathlib import Path
 import shutil
 import sys
 import tempfile
@@ -22,6 +23,8 @@ import tempfile
 import atheris
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from fuzz_utils import any_files
+from fuzz_utils import create_fuzz_files
 
 import model_signing
 
@@ -68,25 +71,30 @@ for cname, curve in [
     )
 
 
-def _pick_key_spec(fdp: "atheris.FuzzedDataProvider") -> dict[str, str]:
+def _pick_key_spec(fdp: atheris.FuzzedDataProvider) -> dict[str, str]:
     return KEY_SPECS[fdp.ConsumeIntInRange(0, len(KEY_SPECS) - 1)]
 
 
-def TestOneInput(data):
-    """Fuzzer running on OSS-Fuzz.
-
-    Create random model bytes,
-    sign, then verify with the matching pubkey.
-    """
+def TestOneInput(data: bytes) -> None:
+    """Fuzzer running on OSS-Fuzz: sign & verify with matching key."""
     fdp = atheris.FuzzedDataProvider(data)
 
-    with tempfile.TemporaryDirectory(prefix="mt_file_fuzz_") as tmpdir:
-        model_path = os.path.join(tmpdir, "model.bin")
-        size = fdp.ConsumeIntInRange(0, 64 * 1024)
-        with open(model_path, "wb") as f:
-            f.write(fdp.ConsumeBytes(size))
+    # One temp dir for the model directory; a separate one for the signature.
+    with (
+        tempfile.TemporaryDirectory(prefix="mt_file_fuzz_") as tmpdir,
+        tempfile.TemporaryDirectory(prefix="mt_sig_fuzz_") as sigdir,
+    ):
+        root = Path(tmpdir)
 
-        sig_path = os.path.join(tmpdir, "model.sig")
+        # Create 0..30 files with fuzzed relative paths and contents (safely).
+        create_fuzz_files(root, fdp)
+
+        # If there are NO files in root (skip empty directory cases).
+        if not any_files(root):
+            return
+
+        model_path = str(root)
+        sig_path = os.path.join(sigdir, "model.sig")
 
         key_spec = _pick_key_spec(fdp)
 
@@ -99,7 +107,7 @@ def TestOneInput(data):
         verifier.verify(model_path, sig_path)
 
 
-def main():
+def main() -> None:
     atheris.instrument_all()
     atheris.Setup(sys.argv, TestOneInput)
     atheris.Fuzz()

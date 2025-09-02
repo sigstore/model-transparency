@@ -14,6 +14,7 @@
 
 import atexit
 import os
+from pathlib import Path
 import shutil
 import sys
 import tempfile
@@ -22,6 +23,8 @@ import tempfile
 import atheris
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from fuzz_utils import any_files
+from fuzz_utils import create_fuzz_files
 
 import model_signing
 
@@ -38,6 +41,7 @@ atexit.register(_cleanup_keys)
 _PRIV_PATH: str = os.path.join(_KEYDIR, "signer.priv")
 _PUB_PATH: str = os.path.join(_KEYDIR, "signer.pub")
 
+# Create a fresh ECDSA keypair once per process (valid signing key).
 if not (os.path.exists(_PRIV_PATH) and os.path.exists(_PUB_PATH)):
     priv = ec.generate_private_key(ec.SECP256R1())
     with open(_PRIV_PATH, "wb") as f:
@@ -57,15 +61,11 @@ if not (os.path.exists(_PRIV_PATH) and os.path.exists(_PUB_PATH)):
         )
 
 
-def TestOneInput(data):
-    """Fuzzer running on OSS-Fuzz.
-
-    Generate random public-key bytes and ensure they parse
-    with the PEM loader; if they do, sign a model and verify
-    using a file containing those bytes.
-    """
+def TestOneInput(data: bytes) -> None:
+    """Sign with a valid key; verify with a parseable but mismatched key."""
     fdp = atheris.FuzzedDataProvider(data)
 
+    # Prepare a random (possibly unrelated) public key blob.
     pubkey_size = fdp.ConsumeIntInRange(0, 8 * 1024)
     pubkey_bytes = fdp.ConsumeBytes(pubkey_size)
     try:
@@ -73,28 +73,40 @@ def TestOneInput(data):
     except ValueError:
         return
 
-    with tempfile.TemporaryDirectory(prefix="mt_verify_bytes_") as tmpdir:
-        model_path = os.path.join(tmpdir, "model.bin")
-        model_size = fdp.ConsumeIntInRange(0, 64 * 1024)
-        with open(model_path, "wb") as f:
-            f.write(fdp.ConsumeBytes(model_size))
+    # Separate dirs: model tree vs. signature destination.
+    with (
+        tempfile.TemporaryDirectory(prefix="mt_verify_bytes_") as tmpdir,
+        tempfile.TemporaryDirectory(prefix="mt_sig_fuzz_") as sigdir,
+    ):
+        root = Path(tmpdir)
 
-        sig_path = os.path.join(tmpdir, "model.sig")
+        # Create 0..30 files with safe, fuzzed paths & contents.
+        create_fuzz_files(root, fdp)
 
+        # Early return if the directory is empty (no regular files).
+        if not any_files(root):
+            return
+
+        model_path = str(root)
+        sig_path = os.path.join(sigdir, "model.sig")
+
+        # Sign using the valid private key created at module import time.
         scfg = model_signing.signing.Config()
         signer = scfg.use_elliptic_key_signer(private_key=_PRIV_PATH)
         _ = signer.sign(model_path, sig_path)
 
+        # Write the (parseable but likely mismatched) public key to a file.
         pubkey_path = os.path.join(tmpdir, "fuzz.pub")
         with open(pubkey_path, "wb") as f:
             f.write(pubkey_bytes)
 
+        # Verify with the fuzzed public key.
         vcfg = model_signing.verifying.Config()
         verifier = vcfg.use_elliptic_key_verifier(public_key=pubkey_path)
         verifier.verify(model_path, sig_path)
 
 
-def main():
+def main() -> None:
     atheris.instrument_all()
     atheris.Setup(sys.argv, TestOneInput)
     atheris.Fuzz()
