@@ -32,7 +32,7 @@ dependencies = [
   "click",
   "cryptography",
   "in-toto-attestation",
-  "sigstore",
+  "sigstore @ git+https://github.com/sigstore/sigstore-python.git@main",
   "typing_extensions",
 ]
 requires-python = ">=3.9"
@@ -75,6 +75,9 @@ path = "src/model_signing/__init__.py"
 
 [tool.hatch.build]
 packages = ["src/model_signing"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.envs.hatch-test]
 installer = "pip"
