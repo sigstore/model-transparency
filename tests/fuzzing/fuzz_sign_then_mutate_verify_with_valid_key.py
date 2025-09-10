@@ -19,8 +19,7 @@ import shutil
 import sys
 import tempfile
 
-# type: ignore
-import atheris
+import atheris  # type: ignore
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from fuzz_utils import any_files
