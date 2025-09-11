@@ -1,0 +1,106 @@
+name: model_signing benchmarks
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  publish-benchmark-container:
+    if: ${{ github.event_name == 'workflow_dispatch' }} || ${{ (github.event.issue.pull_request) && (startsWith(github.event.comment.body, '/bench')) }}
+    runs-on: [ubuntu-latest]
+    permissions:
+      packages: write
+    outputs:
+      head: ${{ steps.config.outputs.head }}
+    steps:
+      - name: Validate and configure benchmark
+        id: config
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            if (context.eventName === 'workflow_dispatch') {
+              core.setOutput('head', context.sha)
+              return
+            }
+
+            const allowedAssociations = ["COLLABORATOR", "MEMBER", "OWNER"];
+            authorAssociation = '${{ github.event.comment.author_association }}'
+            if (!allowedAssociations.includes(authorAssociation)) {
+              core.setFailed("You don't have access to run the benchmarks");
+              return
+            }
+
+            const response = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            })
+
+            // avoid race condition between comment and fetching PR head sha
+            const commentTime = new Date('${{ github.event.comment.created_at }}');
+            const prTime = new Date(response.data.head.repo.pushed_at)
+            if (prTime >= commentTime) {
+              core.setFailed("The PR may have been updated since the benchmark request, " +
+                             "please review any changes and relaunch if safe.");
+              return
+            }
+
+            core.setOutput('head', response.data.head.sha)
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ steps.config.outputs.head }}
+
+      - name: Build Image
+        id: build_image
+        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2.13
+        with:
+          containerfiles: |
+            ./benchmarks/Containerfile
+          image: ghcr.io/sigstore/model-transparency-benchmarks
+          tags: "latest ${{ steps.config.outputs.head }}"
+          archs: amd64
+          oci: false
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        id: registry_login
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push To GHCR
+        uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2.8
+        id: push
+        with:
+          image: ${{ steps.build_image.outputs.image }}
+          tags: ${{ steps.build_image.outputs.tags }}
+          registry: ghcr.io
+  submit-cloud-batch:
+    needs: publish-benchmark-container
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: 'write'
+    env:
+      TAG: ${{needs.publish-benchmark-container.outputs.head}}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{needs.publish-benchmark-container.outputs.head}}
+      - uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
+        with:
+          workload_identity_provider: projects/306323169285/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
+          service_account: 'model-transparency-gha@sigstore-infra-playground.iam.gserviceaccount.com'
+      - run: |
+          gcloud batch jobs submit \
+            --job-prefix=bench \
+            --project sigstore-infra-playground \
+            --location us-central1 \
+            --config - <<EOF
+            $(envsubst '$TAG' < benchmarks/cloud_batch.json)
+            EOF
