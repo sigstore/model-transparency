@@ -2,12 +2,13 @@ name: model_signing benchmarks
 on:
   issue_comment:
     types: [created]
+  workflow_dispatch:
 
 permissions: {}
 
 jobs:
   publish-benchmark-container:
-    if: ${{ (github.event.issue.pull_request) && (startsWith(github.event.comment.body, '/bench')) }}
+    if: ${{ github.event_name == 'workflow_dispatch' }} || ${{ (github.event.issue.pull_request) && (startsWith(github.event.comment.body, '/bench')) }}
     runs-on: [ubuntu-latest]
     permissions:
       packages: write
@@ -21,6 +22,11 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
+            if (context.eventName === 'workflow_dispatch') {
+              core.setOutput('head', context.sha)
+              return
+            }
+
             const allowedAssociations = ["COLLABORATOR", "MEMBER", "OWNER"];
             authorAssociation = '${{ github.event.comment.author_association }}'
             if (!allowedAssociations.includes(authorAssociation)) {
