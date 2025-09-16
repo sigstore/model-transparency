@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import annotations
-
 import datetime as dt
 from pathlib import Path
 import shutil
@@ -29,7 +27,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import ExtendedKeyUsageOID
 from cryptography.x509.oid import NameOID
-from fuzz_utils import create_fuzz_files
+from utils import create_fuzz_files
 
 from model_signing import hashing
 from model_signing import signing

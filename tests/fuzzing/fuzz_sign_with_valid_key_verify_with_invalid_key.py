@@ -23,8 +23,8 @@ import tempfile
 import atheris
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from fuzz_utils import any_files
-from fuzz_utils import create_fuzz_files
+from utils import any_files
+from utils import create_fuzz_files
 
 import model_signing
 

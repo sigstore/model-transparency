@@ -20,8 +20,8 @@ import tempfile
 # type: ignore
 import atheris
 from cryptography.hazmat.primitives import serialization
-from fuzz_utils import any_files
-from fuzz_utils import create_fuzz_files
+from utils import any_files
+from utils import create_fuzz_files
 
 import model_signing
 
