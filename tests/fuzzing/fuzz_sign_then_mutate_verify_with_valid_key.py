@@ -22,9 +22,9 @@ import tempfile
 import atheris  # type: ignore
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from fuzz_utils import any_files
-from fuzz_utils import create_fuzz_files
-from fuzz_utils import safe_write
+from utils import any_files
+from utils import create_fuzz_files
+from utils import safe_write
 
 import model_signing
 
