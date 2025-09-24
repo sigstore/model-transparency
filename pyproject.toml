@@ -32,7 +32,8 @@ dependencies = [
   "click",
   "cryptography",
   "in-toto-attestation",
-  "sigstore",
+  "sigstore-protobuf-specs == 0.3.2",
+  "sigstore==3.6.5",
   "typing_extensions",
 ]
 requires-python = ">=3.9"
