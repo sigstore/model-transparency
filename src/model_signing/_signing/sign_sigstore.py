@@ -109,15 +109,17 @@ class Signer(signing.Signer):
               secret.
         """
         if use_staging:
-            self._signing_context = sigstore_signer.SigningContext.staging()
-            self._issuer = sigstore_oidc.Issuer.staging()
+            trust_config = sigstore_models.ClientTrustConfig.staging()
         else:
-            self._signing_context = sigstore_signer.SigningContext.production()
-            if oidc_issuer is not None:
-                self._issuer = sigstore_oidc.Issuer(oidc_issuer)
-            else:
-                self._issuer = sigstore_oidc.Issuer.production()
+            trust_config = sigstore_models.ClientTrustConfig.production()
 
+        if not oidc_issuer:
+            oidc_issuer = trust_config.signing_config.get_oidc_url()
+
+        self._issuer = sigstore_oidc.Issuer(oidc_issuer)
+        self._signing_context = (
+            sigstore_signer.SigningContext.from_trust_config(trust_config)
+        )
         self._use_ambient_credentials = use_ambient_credentials
         self._identity_token = identity_token
         self._force_oob = force_oob
