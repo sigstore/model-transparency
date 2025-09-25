@@ -105,12 +105,12 @@ class Signature(signing.Signature):
 
     @override
     def write(self, path: pathlib.Path) -> None:
-        path.write_text(self.bundle.to_json())
+        path.write_text(self.bundle.to_json(), encoding="utf-8")
 
     @classmethod
     @override
     def read(cls, path: pathlib.Path) -> Self:
-        content = path.read_text()
+        content = path.read_text(encoding="utf-8")
         parsed_dict = json.loads(content)
         return cls(bundle_pb.Bundle().from_dict(parsed_dict))
 

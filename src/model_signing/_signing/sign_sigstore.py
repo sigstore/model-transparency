@@ -51,12 +51,12 @@ class Signature(signing.Signature):
 
     @override
     def write(self, path: pathlib.Path) -> None:
-        path.write_text(self.bundle.to_json())
+        path.write_text(self.bundle.to_json(), encoding="utf-8")
 
     @classmethod
     @override
     def read(cls, path: pathlib.Path) -> Self:
-        content = path.read_text()
+        content = path.read_text(encoding="utf-8")
         return cls(sigstore_models.Bundle.from_json(content))
 
 

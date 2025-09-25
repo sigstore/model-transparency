@@ -325,11 +325,11 @@ class TestSigning:
         signature_path = tmp_path / "model.sig"
         self._sign_manifest(manifest, signature_path, sigstore.Signer)
 
-        correct_signature = signature_path.read_text()
+        correct_signature = signature_path.read_text(encoding="utf-8")
         json_signature = json.loads(correct_signature)
         json_signature["_type"] = "Not in-toto"
         invalid_signature = json.dumps(json_signature)
-        signature_path.write_text(invalid_signature)
+        signature_path.write_text(invalid_signature, encoding="utf-8")
 
         with pytest.raises(ValueError, match="Expected in-toto .* payload"):
             self._verify_dsse_signature(signature_path)
