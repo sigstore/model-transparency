@@ -102,15 +102,25 @@ def mocked_oidc_provider_no_ambient():
 
 @pytest.fixture
 def mocked_sigstore_models():
-    with mock.patch.object(
-        sigstore.sigstore_models, "Bundle", autospec=True
-    ) as mocked_bundle:
+    with mock.patch.multiple(
+        sigstore.sigstore_models,
+        Bundle=mock.DEFAULT,
+        ClientTrustConfig=mock.DEFAULT,
+        autospec=True,
+    ) as mocked_objects:
+        mocked_bundle = mocked_objects["Bundle"]
         mocked_bundle.from_json = MockedSigstoreBundle.from_json
-        yield mocked_bundle
+
+        mocked_config = mock.MagicMock()
+        mocked_client_trust_config = mocked_objects["ClientTrustConfig"]
+        mocked_client_trust_config.production.return_value = mocked_config
+        mocked_client_trust_config.staging.return_value = mocked_config
+
+        yield mocked_objects
 
 
 @pytest.fixture
-def mocked_sigstore_signer():
+def mocked_sigstore_signer(mocked_sigstore_models):
     with mock.patch.multiple(
         sigstore.sigstore_signer,
         Signer=mock.DEFAULT,
@@ -128,8 +138,7 @@ def mocked_sigstore_signer():
         mocked_context.signer.return_value = signer
 
         mocked_signing_context = mocked_objects["SigningContext"]
-        mocked_signing_context.staging.return_value = mocked_context
-        mocked_signing_context.production.return_value = mocked_context
+        mocked_signing_context.from_trust_config.return_value = mocked_context
 
         yield mocked_objects
 
@@ -316,11 +325,11 @@ class TestSigning:
         signature_path = tmp_path / "model.sig"
         self._sign_manifest(manifest, signature_path, sigstore.Signer)
 
-        correct_signature = signature_path.read_text()
+        correct_signature = signature_path.read_text(encoding="utf-8")
         json_signature = json.loads(correct_signature)
         json_signature["_type"] = "Not in-toto"
         invalid_signature = json.dumps(json_signature)
-        signature_path.write_text(invalid_signature)
+        signature_path.write_text(invalid_signature, encoding="utf-8")
 
         with pytest.raises(ValueError, match="Expected in-toto .* payload"):
             self._verify_dsse_signature(signature_path)
