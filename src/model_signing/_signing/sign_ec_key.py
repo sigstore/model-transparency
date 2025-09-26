@@ -14,6 +14,7 @@
 
 """Signers and verifiers using elliptic curve keys."""
 
+import base64
 import hashlib
 import pathlib
 from typing import Optional
@@ -23,9 +24,9 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from google.protobuf import json_format
-from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
-from sigstore_protobuf_specs.dev.sigstore.common import v1 as common_pb
-from sigstore_protobuf_specs.io import intoto as intoto_pb
+from sigstore_models import intoto as intoto_pb
+from sigstore_models.bundle import v1 as bundle_pb
+from sigstore_models.common import v1 as common_pb
 from typing_extensions import override
 
 from model_signing._signing import sign_sigstore_pb as sigstore_pb
@@ -102,15 +103,17 @@ class Signer(sigstore_pb.Signer):
         )
 
         raw_signature = intoto_pb.Signature(
-            sig=self._private_key.sign(
-                sigstore_pb.pae(raw_payload),
-                ec.ECDSA(get_ec_key_hash(self._private_key.public_key())),
+            sig=base64.b64encode(
+                self._private_key.sign(
+                    sigstore_pb.pae(raw_payload),
+                    ec.ECDSA(get_ec_key_hash(self._private_key.public_key())),
+                )
             ),
             keyid="",
         )
 
         envelope = intoto_pb.Envelope(
-            payload=raw_payload,
+            payload=base64.b64encode(raw_payload),
             payload_type=signing._IN_TOTO_JSON_PAYLOAD_TYPE,
             signatures=[raw_signature],
         )
@@ -135,7 +138,8 @@ class Signer(sigstore_pb.Signer):
         hash_bytes = hashlib.sha256(raw_bytes).digest().hex()
 
         return bundle_pb.VerificationMaterial(
-            public_key=common_pb.PublicKeyIdentifier(hint=hash_bytes)
+            public_key=common_pb.PublicKeyIdentifier(hint=hash_bytes),
+            tlog_entries=[],
         )
 
 

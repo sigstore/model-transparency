@@ -27,7 +27,7 @@ import pathlib
 import sys
 from typing import cast
 
-from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
+from sigstore_models.bundle import v1 as bundle_pb
 from typing_extensions import override
 
 from model_signing._signing import signing
@@ -112,7 +112,18 @@ class Signature(signing.Signature):
     def read(cls, path: pathlib.Path) -> Self:
         content = path.read_text(encoding="utf-8")
         parsed_dict = json.loads(content)
-        return cls(bundle_pb.Bundle().from_dict(parsed_dict))
+
+        # adjust parsed_dict due to previous usage of protobufs
+        if "tlogEntries" not in parsed_dict["verificationMaterial"]:
+            parsed_dict["verificationMaterial"]["tlogEntries"] = []
+        if "publicKey" in parsed_dict["verificationMaterial"]:
+            if "hint" not in parsed_dict["verificationMaterial"]["publicKey"]:
+                parsed_dict["verificationMaterial"]["publicKey"]["hint"] = None
+            for k in ["rawBytes", "keyDetails"]:
+                if k in parsed_dict["verificationMaterial"]["publicKey"]:
+                    del parsed_dict["verificationMaterial"]["publicKey"][k]
+
+        return cls(bundle_pb.Bundle.from_dict(parsed_dict))
 
 
 class Signer(signing.Signer):

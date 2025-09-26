@@ -14,6 +14,7 @@
 
 """Signers and verifiers using certificates."""
 
+import base64
 from collections.abc import Iterable
 import logging
 import pathlib
@@ -26,8 +27,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509 import oid
 from OpenSSL import crypto
-from sigstore_protobuf_specs.dev.sigstore.bundle import v1 as bundle_pb
-from sigstore_protobuf_specs.dev.sigstore.common import v1 as common_pb
+from sigstore_models.bundle import v1 as bundle_pb
+from sigstore_models.common import v1 as common_pb
 from typing_extensions import override
 
 from model_signing._signing import sign_ec_key as ec_key
@@ -79,8 +80,10 @@ class Signer(ec_key.Signer):
     def _get_verification_material(self) -> bundle_pb.VerificationMaterial:
         def _to_protobuf_certificate(certificate):
             return common_pb.X509Certificate(
-                raw_bytes=certificate.public_bytes(
-                    encoding=serialization.Encoding.DER
+                raw_bytes=base64.b64encode(
+                    certificate.public_bytes(
+                        encoding=serialization.Encoding.DER
+                    )
                 )
             )
 
@@ -95,7 +98,8 @@ class Signer(ec_key.Signer):
         return bundle_pb.VerificationMaterial(
             x509_certificate_chain=common_pb.X509CertificateChain(
                 certificates=chain
-            )
+            ),
+            tlog_entries=[],
         )
 
 
