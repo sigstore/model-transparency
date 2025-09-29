@@ -117,6 +117,32 @@ This will open an OIDC flow to obtain a short lived token for the certificate.
 The identity used during signing and the provider must be reused during
 verification.
 
+## Using Private Sigstore Instances
+
+To use a private Sigstore setup (e.g. custom Rekor/Fulcio), use the `--trust_config` flag:
+
+```bash
+[...]$ model_signing sign bert-base-uncased --trust_config client_trust_config.json
+```
+
+For verification:
+
+```bash
+[...]$ model_signing verify bert-base-uncased \
+      --signature model.sig \
+      --trust_config client_trust_config.json
+      --identity "$identity"
+      --identity_provider "$oidc_provider"
+```
+
+The `client_trust_config.json` file should include:
+
+- A signed target trust root
+- A `signingConfig` section with your private Rekor, Fulcio, and CT log endpoints
+- Public keys for verification (if applicable)
+
+You can find an example `client_trust_config.json` [here](https://github.com/sigstore/sigstore-python/blob/main/test/assets/trust_config/config.v1.json).
+
 As another example, here is how we can sign with private keys. First, we
 generate the key pair:
 

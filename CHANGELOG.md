@@ -28,6 +28,7 @@ All versions prior to 1.0.0 are untracked.
 - cli: Added support for `--ignore_unsigned_files` option
 - Implemented a new, minimal container image. This variant excludes optional dependencies (like OTel and PKCS#11) to reduce footprint, focusing solely on core signing and verification mechanisms.
 - The library now requires at least v4.0.0 of `sigstore` due to breaking changes in that library
+- Added support for signing and verifying using private Sigstore instances (`--trust_config`)
 
 ## [1.0.1] - 2024-04-18
 
