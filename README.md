@@ -141,7 +141,7 @@ The `client_trust_config.json` file should include:
 - A `signingConfig` section with your private Rekor, Fulcio, and CT log endpoints
 - Public keys for verification (if applicable)
 
-You can find an example `client_trust_config.json` [here](https://github.com/sigstore/sigstore-python/blob/main/test/assets/trust_config/config.v1.json).
+You can find an example `client_trust_config.json` that references the public Sigstore production services in the Sigstore Python repository [here](https://github.com/sigstore/sigstore-python/blob/main/test/assets/trust_config/config.v1.json).
 
 As another example, here is how we can sign with private keys. First, we
 generate the key pair:
