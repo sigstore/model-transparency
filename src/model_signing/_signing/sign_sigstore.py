@@ -73,6 +73,7 @@ class Signer(signing.Signer):
         force_oob: bool = False,
         client_id: Optional[str] = None,
         client_secret: Optional[str] = None,
+        trust_config: Optional[pathlib.Path] = None,
     ):
         """Initializes Sigstore signers.
 
@@ -107,9 +108,18 @@ class Signer(signing.Signer):
               identity to the OIDC provider. If not provided, it is assumed
               that the client is public or the provider does not require a
               secret.
+            trust_config: A path to a custom trust configuration. When
+              provided, the signature verification process will rely on the
+              supplied PKI and trust configurations, instead of the default
+              Sigstore setup. If not specified, the default Sigstore
+              configuration is used.
         """
         if use_staging:
             trust_config = sigstore_models.ClientTrustConfig.staging()
+        elif trust_config:
+            trust_config = sigstore_models.ClientTrustConfig.from_json(
+                trust_config.read_text()
+            )
         else:
             trust_config = sigstore_models.ClientTrustConfig.production()
 
@@ -135,11 +145,13 @@ class Signer(signing.Signer):
         3) Interactive OAuth flow
         """
         if self._identity_token:
-            return sigstore_oidc.IdentityToken(self._identity_token)
+            return sigstore_oidc.IdentityToken(
+                self._identity_token, self._client_id
+            )
         if self._use_ambient_credentials:
-            token = sigstore_oidc.detect_credential()
+            token = sigstore_oidc.detect_credential(self._client_id)
             if token:
-                return sigstore_oidc.IdentityToken(token)
+                return sigstore_oidc.IdentityToken(token, self._client_id)
 
         return self._issuer.identity_token(
             force_oob=self._force_oob,
@@ -168,7 +180,12 @@ class Verifier(signing.Verifier):
     """Signature verification using Sigstore."""
 
     def __init__(
-        self, *, identity: str, oidc_issuer: str, use_staging: bool = False
+        self,
+        *,
+        identity: str,
+        oidc_issuer: str,
+        use_staging: bool = False,
+        trust_config: Optional[pathlib.Path] = None,
     ):
         """Initializes Sigstore verifiers.
 
@@ -182,11 +199,24 @@ class Verifier(signing.Verifier):
               certificate used for the signature.
             use_staging: Use staging configurations, instead of production. This
               is supposed to be set to True only when testing. Default is False.
+            trust_config: A path to a custom trust configuration. When provided,
+              the signature verification process will rely on the supplied
+              PKI and trust configurations, instead of the default Sigstore
+              setup. If not specified, the default Sigstore configuration
+              is used.
         """
-        if use_staging:
-            self._verifier = sigstore_verifier.Verifier.staging()
+        if trust_config:
+            trust_config = sigstore_models.ClientTrustConfig.from_json(
+                trust_config.read_text()
+            )
+        elif use_staging:
+            trust_config = sigstore_models.ClientTrustConfig.staging()
         else:
-            self._verifier = sigstore_verifier.Verifier.production()
+            trust_config = sigstore_models.ClientTrustConfig.production()
+
+        self._verifier = sigstore_verifier.Verifier(
+            trusted_root=trust_config.trusted_root
+        )
 
         self._policy = sigstore_verifier.policy.Identity(
             identity=identity, issuer=oidc_issuer

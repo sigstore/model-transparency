@@ -78,9 +78,13 @@ def sign(model_path: hashing.PathLike, signature_path: hashing.PathLike):
 class Config:
     """Configuration to use when signing models.
 
-    Currently we support signing with Sigstore (public instance and staging
-    instance), signing with private keys and signing with signing certificates.
-    Other signing modes can be added in the future.
+    Currently, we support signing with Sigstore (both the public
+    instance and staging instance), signing with private keys,
+    signing with signing certificates, and signing with custom
+    PKI configurations using the `--trust_config` option.
+    This allows users to bring their own trust configuration
+    to sign and verify models. Other signing modes may be
+    added in the future.
     """
 
     def __init__(self):
@@ -127,6 +131,7 @@ class Config:
         identity_token: Optional[str] = None,
         client_id: Optional[str] = None,
         client_secret: Optional[str] = None,
+        trust_config: Optional[pathlib.Path] = None,
     ) -> Self:
         """Configures the signing to be performed with Sigstore.
 
@@ -161,6 +166,11 @@ class Config:
               identity to the OIDC provider. If not provided, it is assumed
               that the client is public or the provider does not require a
               secret.
+            trust_config: A path to a custom trust configuration. When provided,
+              the signature verification process will rely on the supplied
+              PKI and trust configurations, instead of the default Sigstore
+              setup. If not specified, the default Sigstore configuration
+              is used.
 
         Return:
             The new signing configuration.
@@ -173,6 +183,7 @@ class Config:
             force_oob=force_oob,
             client_id=client_id,
             client_secret=client_secret,
+            trust_config=trust_config,
         )
         return self
 

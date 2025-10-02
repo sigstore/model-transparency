@@ -71,7 +71,7 @@ def mocked_oidc_provider():
 
         # return whatever raw_token was passed in
         mocked_identity_token = mocked_objects["IdentityToken"]
-        mocked_identity_token.side_effect = lambda x: x
+        mocked_identity_token.side_effect = lambda token, client_id: token
 
         mocked_issuer = mocked_objects["Issuer"]
         mocked_issuer.return_value.identity_token.return_value = "fake_token"
@@ -149,8 +149,7 @@ def mocked_sigstore_verifier():
         sigstore.sigstore_verifier, "Verifier", autospec=True
     ) as mocked_verifier:
         mocked_verifier.verify_dsse = _mocked_verify_dsse
-        mocked_verifier.staging = lambda: mocked_verifier
-        mocked_verifier.production = lambda: mocked_verifier
+        mocked_verifier.return_value = mocked_verifier
         yield mocked_verifier
 
 
@@ -163,7 +162,7 @@ def mocked_sigstore_verifier_bad_payload():
         sigstore.sigstore_verifier, "Verifier", autospec=True
     ) as mocked_verifier:
         mocked_verifier.verify_dsse = _verify_dsse
-        mocked_verifier.staging = lambda: mocked_verifier
+        mocked_verifier.return_value = mocked_verifier
         yield mocked_verifier
 
 
