@@ -68,6 +68,14 @@ _read_signature_option = click.option(
     help="Location of the signature file to verify.",
 )
 
+# Decorator for the commonly used option for the custom trust configuration.
+_trust_config_option = click.option(
+    "--trust_config",
+    type=pathlib.Path,
+    metavar="TRUST_CONFIG_PATH",
+    help="The client trust configuration to use",
+)
+
 # Decorator for the commonly used option to ignore certain paths
 _ignore_paths_option = click.option(
     "--ignore-paths",
@@ -278,6 +286,7 @@ def _sign() -> None:
 @_allow_symlinks_option
 @_write_signature_option
 @_sigstore_staging_option
+@_trust_config_option
 @click.option(
     "--use_ambient_credentials",
     type=bool,
@@ -326,6 +335,7 @@ def _sign_sigstore(
     identity_token: Optional[str] = None,
     client_id: Optional[str] = None,
     client_secret: Optional[str] = None,
+    trust_config: Optional[pathlib.Path] = None,
 ) -> None:
     """Sign using Sigstore (DEFAULT signing method).
 
@@ -342,6 +352,19 @@ def _sign_sigstore(
     Sigstore allows users to use a staging instance for test-only signatures.
     Passing the `--use_staging` flag would use that instance instead of the
     production one.
+
+    Additionally, you can specify a custom trust configuration JSON file using
+    the `--trust_config` flag. This allows you to fully customize the PKI
+    (Private Key Infrastructure) used in the signing process. By providing a
+    `--trust_config`, you can define your own transparency logs, certificate
+    authorities, and other trust settings, enabling full control over the
+    trust model, including which PKI to use for signature verification.
+
+    If `--trust_config` is not provided, the default Sigstore instance is
+    used, which is pre-configured with Sigstore’s own trusted transparency
+    logs and certificate authorities. This provides a ready-to-use default
+    trust model for most use cases but may not be suitable for custom or
+    highly regulated environments.
     """
     with tracer.start_as_current_span("Sign") as span:
         span.set_attribute("sigstore.sign_method", "sigstore")
@@ -362,6 +385,7 @@ def _sign_sigstore(
                 force_oob=oauth_force_oob,
                 client_id=client_id,
                 client_secret=client_secret,
+                trust_config=trust_config,
             ).set_hashing_config(
                 model_signing.hashing.Config()
                 .set_ignored_paths(
@@ -599,6 +623,12 @@ def _verify() -> None:
     signature is assumed to be generated via Sigstore (as if invoking `sigstore`
     subcommand).
 
+    To enable verification with custom PKI configurations, use the
+    `--trust_config` option. This allows you to specify your own set of trusted
+    public keys, transparency logs, and certificate authorities for verifying
+    the signature. If not provided, the default Sigstore instance and its
+    associated public keys, logs, and authorities are used.
+
     Use each subcommand's `--help` option for details on each mode.
     """
 
@@ -610,6 +640,7 @@ def _verify() -> None:
 @_ignore_git_paths_option
 @_allow_symlinks_option
 @_sigstore_staging_option
+@_trust_config_option
 @click.option(
     "--identity",
     type=str,
@@ -635,6 +666,7 @@ def _verify_sigstore(
     identity_provider: str,
     use_staging: bool,
     ignore_unsigned_files: bool,
+    trust_config: Optional[pathlib.Path] = None,
 ) -> None:
     """Verify using Sigstore (DEFAULT verification method).
 
@@ -661,6 +693,7 @@ def _verify_sigstore(
                 identity=identity,
                 oidc_issuer=identity_provider,
                 use_staging=use_staging,
+                trust_config=trust_config,
             ).set_hashing_config(
                 model_signing.hashing.Config()
                 .set_ignored_paths(
