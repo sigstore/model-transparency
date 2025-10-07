@@ -18,6 +18,7 @@ from pathlib import Path
 import sys
 import tempfile
 
+# type: ignore
 import atheris
 from sigstore.models import TrustedRoot
 from utils import any_files
@@ -37,7 +38,7 @@ def _patch_sigstore_get_dirs(metadata_dir: Path, artifacts_dir: Path) -> None:
     def _stub_get_dirs(url: str):
         return metadata_dir, artifacts_dir
 
-    setattr(tuf_mod._get_dirs, _stub_get_dirs)
+    tuf_mod._get_dirs = _stub_get_dirs
 
 
 def _patch_trust_updater_offline_default_true() -> None:
@@ -47,13 +48,13 @@ def _patch_trust_updater_offline_default_true() -> None:
     for when the fuzzer runs on OSS-Fuzz.
     """
     tuf_mod = importlib.import_module("sigstore._internal.tuf")
-    trust_updater = getattr(tuf_mod.TrustUpdater)
+    trust_updater = tuf_mod.TrustUpdater
     _orig_init = trust_updater.__init__
 
     def _patched_init(self, url: str, offline: bool = True) -> None:
         _orig_init(self, url, offline=True)
 
-    setattr(_orig_init, _patched_init)
+    trust_updater.__init__ = _patched_init
 
 
 def TestOneInput(data: bytes) -> None:
