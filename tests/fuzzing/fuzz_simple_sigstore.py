@@ -14,44 +14,46 @@
 
 import importlib
 import os
+from pathlib import Path
 import sys
 import tempfile
-from pathlib import Path
 
 import atheris
-from model_signing import signing, verifying
 from sigstore.models import TrustedRoot
+from utils import any_files
+from utils import create_fuzz_files
 
-from utils import any_files, create_fuzz_files
+from model_signing import signing
+from model_signing import verifying
 
 
 def _patch_sigstore_get_dirs(metadata_dir: Path, artifacts_dir: Path) -> None:
     """Overwrite sigstore._internal.tuf._get_dirs(url: str).
 
-    This allows us to return directories that the fuzzer controls."""
+    This allows us to return directories that the fuzzer controls.
+    """
     tuf_mod = importlib.import_module("sigstore._internal.tuf")
 
     def _stub_get_dirs(url: str):
         return metadata_dir, artifacts_dir
 
-    setattr(tuf_mod, "_get_dirs", _stub_get_dirs)
+    setattr(tuf_mod._get_dirs, _stub_get_dirs)
 
 
 def _patch_trust_updater_offline_default_true() -> None:
-    """
-    Make TrustUpdater.__init__(url: str, offline: bool = True) by default.
+    """Make TrustUpdater.__init__ offline by default.
 
     This avoids network calls at runtime which is important
     for when the fuzzer runs on OSS-Fuzz.
     """
     tuf_mod = importlib.import_module("sigstore._internal.tuf")
-    TrustUpdater = getattr(tuf_mod, "TrustUpdater")
-    _orig_init = TrustUpdater.__init__
+    trust_updater = getattr(tuf_mod.TrustUpdater)
+    _orig_init = trust_updater.__init__
 
     def _patched_init(self, url: str, offline: bool = True) -> None:
         _orig_init(self, url, offline=True)
 
-    setattr(TrustUpdater, "__init__", _patched_init)
+    setattr(_orig_init, _patched_init)
 
 
 def TestOneInput(data: bytes) -> None:
@@ -78,16 +80,8 @@ def TestOneInput(data: bytes) -> None:
         TrustedRoot.from_file(str(tmp_tr_path))
     except Exception:
         # Bad or unsupported JSON: return and retry
-        try:
-            os.unlink(tmp_tr_path)
-        finally:
-            return
-    finally:
-        # Clean up the temporary file if it still exists
-        try:
-            os.unlink(tmp_tr_path)
-        except FileNotFoundError:
-            pass
+        os.unlink(tmp_tr_path)
+        return
 
     # Temp dirs for sigstore TUF (metadata/artifacts) + model + signature
     with (
