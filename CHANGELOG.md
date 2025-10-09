@@ -65,7 +65,7 @@ All versions prior to 1.0.0 are untracked.
 - Fix bug in CLI scripts where even if signature verification failed, the script would also output that verification passed and exit with success error code.
 - Docker containers wrapping around the CLI have been changed to support the updated CLI
 
-## [1.0.0] - 2024-04-04
+## [1.0.0] - 2025-04-04
 
 ### Added
 - First stable release of `model_signing`.
