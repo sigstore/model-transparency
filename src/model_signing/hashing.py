@@ -53,6 +53,8 @@ import pathlib
 import sys
 from typing import Literal, Optional, Union
 
+import blake3
+
 from model_signing import manifest
 from model_signing._hashing import hashing
 from model_signing._hashing import io
@@ -124,8 +126,8 @@ class Config:
     default, we hash at file level granularity.
 
     This configuration class also supports configuring the hash method used to
-    generate the hash for every object in the model. We currently support SHA256
-    and BLAKE2, with SHA256 being the default.
+    generate the hash for every object in the model. We currently support
+    SHA256, BLAKE2, and BLAKE3, with SHA256 being the default.
 
     This configuration class also supports configuring which paths from the
     model directory should be ignored. These are files that doesn't impact the
@@ -183,7 +185,8 @@ class Config:
         )
 
     def _build_stream_hasher(
-        self, hashing_algorithm: Literal["sha256", "blake2"] = "sha256"
+        self,
+        hashing_algorithm: Literal["sha256", "blake2", "blake3"] = "sha256",
     ) -> hashing.StreamingHashEngine:
         """Builds a streaming hasher from a constant string.
 
@@ -198,28 +201,37 @@ class Config:
             return memory.SHA256()
         if hashing_algorithm == "blake2":
             return memory.BLAKE2()
+        if hashing_algorithm == "blake3":
+            return memory.BLAKE3()
 
         raise ValueError(f"Unsupported hashing method {hashing_algorithm}")
 
     def _build_file_hasher_factory(
         self,
-        hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
+        hashing_algorithm: Literal["sha256", "blake2", "blake3"] = "sha256",
         chunk_size: int = 1048576,
-    ) -> Callable[[pathlib.Path], io.SimpleFileHasher]:
+        max_workers: Optional[int] = None,
+    ) -> Callable[[pathlib.Path], io.FileHasher]:
         """Builds the hasher factory for a serialization by file.
 
         Args:
             hashing_algorithm: The hashing algorithm to use to hash a file.
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
-              single call.
+              single call. This is ignored for BLAKE3.
+            max_workers: Maximum number of workers to use in parallel. Defaults
+              to the number of logical cores. Only relevant for BLAKE3.
 
         Returns:
             The hasher factory that should be used by the active serialization
             method.
         """
+        if max_workers is None:
+            max_workers = blake3.blake3.AUTO
 
-        def _factory(path: pathlib.Path) -> io.SimpleFileHasher:
+        def _factory(path: pathlib.Path) -> io.FileHasher:
+            if hashing_algorithm == "blake3":
+                return io.Blake3FileHasher(path, max_threads=max_workers)
             hasher = self._build_stream_hasher(hashing_algorithm)
             return io.SimpleFileHasher(path, hasher, chunk_size=chunk_size)
 
@@ -232,6 +244,9 @@ class Config:
         shard_size: int = 1_000_000_000,
     ) -> Callable[[pathlib.Path, int, int], io.ShardedFileHasher]:
         """Builds the hasher factory for a serialization by file shards.
+
+        This is not recommended for BLAKE3 because it is not necessary. BLAKE3
+        already operates in parallel.
 
         Args:
             hashing_algorithm: The hashing algorithm to use to hash a shard.
@@ -263,7 +278,7 @@ class Config:
     def use_file_serialization(
         self,
         *,
-        hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
+        hashing_algorithm: Literal["sha256", "blake2", "blake3"] = "sha256",
         chunk_size: int = 1048576,
         max_workers: Optional[int] = None,
         allow_symlinks: bool = False,
@@ -279,10 +294,13 @@ class Config:
             hashing_algorithm: The hashing algorithm to use to hash a file.
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
-              single call.
+              single call. Ignored for BLAKE3.
             max_workers: Maximum number of workers to use in parallel. Default
               is to defer to the `concurrent.futures` library to select the best
-              value for the current machine.
+              value for the current machine, or the number of logical cores
+              when doing BLAKE3 hashing. When reading files off of slower
+              hardware like an HDD rather than an SSD, and using BLAKE3,
+              setting max_workers to 1 may improve performance.
             allow_symlinks: Controls whether symbolic links are included. If a
               symlink is present but the flag is `False` (default) the
               serialization would raise an error.
@@ -291,7 +309,9 @@ class Config:
             The new hashing configuration with the new serialization method.
         """
         self._serializer = file.Serializer(
-            self._build_file_hasher_factory(hashing_algorithm, chunk_size),
+            self._build_file_hasher_factory(
+                hashing_algorithm, chunk_size, max_workers
+            ),
             max_workers=max_workers,
             allow_symlinks=allow_symlinks,
             ignore_paths=ignore_paths,
@@ -301,7 +321,7 @@ class Config:
     def use_shard_serialization(
         self,
         *,
-        hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
+        hashing_algorithm: Literal["sha256", "blake2", "blake3"] = "sha256",
         chunk_size: int = 1048576,
         shard_size: int = 1_000_000_000,
         max_workers: Optional[int] = None,
@@ -309,6 +329,10 @@ class Config:
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ) -> Self:
         """Configures serialization to build a manifest of (shard, hash) pairs.
+
+        For BLAKE3 this is equivalent to not sharding. Sharding is bypassed
+        because BLAKE3 already operates in parallel. This means the chunk_size
+        and shard_size args are ignored.
 
         The serialization method in this configuration is changed to one where
         every file in the model is sharded in equal sized shards, every shard is
@@ -332,6 +356,15 @@ class Config:
         Returns:
             The new hashing configuration with the new serialization method.
         """
+        if hashing_algorithm == "blake3":
+            return self.use_file_serialization(
+                hashing_algorithm=hashing_algorithm,
+                chunk_size=chunk_size,
+                max_workers=max_workers,
+                allow_symlinks=allow_symlinks,
+                ignore_paths=ignore_paths,
+            )
+
         self._serializer = file_shard.Serializer(
             self._build_sharded_file_hasher_factory(
                 hashing_algorithm, chunk_size, shard_size

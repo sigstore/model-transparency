@@ -38,6 +38,7 @@ Example usage for `ShardedFileHasher`, reading only the second part of a file:
 import pathlib
 from typing import Optional
 
+import blake3
 from typing_extensions import override
 
 from model_signing._hashing import hashing
@@ -133,6 +134,61 @@ class SimpleFileHasher(FileHasher):
     @override
     def digest_size(self) -> int:
         return self._content_hasher.digest_size
+
+
+class Blake3FileHasher(FileHasher):
+    """Simple file hash engine that uses BLAKE3 in parallel.
+
+    This hash engine uses the fastest BLAKE3 settings, by using memory mapping
+    and multiple workers. This will greatly increase speed on SSDs, but may
+    not perform well on HDDs. For HDDs, you can set max_threads to 1.
+    """
+
+    def __init__(
+        self,
+        file: pathlib.Path,
+        *,
+        max_threads: int = blake3.blake3.AUTO,
+        digest_name_override: Optional[str] = None,
+    ):
+        """Initializes an instance to hash a file.
+
+        Args:
+            file: The file to hash. Use `set_file` to reset it.
+            max_threads: how many BLAKE3 workers to use. Defaults to number of
+              logical cores.
+            digest_name_override: Optional string to allow overriding the
+              `digest_name` property to support shorter, standardized names.
+        """
+        self._file = file
+        self._digest_name_override = digest_name_override
+        self._blake3 = blake3.blake3(max_threads=max_threads)
+
+    def set_file(self, file: pathlib.Path) -> None:
+        """Redefines the file to be hashed in `compute`.
+
+        Args:
+            file: The new file to be hashed.
+        """
+        self._file = file
+
+    @property
+    @override
+    def digest_name(self) -> str:
+        if self._digest_name_override is not None:
+            return self._digest_name_override
+        return "blake3"
+
+    @override
+    def compute(self) -> hashing.Digest:
+        self._blake3.reset()
+        self._blake3.update_mmap(self._file)
+        return hashing.Digest(self.digest_name, self._blake3.digest())
+
+    @property
+    @override
+    def digest_size(self) -> int:
+        return 32
 
 
 class ShardedFileHasher(SimpleFileHasher):

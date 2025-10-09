@@ -65,6 +65,13 @@ def expected_content_digest():
     return digest.digest_hex
 
 
+@pytest.fixture(scope="class")
+def expected_blake3_digest():
+    hasher = memory.BLAKE3(_FULL_CONTENT.encode("utf-8"))
+    digest = hasher.compute()
+    return digest.digest_hex
+
+
 class TestSimpleFileHasher:
     def test_fails_with_negative_chunk_size(self):
         with pytest.raises(ValueError, match="Chunk size must be non-negative"):
@@ -405,3 +412,58 @@ class TestShardedFileHasher:
             sample_file, memory_hasher, start=0, end=2
         )
         assert hasher.digest_size == memory_hasher.digest_size
+
+
+class TestBlake3FileHasher:
+    def test_hash_of_known_file(self, sample_file, expected_blake3_digest):
+        hasher = io.Blake3FileHasher(sample_file)
+        digest = hasher.compute()
+        assert digest.digest_hex == expected_blake3_digest
+
+    def test_hash_file_twice(self, sample_file):
+        hasher1 = io.Blake3FileHasher(sample_file)
+        digest1 = hasher1.compute()
+        hasher2 = io.Blake3FileHasher(sample_file)
+        digest2 = hasher2.compute()
+        assert digest1.digest_value == digest2.digest_value
+
+    def test_hash_file_twice_same_hasher(self, sample_file):
+        hasher = io.Blake3FileHasher(sample_file)
+        digest1 = hasher.compute()
+        digest2 = hasher.compute()
+        assert digest1.digest_value == digest2.digest_value
+
+    def test_hash_file_twice_same_hasher_reset_file(self, sample_file):
+        hasher = io.Blake3FileHasher(sample_file)
+        digest1 = hasher.compute()
+        hasher.set_file(sample_file)
+        digest2 = hasher.compute()
+        assert digest1.digest_value == digest2.digest_value
+
+    def test_set_file(self, sample_file, sample_file_content_only):
+        hasher = io.Blake3FileHasher(sample_file)
+        digest1 = hasher.compute()
+        hasher.set_file(sample_file_content_only)
+        _ = hasher.compute()
+        hasher.set_file(sample_file)
+        digest2 = hasher.compute()
+        assert digest1.digest_value == digest2.digest_value
+
+    def test_default_digest_name(self):
+        hasher = io.Blake3FileHasher(_UNUSED_PATH)
+        assert hasher.digest_name == "blake3"
+
+    def test_override_digest_name(self):
+        hasher = io.Blake3FileHasher(
+            _UNUSED_PATH, digest_name_override="test-hash"
+        )
+        assert hasher.digest_name == "test-hash"
+
+    def test_digest_algorithm_is_digest_name(self, sample_file):
+        hasher = io.Blake3FileHasher(sample_file)
+        digest = hasher.compute()
+        assert digest.algorithm == hasher.digest_name
+
+    def test_digest_size(self):
+        hasher = io.Blake3FileHasher(sample_file)
+        assert hasher.digest_size == 32

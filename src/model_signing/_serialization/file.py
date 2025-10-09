@@ -66,6 +66,7 @@ class Serializer(serialization.Serializer):
         self._serialization_description = manifest._FileSerialization(
             hasher.digest_name, self._allow_symlinks, self._ignore_paths
         )
+        self._is_blake3 = hasher.digest_name == "blake3"
 
     def set_allow_symlinks(self, allow_symlinks: bool) -> None:
         """Set whether following symlinks is allowed."""
@@ -120,7 +121,8 @@ class Serializer(serialization.Serializer):
 
         manifest_items = []
         with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self._max_workers
+            # blake3 parallelizes internally
+            max_workers=1 if self._is_blake3 else self._max_workers
         ) as tpe:
             futures = [
                 tpe.submit(self._compute_hash, model_path, path)

@@ -48,7 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="hash methods to benchmark",
         nargs="+",
         type=str,
-        default=["sha256", "blake2"],
+        default=["sha256", "blake2", "blake3"],
     )
 
     parser.add_argument(
@@ -74,6 +74,8 @@ def _get_hasher(hash_algorithm: str) -> hashing.StreamingHashEngine:
         return memory.SHA256()
     if hash_algorithm == "blake2":
         return memory.BLAKE2()
+    if hash_algorithm == "blake3":
+        return memory.BLAKE3()
 
     raise ValueError(f"Cannot convert {hash_algorithm} to a hash engine")
 

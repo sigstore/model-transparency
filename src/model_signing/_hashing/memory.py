@@ -37,6 +37,7 @@ Or, passing the data directly in the constructor:
 
 import hashlib
 
+import blake3
 from typing_extensions import override
 
 from model_signing._hashing import hashing
@@ -103,6 +104,40 @@ class BLAKE2(hashing.StreamingHashEngine):
     @override
     def digest_name(self) -> str:
         return "blake2b"
+
+    @property
+    @override
+    def digest_size(self) -> int:
+        return self._hasher.digest_size
+
+
+class BLAKE3(hashing.StreamingHashEngine):
+    """A wrapper around `blake3.blake3`."""
+
+    def __init__(self, initial_data: bytes = b""):
+        """Initializes an instance of a BLAKE3 hash engine.
+
+        Args:
+            initial_data: Optional initial data to hash.
+        """
+        self._hasher = blake3.blake3(initial_data)
+
+    @override
+    def update(self, data: bytes) -> None:
+        self._hasher.update(data)
+
+    @override
+    def reset(self, data: bytes = b"") -> None:
+        self._hasher = blake3.blake3(data)
+
+    @override
+    def compute(self) -> hashing.Digest:
+        return hashing.Digest(self.digest_name, self._hasher.digest())
+
+    @property
+    @override
+    def digest_name(self) -> str:
+        return "blake3"
 
     @property
     @override
