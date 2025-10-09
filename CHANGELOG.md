@@ -9,29 +9,53 @@ All versions prior to 1.0.0 are untracked.
 
 ## [Unreleased]
 
-- Added support for signing with PKCS #11 devices
-- Fix handling of certificate that has no KeyUsage
-- Fix ignoring of git-related files
-- Record files in signature that were ignored when signature was created and automatically ignore those files when verifying signature
-- Adjust model name when signing and verifying in model_path '.' and other fixes related to file paths
-- Fix and test the sharded file hasher
-- Added tests for verifying signatures created with v0.3.1
-- cli: `model_signing sign` now supports the `--oauth_force_oob` option (default: False)
-- Added support for specifying `--client_id` and `--client_secret` for OIDC authentication
-- cli: Added support for `--allow_symlinks` option
-- Added more informative signature mismatch errors: The `ValueError` raised during model verification when a signature mismatch occurs now includes detailed information
-- Fix Bundle deserialization error caused by null keyid in DSSE signatures; keyid now serializes as an empty string
-- Implemented public key identifier hash matching for bundle verification
-- Add warning for older verification material formats (e.g., raw public key bytes) during verification, recommending re-signing
-- Added guidance to `README.md` on how to install `model-signing` with PKCS#11 support.
-- Added support trace sigstore sign and verify operations using OpenTelemetry.
-- cli: Added support for `--ignore_unsigned_files` option
-- Implemented a new, minimal container image. This variant excludes optional dependencies (like OTel and PKCS#11) to reduce footprint, focusing solely on core signing and verification mechanisms.
-- The library now requires at least v4.0.0 of `sigstore` due to breaking changes in that library
-- Added support for signing and verifying using private Sigstore instances (`--trust_config`)
-- Added support for BLAKE3 hashing
+### Added
+- ...
 
-## [1.0.1] - 2024-04-18
+### Changed
+- ...
+
+### Fixed
+- ...
+
+### Removed
+- ...
+
+## [1.1.0] - 2025-04-18
+
+### Breaking changes
+- The library was migrated to require at least v4.0.0 of `sigstore` due to breaking changes in that library ([#532](https://github.com/sigstore/model-transparency/pull/532)).
+- The `sigstore_protobuf_specs` dependency was replaced with `sigstore_models` due to the same changes in `sigstore-4.0.0` ([#533](https://github.com/sigstore/model-transparency/pull/533)).
+
+### Added
+- Added support for signing with PKCS #11 devices ([#411](https://github.com/sigstore/model-transparency/pull/411)), as an optional dependency ([#494](https://github.com/sigstore/model-transparency/pull/494)).
+- Added support for signing and verifying using private Sigstore instances via the `--trust_config` option ([#460](https://github.com/sigstore/model-transparency/pull/460)).
+- Added support for the `--oauth_force_oob` option for the signing CLI flow ([#471](https://github.com/sigstore/model-transparency/pull/471)).
+- Added support for specifying `--client_id` and `--client_secret` for OIDC authentication with custom OAuth clients ([#475](https://github.com/sigstore/model-transparency/pull/475)).
+- Surfaced the `--allow_symlinks` option to the CLI and library API ([#486](https://github.com/sigstore/model-transparency/pull/486)).
+- Implemented public key identifier hash matching for bundle verification ([#493](https://github.com/sigstore/model-transparency/pull/493)).
+- Added warning for older verification material formats (e.g., raw public key bytes) during verification, recommending re-signing ([#493](https://github.com/sigstore/model-transparency/pull/493)).
+- Added more informative signature mismatch errors: The `ValueError` raised during model verification when a signature mismatch occurs now includes detailed information about what caused the signature verification to fail ([#495](https://github.com/sigstore/model-transparency/pull/495)).
+- Created a new, minimal container image. This variant excludes optional dependencies (like OTel and PKCS#11) to reduce footprint, focusing solely on core signing and verification mechanisms ([#499](https://github.com/sigstore/model-transparency/pull/499)).
+- Added support for `--ignore_unsigned_files` option in CLI to ignore files that are not part of the manifest but are still present in the model directory ([#501](https://github.com/sigstore/model-transparency/pull/501)).
+- Added support to trace sign and verify operations using OpenTelemetry ([#503](https://github.com/sigstore/model-transparency/pull/503)).
+- Added support for BLAKE3 hashing ([#538](https://github.com/sigstore/model-transparency/pull/538)).
+
+### Changed
+- Adjusted model name when signing and verifying when `model_path` is current directory ([#452](https://github.com/sigstore/model-transparency/pull/452)).
+- Recorded files in signature that were ignored when signature was created and added ability to automatically ignore those files when verifying signature ([#462](https://github.com/sigstore/model-transparency/pull/462)).
+- The Sigstore signer was changed to be lazily initialized to avoid network calls when not using it ([#467](https://github.com/sigstore/model-transparency/pull/467)).
+- Logging was migrated to only be enabled when the user asks to log the certificate fingerprints ([#472](https://github.com/sigstore/model-transparency/pull/472)).
+
+### Fixed
+- Fixed bugs related to using `model_path='.'` in the signature, as well as other issues related to file paths ([#452](https://github.com/sigstore/model-transparency/pull/452)).
+- Fixed handling of certificate that has no `KeyUsage` ([#457](https://github.com/sigstore/model-transparency/pull/457)).
+- Fixed bug related to ignoring git files ([#462](https://github.com/sigstore/model-transparency/pull/462)).
+- Fixed handling of ignored files in the sharded file hasher ([#465](https://github.com/sigstore/model-transparency/pull/465)).
+- Fixed handling of path resulting from certificates returned from `certify` API ([#468](https://github.com/sigstore/model-transparency/pull/468)).
+- Fixed deserialization bug related to optional values in protobuf API for keid ([#490](https://github.com/sigstore/model-transparency/pull/490)).
+
+## [1.0.1] - 2025-04-18
 
 ### Added
 - Added support for pre v1.0 signatures used in production. This is only provided for verification and replicates the experimental behavior at v0.2, bug for bug.
@@ -55,6 +79,7 @@ All versions prior to 1.0.0 are untracked.
 - [Demo notebook](https://colab.sandbox.google.com/drive/18IB_uipduXYq0ohMxJv2xHfeihLIcGMT) to showcase API and CLI examples.
 
 
-[Unreleased]: https://github.com/sigstore/model-transparency/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/sigstore/model-transparency/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/sigstore/model-transparency/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/sigstore/model-transparency/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/sigstore/model-transparency/compare/v0.1.0...v1.0.0
