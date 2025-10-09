@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.25"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
@@ -7,7 +7,8 @@ name = "model-signing"
 dynamic = ["version"]
 description = "A tool for signing and verifying ML models"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [
   { name = "Sigstore Authors", email = "sigstore-dev@googlegroups.com" }
 ]
