@@ -46,6 +46,8 @@ def get_hash_engine_factory(
         return memory.SHA256
     if hash_algorithm == "blake2":
         return memory.BLAKE2
+    if hash_algorithm == "blake3":
+        return memory.BLAKE3
 
     raise ValueError(f"Cannot convert {hash_algorithm} to a hash engine")
 
@@ -146,7 +148,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--hash_method",
         help="hash method to use (default: sha256)",
-        choices=["sha256", "blake2"],
+        choices=["sha256", "blake2", "blake3"],
         default="sha256",
     )
     parser.add_argument(
@@ -180,7 +182,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--merge_hasher",
         help="hasher to use to merge individual hashes "
         "when skipping manifest creation (default: sha256)",
-        choices=["sha256", "blake2"],
+        choices=["sha256", "blake2", "blake3"],
         default="sha256",
     )
 

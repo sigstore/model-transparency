@@ -124,3 +124,58 @@ class TestBLAKE2:
 
         digest = hasher.compute()
         assert digest.digest_size == 64
+
+
+class TestBLAKE3:
+    def test_hash_known_value(self):
+        hasher = memory.BLAKE3(b"Test string")
+        digest = hasher.compute()
+        expected = (
+            "f3adfd721502f7d9510368688a392ab4f29dbff47092c0aea25f638d4985a8b1"
+        )
+        assert digest.digest_hex == expected
+
+    def test_hash_update_twice_is_the_same_as_update_with_concatenation(self):
+        str1 = "Test "
+        str2 = "string"
+
+        hasher1 = memory.BLAKE3()
+        hasher1.update(str1.encode("utf-8"))
+        hasher1.update(str2.encode("utf-8"))
+        digest1 = hasher1.compute()
+
+        str_all = str1 + str2
+        hasher2 = memory.BLAKE3()
+        hasher2.update(str_all.encode("utf-8"))
+        digest2 = hasher2.compute()
+
+        assert digest1.digest_hex == digest2.digest_hex
+        assert digest1.digest_value == digest2.digest_value
+
+    def test_hash_update_empty(self):
+        hasher1 = memory.BLAKE3(b"Test string")
+        hasher1.update(b"")
+        digest1 = hasher1.compute()
+
+        hasher2 = memory.BLAKE3(b"Test string")
+        digest2 = hasher2.compute()
+
+        assert digest1.digest_hex == digest2.digest_hex
+        assert digest1.digest_value == digest2.digest_value
+
+    def test_update_after_reset(self):
+        hasher = memory.BLAKE3(b"Test string")
+        digest1 = hasher.compute()
+        hasher.reset()
+        hasher.update(b"Test string")
+        digest2 = hasher.compute()
+
+        assert digest1.digest_hex == digest2.digest_hex
+        assert digest1.digest_value == digest2.digest_value
+
+    def test_digest_size(self):
+        hasher = memory.BLAKE3(b"Test string")
+        assert hasher.digest_size == 32
+
+        digest = hasher.compute()
+        assert digest.digest_size == 32

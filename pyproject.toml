@@ -29,6 +29,7 @@ classifiers = [
 ]
 dependencies = [
   "asn1crypto",
+  "blake3",
   "click",
   "cryptography",
   "in-toto-attestation",
