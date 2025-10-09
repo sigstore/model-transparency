@@ -23,10 +23,6 @@ All versions prior to 1.0.0 are untracked.
 
 ## [1.1.0] - 2025-04-18
 
-### Breaking changes
-- The library was migrated to require at least v4.0.0 of `sigstore` due to breaking changes in that library ([#532](https://github.com/sigstore/model-transparency/pull/532)).
-- The `sigstore_protobuf_specs` dependency was replaced with `sigstore_models` due to the same changes in `sigstore-4.0.0` ([#533](https://github.com/sigstore/model-transparency/pull/533)).
-
 ### Added
 - Added support for signing with PKCS #11 devices ([#411](https://github.com/sigstore/model-transparency/pull/411)), as an optional dependency ([#494](https://github.com/sigstore/model-transparency/pull/494)).
 - Added support for signing and verifying using private Sigstore instances via the `--trust_config` option ([#460](https://github.com/sigstore/model-transparency/pull/460)).
@@ -39,6 +35,8 @@ All versions prior to 1.0.0 are untracked.
 - Created a new, minimal container image. This variant excludes optional dependencies (like OTel and PKCS#11) to reduce footprint, focusing solely on core signing and verification mechanisms ([#499](https://github.com/sigstore/model-transparency/pull/499)).
 - Added support for `--ignore_unsigned_files` option in CLI to ignore files that are not part of the manifest but are still present in the model directory ([#501](https://github.com/sigstore/model-transparency/pull/501)).
 - Added support to trace sign and verify operations using OpenTelemetry ([#503](https://github.com/sigstore/model-transparency/pull/503)).
+- The library was migrated to require at least v4.0.0 of `sigstore` due to breaking changes in that library ([#532](https://github.com/sigstore/model-transparency/pull/532)). There are no breaking changes within the library itself, as these changes should be transparent to the users.
+- The `sigstore_protobuf_specs` dependency was replaced with `sigstore_models` due to the same changes in `sigstore-4.0.0` ([#533](https://github.com/sigstore/model-transparency/pull/533)). These changes should also be transparent to the users.
 - Added support for BLAKE3 hashing ([#538](https://github.com/sigstore/model-transparency/pull/538)).
 
 ### Changed
