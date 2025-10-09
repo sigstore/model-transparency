@@ -125,7 +125,7 @@ from model_signing import signing
 from model_signing import verifying
 
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 
 
 __all__ = ["hashing", "signing", "verifying", "manifest"]
