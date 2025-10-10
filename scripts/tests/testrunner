@@ -12,7 +12,7 @@ DIR=$(dirname "$0")
 
 cd "${DIR}" || exit 1
 
-for tc in test-*; do
+for tc in test-*.sh; do
 	echo -e "\n>>> Running ${tc}"
 	./"${tc}" || exit 1
 done
