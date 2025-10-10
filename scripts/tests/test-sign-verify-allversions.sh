@@ -185,14 +185,14 @@ for version in v1.0.1 v1.0.0 v0.3.1 v0.3.0; do
 
 	# Check against pre-created signatures
 	# v represents version of the library that created a signature in the past
-	for v in v1.0.1 v1.0.0 v0.3.1 v0.2.0; do
+	for v in v1.1.0 v1.0.1 v1.0.0 v0.3.1 v0.2.0; do
 
 		# key method
 		modeldir=${v}-elliptic-key
 		modeldir_sign=${modeldir}
 
 		case "${version}-${v}" in
-		v0.3.1-v1.0.1)
+		v0.3.1-v1.0.1|v0.3.1-v1.1.0)
 			# v0.3.1 cannot verify signatures created by v1.0.1
 			;;
 		*-v0.3.1|*-v1.0.0)
@@ -254,7 +254,7 @@ for version in v1.0.1 v1.0.0 v0.3.1 v0.3.0; do
 		modeldir=${v}-sigstore
 
 		case "${version}-${v}" in
-		v0.3.1-v1.0.1|v0.3.1-v0.3.1|v0.3.1-v1.0.0)
+		v0.3.1-v1.1.0|v0.3.1-v1.0.1|v0.3.1-v0.3.1|v0.3.1-v1.0.0)
 			# cannot verify
 			;;
 		*)
