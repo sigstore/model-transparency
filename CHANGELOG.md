@@ -51,7 +51,7 @@ All versions prior to 1.0.0 are untracked.
 - Fixed bug related to ignoring git files ([#462](https://github.com/sigstore/model-transparency/pull/462)).
 - Fixed handling of ignored files in the sharded file hasher ([#465](https://github.com/sigstore/model-transparency/pull/465)).
 - Fixed handling of path resulting from certificates returned from `certify` API ([#468](https://github.com/sigstore/model-transparency/pull/468)).
-- Fixed deserialization bug related to optional values in protobuf API for keid ([#490](https://github.com/sigstore/model-transparency/pull/490)).
+- Fixed deserialization bug related to optional values in protobuf API for keyid ([#490](https://github.com/sigstore/model-transparency/pull/490)).
 
 ## [1.0.1] - 2025-04-18
 
