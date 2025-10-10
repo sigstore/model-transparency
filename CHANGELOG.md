@@ -21,7 +21,7 @@ All versions prior to 1.0.0 are untracked.
 ### Removed
 - ...
 
-## [1.1.0] - 2025-04-18
+## [1.1.0] - 2025-10-10
 
 ### Added
 - Added support for signing with PKCS #11 devices ([#411](https://github.com/sigstore/model-transparency/pull/411)), as an optional dependency ([#494](https://github.com/sigstore/model-transparency/pull/494)).
