@@ -21,6 +21,11 @@ All versions prior to 1.0.0 are untracked.
 ### Removed
 - ...
 
+## [1.1.1] - 2025-10-10
+
+### Fixed
+- Fixed a bug where the API with default signing configuration results in an error due to a type confusion ([#545](https://github.com/sigstore/model-transparency/pull/545))
+
 ## [1.1.0] - 2025-10-10
 
 ### Added
@@ -77,7 +82,8 @@ All versions prior to 1.0.0 are untracked.
 - [Demo notebook](https://colab.sandbox.google.com/drive/18IB_uipduXYq0ohMxJv2xHfeihLIcGMT) to showcase API and CLI examples.
 
 
-[Unreleased]: https://github.com/sigstore/model-transparency/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/sigstore/model-transparency/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/sigstore/model-transparency/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/sigstore/model-transparency/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/sigstore/model-transparency/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/sigstore/model-transparency/compare/v0.1.0...v1.0.0
