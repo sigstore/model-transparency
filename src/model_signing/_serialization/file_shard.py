@@ -145,12 +145,12 @@ class Serializer(serialization.Serializer):
                 (model_path,), model_path.glob("**/*")
             )
         for path in files_to_hash:
+            if serialization.should_ignore(path, ignore_paths):
+                continue
             serialization.check_file_or_directory(
                 path, allow_symlinks=self._allow_symlinks
             )
-            if path.is_file() and not serialization.should_ignore(
-                path, ignore_paths
-            ):
+            if path.is_file():
                 shards.extend(self._get_shards(path))
 
         manifest_items = []

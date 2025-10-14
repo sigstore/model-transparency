@@ -387,3 +387,9 @@ class TestSerializer:
         )
         assert manifest1 != manifest2
         assert len(manifest1._item_to_digest) > len(manifest2._item_to_digest)
+
+    def test_ignored_symlinks_dont_raise_error(self, symlink_model_folder):
+        serializer = file_shard.Serializer(self._hasher_factory)
+        _ = serializer.serialize(
+            symlink_model_folder, ignore_paths=[symlink_model_folder]
+        )

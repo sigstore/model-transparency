@@ -320,6 +320,12 @@ class TestSerializer:
         diff = len(manifest1._item_to_digest) - len(manifest2._item_to_digest)
         assert diff == ignored_file_count
 
+    def test_ignored_symlinks_dont_raise_error(self, symlink_model_folder):
+        serializer = file.Serializer(self._hasher_factory)
+        _ = serializer.serialize(
+            symlink_model_folder, ignore_paths=[symlink_model_folder]
+        )
+
 
 class TestUtilities:
     def test_check_file_or_directory_raises_on_pipes(self, sample_model_file):
