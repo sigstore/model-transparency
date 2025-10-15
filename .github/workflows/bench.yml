@@ -97,10 +97,9 @@ jobs:
           workload_identity_provider: projects/306323169285/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
           service_account: 'model-transparency-gha@sigstore-infra-playground.iam.gserviceaccount.com'
       - run: |
+          envsubst '$TAG' < benchmarks/cloud_batch.json > benchmarks/final_config.json
           gcloud batch jobs submit \
             --job-prefix=bench \
             --project sigstore-infra-playground \
             --location us-central1 \
-            --config - <<EOF
-            $(envsubst '$TAG' < benchmarks/cloud_batch.json)
-            EOF
+            --config benchmarks/final_config.json
