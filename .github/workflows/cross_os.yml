@@ -73,7 +73,7 @@ jobs:
           name: model.zip
           path: model_root/
       - name: Set up Hatch
-        uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
+        uses: pypa/hatch@0636e7b6a89738bffe71e74c5c8e4e59b868dacb # hatch-v1.15.0
       - name: store beacon token into oidc-token.txt
         uses: sigstore-conformance/extremely-dangerous-public-oidc-beacon@b517a742e5a3db9e3cbf8e2e1c792b36982f78db # main
       - name: Sign the model
@@ -109,7 +109,7 @@ jobs:
         with:
           name: ${{ matrix.signed-with-os }}-model.sig
       - name: Set up Hatch
-        uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
+        uses: pypa/hatch@0636e7b6a89738bffe71e74c5c8e4e59b868dacb # hatch-v1.15.0
       - name: Verify the model
         run: |
           hatch run python -m model_signing verify sigstore model_root/ --use_staging --signature model.sig \

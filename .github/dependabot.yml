@@ -13,16 +13,24 @@
 # limitations under the License.
 
 version: 2
-# See https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file.
+# See https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
 updates:
   - package-ecosystem: "pip"
-    directory: "/"
+    directories:
+      - "/"
+      - "slsa_for_models/install"
     schedule:
       interval: "weekly"
     groups:
       all:
         patterns:
         - "*"
+  - package-ecosystem: "docker"
+    directories:
+      - "/"
+      - "slsa_for_models/kubeflow/images/*"
+    schedule:
+      interval: "weekly"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

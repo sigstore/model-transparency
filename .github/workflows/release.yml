@@ -33,7 +33,7 @@ jobs:
       with:
         persist-credentials: false
     - name: Set up Hatch
-      uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
+      uses: pypa/hatch@0636e7b6a89738bffe71e74c5c8e4e59b868dacb # hatch-v1.15.0
     - name: Build artifacts
       run: hatch build
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
