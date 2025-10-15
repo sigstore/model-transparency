@@ -39,6 +39,9 @@
         }
     ],
     "allocationPolicy": {
+        "serviceAccount": {
+            "email": "model-transparency-gha@sigstore-infra-playground.iam.gserviceaccount.com"
+        },
         "instances": [
             {
                 "policy": {
