@@ -40,7 +40,7 @@ jobs:
       with:
         persist-credentials: false
     - name: Set up Hatch
-      uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
+      uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc # install
     - name: Run unit tests (with coverage report at the end)
       run: |
         set -euxo pipefail

@@ -33,7 +33,7 @@ jobs:
       with:
         persist-credentials: false
     - name: Set up Hatch
-      uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc
+      uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc # install
     - name: Build artifacts
       run: hatch build
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -83,6 +83,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Convert tag to version
+        run: |
+          tag="${{ github.event.release.tag_name }}"
+          version=${tag#v}  # Remove leading 'v' prefix
+          echo "APP_VERSION=${version}" >> $GITHUB_ENV
+
       - name: Build minimal image
         id: build_minimal_image
         uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2.13
@@ -95,6 +101,7 @@ jobs:
           oci: false
           build-args: |
             BUILD_TYPE=minimal
+            APP_VERSION=${{ env.APP_VERSION }}
 
       - id: docker_meta_minimal
         uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
@@ -129,6 +136,7 @@ jobs:
           oci: false
           build-args: |
             BUILD_TYPE=full
+            APP_VERSION=${{ env.APP_VERSION }}
 
       - id: docker_meta_full
         uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
