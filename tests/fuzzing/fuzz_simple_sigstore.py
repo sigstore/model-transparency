@@ -21,6 +21,7 @@ import tempfile
 # type: ignore
 import atheris
 from sigstore.models import TrustedRoot
+from utils import _build_hashing_config_from_fdp
 from utils import any_files
 from utils import create_fuzz_files
 
@@ -131,7 +132,10 @@ def TestOneInput(data: bytes) -> None:
             fdp.ConsumeBytes(64).decode("utf-8", errors="ignore") or "token"
         )
 
+        hcfg = _build_hashing_config_from_fdp(fdp)
+
         sc = signing.Config()
+        sc.set_hashing_config(hcfg)
         sc.use_sigstore_signer(
             use_staging=True, identity_token=sigstore_oidc_beacon_token
         )
@@ -142,6 +146,7 @@ def TestOneInput(data: bytes) -> None:
 
         # 7) Verify
         vc = verifying.Config()
+        vc.set_hashing_config(hcfg)
         vc.use_sigstore_verifier(
             identity=expected_identity,
             oidc_issuer=expected_oidc_issuer,
