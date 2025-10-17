@@ -19,6 +19,8 @@ from pathlib import Path
 # type: ignore
 import atheris
 
+import model_signing
+
 
 _SAFE_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
 
@@ -126,3 +128,20 @@ def create_fuzz_files(root: Path, fdp: atheris.FuzzedDataProvider) -> int:
 def any_files(root: Path) -> bool:
     """True if there is at least one regular file under root."""
     return any(p.is_file() for p in root.rglob("*"))
+
+
+def _build_hashing_config_from_fdp(
+    fdp: atheris.FuzzedDataProvider,
+) -> "model_signing.hashing.Config":
+    """Randomize serialization strategy and hash algorithm."""
+    alg = ["sha256", "blake2", "blake3"][fdp.ConsumeIntInRange(0, 2)]
+
+    hcfg = model_signing.hashing.Config()
+    # Choose serialization mode: file vs shard
+    if fdp.ConsumeBool():
+        # File-based serialization.
+        hcfg.use_file_serialization(hashing_algorithm=alg)
+    else:
+        # Sharded file serialization
+        hcfg.use_shard_serialization(hashing_algorithm=alg)
+    return hcfg

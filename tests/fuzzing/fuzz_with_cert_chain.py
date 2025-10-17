@@ -278,6 +278,23 @@ def key_to_pem(priv: rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey) -> bytes:
     )
 
 
+def _build_hashing_config_from_fdp(
+    fdp: atheris.FuzzedDataProvider,
+    extra_ignores: list[Path],
+    signature_path: Path,
+) -> hashing.Config:
+    alg = ["sha256", "blake2", "blake3"][fdp.ConsumeIntInRange(0, 2)]
+    hcfg = hashing.Config().set_ignored_paths(
+        paths=[*list(extra_ignores), signature_path],
+        ignore_git_paths=fdp.ConsumeBool(),
+    )
+    if fdp.ConsumeBool():
+        hcfg.use_file_serialization(hashing_algorithm=alg)
+    else:
+        hcfg.use_shard_serialization(hashing_algorithm=alg)
+    return hcfg
+
+
 def TestOneInput(data: bytes):
     fdp = atheris.FuzzedDataProvider(data)
 
@@ -331,9 +348,11 @@ def TestOneInput(data: bytes):
     fname = f"signature-{_rand_utf8(fdp, 3, 12).replace('/', '_')}.sig"
     signature_path = model_path_p / fname
 
-    # Ignores
-    ignore_git = fdp.ConsumeBool()
+    # Ignores (collected for hashing config)
     extra_ignores: list[Path] = []
+
+    # Build hashing config (serialization + algorithm + ignores)
+    hcfg = _build_hashing_config_from_fdp(fdp, extra_ignores, signature_path)
 
     # 4) Sign and 5) Verify
     try:
@@ -341,21 +360,11 @@ def TestOneInput(data: bytes):
             private_key=leaf_key_path,
             signing_certificate=leaf_cert_path,
             certificate_chain=chain_paths,
-        ).set_hashing_config(
-            hashing.Config().set_ignored_paths(
-                paths=[*list(extra_ignores), signature_path],
-                ignore_git_paths=ignore_git,
-            )
-        ).sign(model_path_p, signature_path)
+        ).set_hashing_config(hcfg).sign(model_path_p, signature_path)
 
         verifying.Config().use_certificate_verifier(
             certificate_chain=chain_paths, log_fingerprints=False
-        ).set_hashing_config(
-            hashing.Config().set_ignored_paths(
-                paths=[*list(extra_ignores), signature_path],
-                ignore_git_paths=ignore_git,
-            )
-        ).verify(model_path_p, signature_path)
+        ).set_hashing_config(hcfg).verify(model_path_p, signature_path)
 
     finally:
         # Always clean up temp dirs

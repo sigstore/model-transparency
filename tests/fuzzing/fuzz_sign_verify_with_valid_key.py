@@ -23,6 +23,7 @@ import tempfile
 import atheris
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from utils import _build_hashing_config_from_fdp
 from utils import any_files
 from utils import create_fuzz_files
 
@@ -98,11 +99,15 @@ def TestOneInput(data: bytes) -> None:
 
         key_spec = _pick_key_spec(fdp)
 
+        hcfg = _build_hashing_config_from_fdp(fdp)
+
         scfg = model_signing.signing.Config()
+        scfg.set_hashing_config(hcfg)
         signer = scfg.use_elliptic_key_signer(private_key=key_spec["priv"])
         _ = signer.sign(model_path, sig_path)
 
         vcfg = model_signing.verifying.Config()
+        vcfg.set_hashing_config(hcfg)
         verifier = vcfg.use_elliptic_key_verifier(public_key=key_spec["pub"])
         verifier.verify(model_path, sig_path)
 

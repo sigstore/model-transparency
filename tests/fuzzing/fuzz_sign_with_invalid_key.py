@@ -20,6 +20,7 @@ import tempfile
 # type: ignore
 import atheris
 from cryptography.hazmat.primitives import serialization
+from utils import _build_hashing_config_from_fdp
 from utils import any_files
 from utils import create_fuzz_files
 
@@ -63,7 +64,10 @@ def TestOneInput(data: bytes) -> None:
         model_path = str(root)
         sig_path = os.path.join(sigdir, "model.sig")
 
+        hcfg = _build_hashing_config_from_fdp(fdp)
+
         scfg = model_signing.signing.Config()
+        scfg.set_hashing_config(hcfg)
         signer = scfg.use_elliptic_key_signer(private_key=key_path)
         _ = signer.sign(model_path, sig_path)
 
