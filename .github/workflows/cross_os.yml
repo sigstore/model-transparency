@@ -48,7 +48,7 @@ jobs:
           for i in {0..3}; do
               echo "This is file f${i} in root." > "${MODEL_ROOT}/f${i}"
           done
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           path: ${{ steps.model.outputs.root }}
           name: model.zip
@@ -68,18 +68,18 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: model.zip
           path: model_root/
       - name: Set up Hatch
         uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc # install
       - name: store beacon token into oidc-token.txt
-        uses: sigstore-conformance/extremely-dangerous-public-oidc-beacon@b517a742e5a3db9e3cbf8e2e1c792b36982f78db # main
+        uses: sigstore-conformance/extremely-dangerous-public-oidc-beacon@039e3afae9c6fde85c8c6c83f8b3e634a9e9fa94 # main
       - name: Sign the model
         run: hatch run python -m model_signing sign sigstore model_root/ --use_staging --signature model.sig --identity_token $(cat oidc-token.txt)
       - name: upload model signature
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: ${{ matrix.os }}-model.sig
           path: model.sig
@@ -101,11 +101,11 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: model.zip
           path: model_root/
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: ${{ matrix.signed-with-os }}-model.sig
       - name: Set up Hatch
