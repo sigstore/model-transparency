@@ -94,6 +94,14 @@ class IncrementalSerializer(serialization.Serializer):
         )
         self._is_blake3 = hasher.digest_name == "blake3"
 
+    def set_allow_symlinks(self, allow_symlinks: bool) -> None:
+        """Set whether following symlinks is allowed."""
+        self._allow_symlinks = allow_symlinks
+        hasher = self._hasher_factory(pathlib.Path())
+        self._serialization_description = manifest._FileSerialization(
+            hasher.digest_name, self._allow_symlinks, self._ignore_paths
+        )
+
     @override
     def serialize(
         self,

@@ -48,6 +48,7 @@ import sys
 from typing import Optional
 
 from model_signing import hashing
+from model_signing import manifest
 from model_signing._signing import sign_certificate as certificate
 from model_signing._signing import sign_ec_key as ec_key
 from model_signing._signing import sign_sigstore as sigstore
@@ -73,6 +74,52 @@ def sign(model_path: hashing.PathLike, signature_path: hashing.PathLike):
         signature_path: the path of the resulting signature.
     """
     Config().sign(model_path, signature_path)
+
+
+def sign_incremental(
+    model_path: hashing.PathLike,
+    old_signature_path: hashing.PathLike,
+    new_signature_path: hashing.PathLike,
+    *,
+    files_to_hash: Optional[Iterable[hashing.PathLike]] = None,
+):
+    """Signs a model incrementally, only re-hashing changed files.
+
+    This function provides a convenient way to sign large models where only
+    a small subset of files have changed. Instead of re-hashing the entire
+    model (which can take hours for multi-hundred GB models), it reuses
+    digests from the previous signature for unchanged files and only hashes
+    new or modified files.
+
+    In this default configuration we sign using Sigstore.
+
+    Usage example:
+        # User modified README.md in a 500GB model
+        sign_incremental(
+            model_path="huge-model/",
+            old_signature_path="model.sig.old",
+            new_signature_path="model.sig.new",
+            files_to_hash=["huge-model/README.md"]
+        )
+
+    Args:
+        model_path: The path to the model to sign.
+        old_signature_path: The path to the previous signature. The manifest
+            from this signature will be extracted and used for incremental
+            hashing.
+        new_signature_path: The path where the new signature will be written.
+        files_to_hash: Optional list of files that changed and need to be
+            re-hashed. If None, only new files (not in old signature) will
+            be hashed. Existing files will have their digests reused.
+            To detect changed files, use git diff or similar tools.
+
+    Raises:
+        FileNotFoundError: If old_signature_path doesn't exist.
+        ValueError: If old_signature_path cannot be parsed.
+    """
+    Config().sign_incremental(
+        model_path, old_signature_path, new_signature_path, files_to_hash=files_to_hash
+    )
 
 
 class Config:
@@ -108,6 +155,57 @@ class Config:
         payload = signing.Payload(manifest)
         signature = self._signer.sign(payload)
         signature.write(pathlib.Path(signature_path))
+
+    def sign_incremental(
+        self,
+        model_path: hashing.PathLike,
+        old_signature_path: hashing.PathLike,
+        new_signature_path: hashing.PathLike,
+        *,
+        files_to_hash: Optional[Iterable[hashing.PathLike]] = None,
+    ):
+        """Signs a model incrementally using the current configuration.
+
+        This method extracts the manifest from an existing signature and
+        configures incremental hashing to reuse digests for unchanged files.
+        Only new or modified files are re-hashed, providing significant
+        performance improvements for large models.
+
+        Args:
+            model_path: The path to the model to sign.
+            old_signature_path: The path to the previous signature.
+            new_signature_path: The path where the new signature will be written.
+            files_to_hash: Optional list of files that changed and need to be
+                re-hashed. If None, only new files will be hashed.
+
+        Raises:
+            FileNotFoundError: If old_signature_path doesn't exist.
+            ValueError: If old_signature_path cannot be parsed.
+        """
+        # Extract manifest from old signature
+        old_manifest = manifest.Manifest.from_signature(
+            pathlib.Path(old_signature_path)
+        )
+
+        # Configure incremental hashing
+        self._hashing_config.use_incremental_serialization(old_manifest)
+
+        # Convert files_to_hash to pathlib.Path objects if provided
+        paths_to_hash = None
+        if files_to_hash is not None:
+            paths_to_hash = [pathlib.Path(f) for f in files_to_hash]
+
+        # Hash the model incrementally
+        new_manifest = self._hashing_config.hash(
+            model_path, files_to_hash=paths_to_hash
+        )
+
+        # Sign the new manifest
+        if not self._signer:
+            self.use_sigstore_signer()
+        payload = signing.Payload(new_manifest)
+        signature = self._signer.sign(payload)
+        signature.write(pathlib.Path(new_signature_path))
 
     def set_hashing_config(self, hashing_config: hashing.Config) -> Self:
         """Sets the new configuration for hashing models.
