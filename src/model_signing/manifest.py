@@ -39,8 +39,10 @@ at the moment.
 """
 
 import abc
+import base64
 from collections.abc import Iterable, Iterator
 import dataclasses
+import json
 import pathlib
 import sys
 from typing import Any, Final
@@ -466,3 +468,53 @@ class Manifest:
         manifest so that signature verification can use the same method.
         """
         return self._serialization_type.serialization_parameters
+
+    @classmethod
+    def from_signature(cls, signature_path: pathlib.Path) -> Self:
+        """Extracts a manifest from an existing signature file.
+
+        This method reads a signature file (Sigstore bundle) and extracts the
+        manifest without performing cryptographic verification. This is useful
+        for incremental re-hashing where you need to know what files were
+        previously signed without verifying the signature.
+
+        Args:
+            signature_path: Path to the signature file to read.
+
+        Returns:
+            A Manifest object representing the signed model.
+
+        Raises:
+            ValueError: If the signature file cannot be parsed or doesn't
+                contain a valid manifest.
+            FileNotFoundError: If the signature file doesn't exist.
+        """
+        # Avoid circular import by importing here
+        from model_signing._signing import signing
+
+        # Read the signature file
+        content = signature_path.read_text(encoding="utf-8")
+        bundle_dict = json.loads(content)
+
+        # Extract the DSSE envelope payload
+        if "dsseEnvelope" in bundle_dict:
+            # This is a protobuf-based bundle
+            envelope = bundle_dict["dsseEnvelope"]
+        elif "dsse_envelope" in bundle_dict:
+            # Alternative snake_case naming
+            envelope = bundle_dict["dsse_envelope"]
+        else:
+            raise ValueError(
+                "Signature file does not contain a DSSE envelope"
+            )
+
+        # Decode the payload (it's base64 encoded)
+        payload_b64 = envelope.get("payload")
+        if not payload_b64:
+            raise ValueError("DSSE envelope does not contain a payload")
+
+        payload_bytes = base64.b64decode(payload_b64)
+        payload_dict = json.loads(payload_bytes)
+
+        # Use the existing function to convert DSSE payload to manifest
+        return signing.dsse_payload_to_manifest(payload_dict)
