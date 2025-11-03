@@ -221,7 +221,10 @@ class TestManifestFromSignature:
                 {
                     "name": "test_model",
                     "digest": {
-                        "sha256": "0b8a5a8c8e8f1a8b8c8d8e8f2a8b8c8d8e8f3a8b8c8d8e8f4a8b8c8d8e8f5a8b"
+                        "sha256": (
+                            "0b8a5a8c8e8f1a8b8c8d8e8f2a8b8c8d8e8f3a8b8c8d"
+                            "8e8f4a8b8c8d8e8f5a8b"
+                        )
                     },
                 }
             ],
@@ -237,12 +240,18 @@ class TestManifestFromSignature:
                     {
                         "name": "file1.txt",
                         "algorithm": "sha256",
-                        "digest": "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
+                        "digest": (
+                            "abcd1234abcd1234abcd1234abcd1234"
+                            "abcd1234abcd1234abcd1234abcd1234"
+                        ),
                     },
                     {
                         "name": "file2.txt",
                         "algorithm": "sha256",
-                        "digest": "5678dcba5678dcba5678dcba5678dcba5678dcba5678dcba5678dcba5678dcba",
+                        "digest": (
+                            "5678dcba5678dcba5678dcba5678dcba"
+                            "5678dcba5678dcba5678dcba5678dcba"
+                        ),
                     },
                 ],
             },
@@ -281,8 +290,14 @@ class TestManifestFromSignature:
         import json
 
         # Create valid SHA256 hex digests (64 chars each)
-        digest1_hex = "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234"
-        digest2_hex = "5678dcba5678dcba5678dcba5678dcba5678dcba5678dcba5678dcba5678dcba"
+        digest1_hex = (
+            "abcd1234abcd1234abcd1234abcd1234"
+            "abcd1234abcd1234abcd1234abcd1234"
+        )
+        digest2_hex = (
+            "5678dcba5678dcba5678dcba5678dcba"
+            "5678dcba5678dcba5678dcba5678dcba"
+        )
 
         digest1_bytes = bytes.fromhex(digest1_hex)
         digest2_bytes = bytes.fromhex(digest2_hex)
@@ -368,9 +383,9 @@ class TestManifestFromSignature:
             manifest.Manifest.from_signature(sig_file)
 
     def test_from_signature_missing_envelope(self, tmp_path):
-        import json
-
         sig_file = tmp_path / "missing_envelope.sig"
         sig_file.write_text("{}", encoding="utf-8")
-        with pytest.raises(ValueError, match="does not contain a DSSE envelope"):
+        with pytest.raises(
+            ValueError, match="does not contain a DSSE envelope"
+        ):
             manifest.Manifest.from_signature(sig_file)

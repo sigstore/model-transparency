@@ -82,7 +82,7 @@ class IncrementalSerializer(serialization.Serializer):
 
         # Build lookup dictionary: file path -> manifest item
         self._existing_items = {}
-        for item in existing_manifest._item_to_digest.keys():
+        for item in existing_manifest._item_to_digest:
             # item is a _File or _Shard key; we only support files for now
             if isinstance(item, manifest._File):
                 self._existing_items[item.path] = item
@@ -186,7 +186,9 @@ class IncrementalSerializer(serialization.Serializer):
             else:
                 # Reuse existing digest
                 old_item_key = self._existing_items[posix_path]
-                old_digest = self._existing_manifest._item_to_digest[old_item_key]
+                old_digest = (
+                    self._existing_manifest._item_to_digest[old_item_key]
+                )
                 manifest_items.append(
                     manifest.FileManifestItem(
                         path=relative_path, digest=old_digest

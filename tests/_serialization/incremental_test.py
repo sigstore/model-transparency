@@ -16,8 +16,6 @@
 
 import pathlib
 
-import pytest
-
 from model_signing import manifest
 from model_signing._hashing import hashing
 from model_signing._hashing import io as io_hashing
@@ -196,7 +194,7 @@ class TestIncrementalSerializer:
             assert len(desc.digest.digest_value) == 32  # SHA256 is 32 bytes
 
     def test_modified_file_with_files_to_hash_parameter(self, tmp_path):
-        """When a file is modified and specified in files_to_hash, it should be re-hashed."""
+        """Test file is re-hashed when modified and in files_to_hash."""
         # Create a model with two files
         model_dir = tmp_path / "model"
         model_dir.mkdir()
@@ -246,7 +244,9 @@ class TestIncrementalSerializer:
         assert file1_desc.digest.digest_value == b"digest1_bytes_here"
 
         # README.md should have a NEW hash (not the old one)
-        readme_desc = next(d for d in descriptors if d.identifier == "README.md")
+        readme_desc = next(
+            d for d in descriptors if d.identifier == "README.md"
+        )
         assert readme_desc.digest.digest_value != b"old_readme_digest"
         assert readme_desc.digest.algorithm == "sha256"
         assert len(readme_desc.digest.digest_value) == 32  # Real SHA256
@@ -306,7 +306,9 @@ class TestIncrementalSerializer:
         assert "old_file.txt" not in identifiers  # Deleted file is gone
 
         # Other files should have reused digests
-        readme_desc = next(d for d in descriptors if d.identifier == "README.md")
+        readme_desc = next(
+            d for d in descriptors if d.identifier == "README.md"
+        )
         assert readme_desc.digest.digest_value == b"readme_digest"
 
         weights_desc = next(
@@ -366,7 +368,9 @@ class TestIncrementalSerializer:
             model_dir / "new_config.json",  # Added
         ]
 
-        new_manifest = serializer.serialize(model_dir, files_to_hash=files_to_hash)
+        new_manifest = serializer.serialize(
+            model_dir, files_to_hash=files_to_hash
+        )
 
         # Verify results
         descriptors = list(new_manifest.resource_descriptors())
@@ -379,7 +383,9 @@ class TestIncrementalSerializer:
         assert "old_file.txt" not in identifiers  # Deleted
 
         # README.md should have NEW hash (was modified)
-        readme_desc = next(d for d in descriptors if d.identifier == "README.md")
+        readme_desc = next(
+            d for d in descriptors if d.identifier == "README.md"
+        )
         assert readme_desc.digest.digest_value != b"old_readme_digest"
         assert len(readme_desc.digest.digest_value) == 32
 

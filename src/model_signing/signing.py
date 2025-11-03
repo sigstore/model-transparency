@@ -118,7 +118,10 @@ def sign_incremental(
         ValueError: If old_signature_path cannot be parsed.
     """
     Config().sign_incremental(
-        model_path, old_signature_path, new_signature_path, files_to_hash=files_to_hash
+        model_path,
+        old_signature_path,
+        new_signature_path,
+        files_to_hash=files_to_hash,
     )
 
 
@@ -174,9 +177,10 @@ class Config:
         Args:
             model_path: The path to the model to sign.
             old_signature_path: The path to the previous signature.
-            new_signature_path: The path where the new signature will be written.
-            files_to_hash: Optional list of files that changed and need to be
-                re-hashed. If None, only new files will be hashed.
+            new_signature_path: The path where the new signature will be
+                written.
+            files_to_hash: Optional list of files that changed and need to
+                be re-hashed. If None, only new files will be hashed.
 
         Raises:
             FileNotFoundError: If old_signature_path doesn't exist.
