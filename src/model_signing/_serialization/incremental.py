@@ -186,9 +186,9 @@ class IncrementalSerializer(serialization.Serializer):
             else:
                 # Reuse existing digest
                 old_item_key = self._existing_items[posix_path]
-                old_digest = (
-                    self._existing_manifest._item_to_digest[old_item_key]
-                )
+                old_digest = self._existing_manifest._item_to_digest[
+                    old_item_key
+                ]
                 manifest_items.append(
                     manifest.FileManifestItem(
                         path=relative_path, digest=old_digest

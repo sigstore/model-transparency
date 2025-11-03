@@ -44,9 +44,7 @@ class TestIncrementalSerializer:
         )
 
         existing_manifest = manifest.Manifest(
-            "model",
-            [item1, item2],
-            manifest._FileSerialization("sha256"),
+            "model", [item1, item2], manifest._FileSerialization("sha256")
         )
 
         # Create incremental serializer
@@ -87,9 +85,7 @@ class TestIncrementalSerializer:
         )
 
         existing_manifest = manifest.Manifest(
-            "model",
-            [item1],
-            manifest._FileSerialization("sha256"),
+            "model", [item1], manifest._FileSerialization("sha256")
         )
 
         # Create incremental serializer
@@ -136,9 +132,7 @@ class TestIncrementalSerializer:
         )
 
         existing_manifest = manifest.Manifest(
-            "model",
-            [item1, item2],
-            manifest._FileSerialization("sha256"),
+            "model", [item1, item2], manifest._FileSerialization("sha256")
         )
 
         # Create incremental serializer
@@ -168,9 +162,7 @@ class TestIncrementalSerializer:
 
         # Create empty existing manifest
         existing_manifest = manifest.Manifest(
-            "model",
-            [],
-            manifest._FileSerialization("sha256"),
+            "model", [], manifest._FileSerialization("sha256")
         )
 
         # Create incremental serializer
@@ -213,9 +205,7 @@ class TestIncrementalSerializer:
         )
 
         existing_manifest = manifest.Manifest(
-            "model",
-            [item1, item_readme],
-            manifest._FileSerialization("sha256"),
+            "model", [item1, item_readme], manifest._FileSerialization("sha256")
         )
 
         # User modifies README.md
@@ -232,7 +222,7 @@ class TestIncrementalSerializer:
         # Serialize with files_to_hash specifying the changed file
         new_manifest = serializer.serialize(
             model_dir,
-            files_to_hash=[model_dir / "README.md"]  # Only this file changed
+            files_to_hash=[model_dir / "README.md"],  # Only this file changed
         )
 
         # Verify we have both files
@@ -293,7 +283,7 @@ class TestIncrementalSerializer:
         deleted_file = model_dir / "old_file.txt"
         new_manifest = serializer.serialize(
             model_dir,
-            files_to_hash=[deleted_file]  # Deleted file in the list
+            files_to_hash=[deleted_file],  # Deleted file in the list
         )
 
         # Verify deleted file is NOT in new manifest

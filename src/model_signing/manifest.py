@@ -504,9 +504,7 @@ class Manifest:
             # Alternative snake_case naming
             envelope = bundle_dict["dsse_envelope"]
         else:
-            raise ValueError(
-                "Signature file does not contain a DSSE envelope"
-            )
+            raise ValueError("Signature file does not contain a DSSE envelope")
 
         # Decode the payload (it's base64 encoded)
         payload_b64 = envelope.get("payload")
