@@ -10,7 +10,7 @@ All versions prior to 1.0.0 are untracked.
 ## [Unreleased]
 
 ### Added
-- ...
+-Added the `digest` subcommand to compute and print a model's digest. This enables other tools to easily pair the attestations with a model directory.
 
 ### Changed
 - ...
