@@ -22,6 +22,7 @@ models where only a small subset of files change between signings.
 from collections.abc import Callable, Iterable
 import concurrent.futures
 import itertools
+import logging
 import os
 import pathlib
 from typing import Optional
@@ -103,6 +104,29 @@ class IncrementalSerializer(serialization.Serializer):
 
     def set_allow_symlinks(self, allow_symlinks: bool) -> None:
         """Set whether following symlinks is allowed."""
+        # Check if this differs from the existing manifest
+        if isinstance(
+            self._existing_manifest._serialization_type,
+            manifest._FileSerialization,
+        ):
+            existing_allow_symlinks = (
+                self._existing_manifest._serialization_type._allow_symlinks
+            )
+            if allow_symlinks != existing_allow_symlinks:
+                logging.warning(
+                    f"allow_symlinks={allow_symlinks} differs from existing "
+                    f"manifest (allow_symlinks={existing_allow_symlinks}). "
+                    f"This may result in inconsistent manifests."
+                )
+        else:
+            # Shard-based serialization - warn if trying to enable symlinks
+            if allow_symlinks:
+                logging.warning(
+                    f"allow_symlinks={allow_symlinks} differs from existing "
+                    f"manifest (shard-based, allow_symlinks=False). "
+                    f"This may result in inconsistent manifests."
+                )
+
         self._allow_symlinks = allow_symlinks
         hasher = self._hasher_factory(pathlib.Path())
         self._serialization_description = manifest._FileSerialization(
