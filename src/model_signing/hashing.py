@@ -380,11 +380,13 @@ class Config:
         self,
         existing_manifest: manifest.Manifest,
         *,
-        hashing_algorithm: Literal["sha256", "blake2", "blake3"] = "sha256",
+        hashing_algorithm: Optional[
+            Literal["sha256", "blake2", "blake3"]
+        ] = None,
         chunk_size: int = 1048576,
         max_workers: Optional[int] = None,
-        allow_symlinks: bool = False,
-        ignore_paths: Iterable[pathlib.Path] = frozenset(),
+        allow_symlinks: Optional[bool] = None,
+        ignore_paths: Optional[Iterable[pathlib.Path]] = None,
     ) -> Self:
         """Configures incremental serialization for selective file re-hashing.
 
@@ -399,16 +401,19 @@ class Config:
         - Modified files (specified via files_to_hash in hash()) are re-hashed
         - Deleted files are automatically omitted from the new manifest
 
+        By default, serialization parameters (hash algorithm, allow_symlinks,
+        ignore_paths) are automatically extracted from the existing manifest.
+        You can override any of these by passing explicit values.
+
         Usage example:
             # Extract manifest from previous signature
             old_manifest = manifest.Manifest.from_signature(
                 pathlib.Path("model.sig.old")
             )
 
-            # Configure incremental hashing
+            # Configure incremental hashing (auto-detects parameters)
             config = hashing.Config().use_incremental_serialization(
-                old_manifest,
-                hashing_algorithm="sha256"
+                old_manifest
             )
 
             # Get changed files (e.g., from git)
@@ -421,7 +426,8 @@ class Config:
             existing_manifest: The manifest from a previous signature. Digests
               from this manifest will be reused for unchanged files.
             hashing_algorithm: The hashing algorithm to use for new/changed
-              files. Must match the algorithm used in existing_manifest.
+              files. If None (default), uses the algorithm from
+              existing_manifest.
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call. Ignored for BLAKE3.
@@ -429,14 +435,47 @@ class Config:
               is to defer to the `concurrent.futures` library to select the best
               value for the current machine, or the number of logical cores
               when doing BLAKE3 hashing.
-            allow_symlinks: Controls whether symbolic links are included. If a
-              symlink is present but the flag is `False` (default) the
-              serialization would raise an error.
-            ignore_paths: Paths of files to ignore.
+            allow_symlinks: Controls whether symbolic links are included. If
+              None (default), uses the value from existing_manifest.
+            ignore_paths: Paths of files to ignore. If None (default), uses
+              the paths from existing_manifest.
 
         Returns:
             The new hashing configuration with incremental serialization.
         """
+        # Extract parameters from existing manifest if not explicitly provided
+        serialization_type = existing_manifest._serialization_type
+
+        # Extract hash algorithm
+        if hashing_algorithm is None:
+            if isinstance(serialization_type, manifest._FileSerialization):
+                hash_type = serialization_type._hash_type
+                # Map digest names to API parameter names
+                # (blake2b -> blake2, others remain the same)
+                if hash_type == "blake2b":
+                    hashing_algorithm = "blake2"
+                else:
+                    hashing_algorithm = hash_type
+            else:
+                # Shard-based manifest - use default sha256
+                hashing_algorithm = "sha256"
+
+        # Extract allow_symlinks
+        if allow_symlinks is None:
+            if isinstance(serialization_type, manifest._FileSerialization):
+                allow_symlinks = serialization_type._allow_symlinks
+            else:
+                allow_symlinks = False
+
+        # Extract ignore_paths
+        if ignore_paths is None:
+            if isinstance(serialization_type, manifest._FileSerialization):
+                ignore_paths = [
+                    pathlib.Path(p) for p in serialization_type._ignore_paths
+                ]
+            else:
+                ignore_paths = frozenset()
+
         self._serializer = incremental.IncrementalSerializer(
             self._build_file_hasher_factory(
                 hashing_algorithm, chunk_size, max_workers
