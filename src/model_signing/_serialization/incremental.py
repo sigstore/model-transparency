@@ -80,12 +80,19 @@ class IncrementalSerializer(serialization.Serializer):
         self._allow_symlinks = allow_symlinks
         self._ignore_paths = ignore_paths
 
-        # Build lookup dictionary: file path -> manifest item
+        # Check if existing manifest used shard-based serialization
+        # If so, we need to rehash all files (can't reuse shard digests)
+        self._was_sharded = (
+            existing_manifest.serialization_type.get("method") == "shards"
+        )
+
+        # Build lookup dictionary: file path -> _File (for files we can reuse)
+        # Only populate if the existing manifest was file-based
         self._existing_items = {}
-        for item in existing_manifest._item_to_digest:
-            # item is a _File or _Shard key; we only support files for now
-            if isinstance(item, manifest._File):
-                self._existing_items[item.path] = item
+        if not self._was_sharded:
+            for item in existing_manifest._item_to_digest:
+                if isinstance(item, manifest._File):
+                    self._existing_items[item.path] = item
 
         # Precompute serialization description
         hasher = file_hasher_factory(pathlib.Path())
@@ -166,7 +173,11 @@ class IncrementalSerializer(serialization.Serializer):
             # Determine if this file needs re-hashing
             needs_rehash = False
 
-            if posix_path not in self._existing_items:
+            if self._was_sharded:
+                # Previous manifest used shard-based serialization
+                # Must rehash all files (can't reuse shard digests)
+                needs_rehash = True
+            elif posix_path not in self._existing_items:
                 # New file not in old manifest - must hash it
                 needs_rehash = True
             elif rehash_paths and relative_path in rehash_paths:

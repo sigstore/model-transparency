@@ -14,6 +14,7 @@
 
 """Tests for incremental serialization."""
 
+import hashlib
 import pathlib
 
 from model_signing import manifest
@@ -390,3 +391,71 @@ class TestIncrementalSerializer:
             d for d in descriptors if d.identifier == "weights.bin"
         )
         assert weights_desc.digest.digest_value == b"weights_digest"
+
+    def test_sharded_manifest_rehashes_all_files(self, tmp_path):
+        """When existing manifest is shard-based, all files are rehashed."""
+        # Create a model with two files
+        model_dir = tmp_path / "model"
+        model_dir.mkdir()
+        (model_dir / "file1.txt").write_text("content1")
+        (model_dir / "large_file.bin").write_bytes(b"large content here")
+
+        # Create an existing shard-based manifest
+        # (both files were sharded in the previous signature)
+        shard1 = manifest.ShardedFileManifestItem(
+            path=pathlib.PurePath("file1.txt"),
+            start=0,
+            end=100,
+            digest=hashing.Digest("sha256", b"file1_shard_digest"),
+        )
+        shard2 = manifest.ShardedFileManifestItem(
+            path=pathlib.PurePath("large_file.bin"),
+            start=0,
+            end=100,
+            digest=hashing.Digest("sha256", b"large_shard1_digest"),
+        )
+        shard3 = manifest.ShardedFileManifestItem(
+            path=pathlib.PurePath("large_file.bin"),
+            start=100,
+            end=200,
+            digest=hashing.Digest("sha256", b"large_shard2_digest"),
+        )
+
+        existing_manifest = manifest.Manifest(
+            "model",
+            [shard1, shard2, shard3],
+            manifest._ShardSerialization("sha256", shard_size=100),
+        )
+
+        # Create incremental serializer
+        def hasher_factory(path: pathlib.Path) -> io_hashing.FileHasher:
+            return io_hashing.SimpleFileHasher(path, memory.SHA256())
+
+        serializer = incremental.IncrementalSerializer(
+            hasher_factory, existing_manifest
+        )
+
+        # Serialize the model incrementally
+        new_manifest = serializer.serialize(model_dir)
+
+        # Verify results: both files should be re-hashed
+        # (can't reuse shard digests for file-based serialization)
+        descriptors = list(new_manifest.resource_descriptors())
+        assert len(descriptors) == 2
+
+        # Both files should have fresh digests computed
+        file1_desc = next(d for d in descriptors if d.identifier == "file1.txt")
+        # Should be real SHA256 of "content1", not the shard digest
+        expected_digest1 = hashlib.sha256(b"content1").digest()
+        assert file1_desc.digest.digest_value == expected_digest1
+        assert file1_desc.digest.digest_value != b"file1_shard_digest"
+
+        # large_file.bin should also be freshly hashed
+        large_desc = next(
+            d for d in descriptors if d.identifier == "large_file.bin"
+        )
+        # Should be real SHA256 of "large content here", not shard digests
+        expected_digest2 = hashlib.sha256(b"large content here").digest()
+        assert large_desc.digest.digest_value == expected_digest2
+        assert large_desc.digest.digest_value != b"large_shard1_digest"
+        assert large_desc.digest.digest_value != b"large_shard2_digest"
