@@ -109,6 +109,44 @@ class IncrementalSerializer(serialization.Serializer):
             hasher.digest_name, self._allow_symlinks, self._ignore_paths
         )
 
+    def _should_rehash_file(
+        self,
+        posix_path: pathlib.PurePosixPath,
+        relative_path: pathlib.Path,
+        rehash_paths: set[pathlib.Path],
+    ) -> bool:
+        """Determines if a file needs to be re-hashed.
+
+        Args:
+            posix_path: The POSIX path of the file relative to model root.
+            relative_path: The relative path of the file.
+            rehash_paths: Set of paths explicitly marked for re-hashing.
+
+        Returns:
+            True if the file needs re-hashing, False if digest can be reused.
+        """
+        if self._was_sharded:
+            # Previous manifest used shard-based serialization
+            # Must rehash all files (can't reuse shard digests)
+            return True
+
+        if posix_path not in self._existing_items:
+            # New file not in old manifest - must hash it
+            return True
+
+        if rehash_paths and relative_path in rehash_paths:
+            # File was explicitly marked as changed - must re-hash it
+            return True
+
+        if not rehash_paths:
+            # No explicit files_to_hash provided, so we're in "scan mode"
+            # Reuse digest for existing files (assume unchanged)
+            return False
+
+        # File exists in old manifest and wasn't marked as changed
+        # Reuse old digest
+        return False
+
     @override
     def serialize(
         self,
@@ -171,27 +209,9 @@ class IncrementalSerializer(serialization.Serializer):
             posix_path = pathlib.PurePosixPath(relative_path)
 
             # Determine if this file needs re-hashing
-            needs_rehash = False
-
-            if self._was_sharded:
-                # Previous manifest used shard-based serialization
-                # Must rehash all files (can't reuse shard digests)
-                needs_rehash = True
-            elif posix_path not in self._existing_items:
-                # New file not in old manifest - must hash it
-                needs_rehash = True
-            elif rehash_paths and relative_path in rehash_paths:
-                # File was explicitly marked as changed - must re-hash it
-                needs_rehash = True
-            elif not rehash_paths:
-                # No explicit files_to_hash provided, so we're in "scan mode"
-                # Reuse digest for existing files (assume unchanged)
-                needs_rehash = False
-            else:
-                # File exists in old manifest and wasn't marked as changed
-                # Reuse old digest
-                needs_rehash = False
-
+            needs_rehash = self._should_rehash_file(
+                posix_path, relative_path, rehash_paths
+            )
             if needs_rehash:
                 files_to_rehash.append(path)
             else:
