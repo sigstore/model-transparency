@@ -166,6 +166,45 @@ def dsse_payload_to_manifest_compat(
     return manifest.Manifest(model_name, items, serialization)
 
 
+def manifest_from_signature(
+    signature_path: pathlib.Path,
+    *,
+    identity: str,
+    oidc_issuer: str,
+    use_staging: bool = False,
+) -> manifest.Manifest:
+    """Extracts and verifies a manifest from an existing signature file.
+
+    This function reads a signature file (Sigstore bundle), verifies the
+    cryptographic signature, and returns the manifest. This is essential when
+    reusing hashes from an old signature (e.g., in incremental signing) to
+    ensure the old signature hasn't been tampered with.
+
+    Args:
+        signature_path: Path to the signature file to read and verify.
+        identity: The expected identity that signed the model (e.g., email).
+        oidc_issuer: The expected OpenID Connect issuer that provided the
+            certificate used for the signature.
+        use_staging: Use staging configurations instead of production. This
+            should only be set to True when testing. Default is False.
+
+    Returns:
+        A Manifest object representing the signed model.
+
+    Raises:
+        ValueError: If signature verification fails or the signature file
+            cannot be parsed.
+        FileNotFoundError: If the signature file doesn't exist.
+    """
+    from model_signing._signing import sign_sigstore  # noqa: PLC0415
+
+    signature = sign_sigstore.Signature.read(signature_path)
+    verifier = sign_sigstore.Verifier(
+        identity=identity, oidc_issuer=oidc_issuer, use_staging=use_staging
+    )
+    return verifier.verify(signature)
+
+
 class Payload:
     """In-toto payload used to represent a model for signing.
 

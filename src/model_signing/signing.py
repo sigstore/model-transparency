@@ -48,7 +48,6 @@ import sys
 from typing import Optional
 
 from model_signing import hashing
-from model_signing import manifest
 from model_signing._signing import sign_certificate as certificate
 from model_signing._signing import sign_ec_key as ec_key
 from model_signing._signing import sign_sigstore as sigstore
@@ -81,6 +80,9 @@ def sign_incremental(
     old_signature_path: hashing.PathLike,
     new_signature_path: hashing.PathLike,
     *,
+    identity: str,
+    oidc_issuer: str,
+    use_staging: bool = False,
     files_to_hash: Optional[Iterable[hashing.PathLike]] = None,
 ):
     """Signs a model incrementally, only re-hashing changed files.
@@ -91,6 +93,9 @@ def sign_incremental(
     digests from the previous signature for unchanged files and only hashes
     new or modified files.
 
+    The old signature is cryptographically verified before its hashes are
+    reused, ensuring the integrity of the incremental signing process.
+
     In this default configuration we sign using Sigstore.
 
     Usage example:
@@ -99,15 +104,23 @@ def sign_incremental(
             model_path="huge-model/",
             old_signature_path="model.sig.old",
             new_signature_path="model.sig.new",
+            identity="user@example.com",
+            oidc_issuer="https://github.com/login/oauth",
             files_to_hash=["huge-model/README.md"]
         )
 
     Args:
         model_path: The path to the model to sign.
         old_signature_path: The path to the previous signature. The manifest
-            from this signature will be extracted and used for incremental
+            from this signature will be verified and extracted for incremental
             hashing.
         new_signature_path: The path where the new signature will be written.
+        identity: The expected identity that signed the old signature
+            (e.g., email address).
+        oidc_issuer: The expected OpenID Connect issuer that provided the
+            certificate for the old signature.
+        use_staging: Use staging configurations for verification instead of
+            production. Should only be True when testing. Default is False.
         files_to_hash: Optional list of files that changed and need to be
             re-hashed. If None, only new files (not in old signature) will
             be hashed. Existing files will have their digests reused.
@@ -115,12 +128,16 @@ def sign_incremental(
 
     Raises:
         FileNotFoundError: If old_signature_path doesn't exist.
-        ValueError: If old_signature_path cannot be parsed.
+        ValueError: If old_signature_path cannot be parsed or verification
+            fails.
     """
     Config().sign_incremental(
         model_path,
         old_signature_path,
         new_signature_path,
+        identity=identity,
+        oidc_issuer=oidc_issuer,
+        use_staging=use_staging,
         files_to_hash=files_to_hash,
     )
 
@@ -165,30 +182,44 @@ class Config:
         old_signature_path: hashing.PathLike,
         new_signature_path: hashing.PathLike,
         *,
+        identity: str,
+        oidc_issuer: str,
+        use_staging: bool = False,
         files_to_hash: Optional[Iterable[hashing.PathLike]] = None,
     ):
         """Signs a model incrementally using the current configuration.
 
-        This method extracts the manifest from an existing signature and
-        configures incremental hashing to reuse digests for unchanged files.
-        Only new or modified files are re-hashed, providing significant
-        performance improvements for large models.
+        This method extracts and verifies the manifest from an existing
+        signature, then configures incremental hashing to reuse digests for
+        unchanged files. Only new or modified files are re-hashed, providing
+        significant performance improvements for large models.
 
         Args:
             model_path: The path to the model to sign.
             old_signature_path: The path to the previous signature.
             new_signature_path: The path where the new signature will be
                 written.
+            identity: The expected identity that signed the old signature
+                (e.g., email address).
+            oidc_issuer: The expected OpenID Connect issuer that provided
+                the certificate for the old signature.
+            use_staging: Use staging configurations for verification instead
+                of production. Should only be True when testing. Default is
+                False.
             files_to_hash: Optional list of files that changed and need to
                 be re-hashed. If None, only new files will be hashed.
 
         Raises:
             FileNotFoundError: If old_signature_path doesn't exist.
-            ValueError: If old_signature_path cannot be parsed.
+            ValueError: If old_signature_path cannot be parsed or verification
+                fails.
         """
-        # Extract manifest from old signature
-        old_manifest = manifest.Manifest.from_signature(
-            pathlib.Path(old_signature_path)
+        # Extract and verify manifest from old signature
+        old_manifest = signing.manifest_from_signature(
+            pathlib.Path(old_signature_path),
+            identity=identity,
+            oidc_issuer=oidc_issuer,
+            use_staging=use_staging,
         )
 
         # Configure incremental hashing

@@ -406,9 +406,13 @@ class Config:
         You can override any of these by passing explicit values.
 
         Usage example:
-            # Extract manifest from previous signature
-            old_manifest = manifest.Manifest.from_signature(
-                pathlib.Path("model.sig.old")
+            from model_signing._signing import signing
+
+            # Extract and verify manifest from previous signature
+            old_manifest = signing.manifest_from_signature(
+                pathlib.Path("model.sig.old"),
+                identity="user@example.com",
+                oidc_issuer="https://github.com/login/oauth",
             )
 
             # Configure incremental hashing (auto-detects parameters)
