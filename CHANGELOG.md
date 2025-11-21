@@ -10,7 +10,7 @@ All versions prior to 1.0.0 are untracked.
 ## [Unreleased]
 
 ### Added
-- ...
+- Added support for signing and verifying OCI model manifests directly without requiring model files on disk. Now, we can detect OCI manifest JSON files and sign from them or verify against them. When verifying local files against signatures created from OCI manifests, the tool automatically matches files by path using `org.opencontainers.image.title` annotations (ORAS-style), enabling cross-verification between OCI images and local model directories.
 
 ### Changed
 - ...
