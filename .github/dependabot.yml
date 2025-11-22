@@ -39,8 +39,8 @@ updates:
       all:
         patterns:
         - "*"
-    allow:
-      - dependency-name: "pypa/hatch"
-        versions: [ "install" ] # stay on "install" branch
+    ignore:
+      - dependency-name: "pypa/hatch" # ignore everything except "install" branch
+        versions: [ ">0.0", "hatch*", "master", "gh-pages", "workspaces", "dependabot/*", "coverage", "pre-v1", "v1" ]
       - dependency-name: "github/codeql-action"
-        versions: [ ">=4.0.0" ] # stay on "v4" tag (and "v5" in the future)
+        versions: [ "<4.0.0" ] # ignore all non-numerical tags, and old versions < 4
