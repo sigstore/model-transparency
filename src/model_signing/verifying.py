@@ -89,7 +89,7 @@ class Config:
         if self._verifier is None:
             raise ValueError("Attempting to verify with no configured verifier")
 
-        if self._uses_sigstore:
+        if self._uses_sigstore is True:
             signature = sigstore.Signature.read(pathlib.Path(signature_path))
         else:
             signature = sigstore_pb.Signature.read(pathlib.Path(signature_path))
@@ -104,7 +104,7 @@ class Config:
                 paths=expected_manifest.serialization_type["ignore_paths"],
             )
 
-        if self._ignore_unsigned_files:
+        if self._ignore_unsigned_files is True:
             files_to_hash = [
                 model_path / rd.identifier
                 for rd in expected_manifest.resource_descriptors()

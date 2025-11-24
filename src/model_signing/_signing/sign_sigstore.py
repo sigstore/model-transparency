@@ -114,16 +114,16 @@ class Signer(signing.Signer):
               Sigstore setup. If not specified, the default Sigstore
               configuration is used.
         """
-        if use_staging:
+        if use_staging is True:
             trust_config = sigstore_models.ClientTrustConfig.staging()
-        elif trust_config:
+        elif trust_config is not None:
             trust_config = sigstore_models.ClientTrustConfig.from_json(
                 trust_config.read_text()
             )
         else:
             trust_config = sigstore_models.ClientTrustConfig.production()
 
-        if not oidc_issuer:
+        if oidc_issuer is None or not oidc_issuer:
             oidc_issuer = trust_config.signing_config.get_oidc_url()
 
         self._issuer = sigstore_oidc.Issuer(oidc_issuer)
@@ -144,11 +144,11 @@ class Signer(signing.Signer):
         2) Ambient credential detected in the environment, if enabled
         3) Interactive OAuth flow
         """
-        if self._identity_token:
+        if self._identity_token is not None and self._identity_token:
             return sigstore_oidc.IdentityToken(
                 self._identity_token, self._client_id
             )
-        if self._use_ambient_credentials:
+        if self._use_ambient_credentials is True:
             token = sigstore_oidc.detect_credential(self._client_id)
             if token:
                 return sigstore_oidc.IdentityToken(token, self._client_id)
@@ -205,11 +205,11 @@ class Verifier(signing.Verifier):
               setup. If not specified, the default Sigstore configuration
               is used.
         """
-        if trust_config:
+        if trust_config is not None:
             trust_config = sigstore_models.ClientTrustConfig.from_json(
                 trust_config.read_text()
             )
-        elif use_staging:
+        elif use_staging is True:
             trust_config = sigstore_models.ClientTrustConfig.staging()
         else:
             trust_config = sigstore_models.ClientTrustConfig.production()
