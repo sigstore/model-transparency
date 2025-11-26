@@ -23,6 +23,7 @@ from cryptography import exceptions
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric import types as crypto_types
 from google.protobuf import json_format
 from sigstore_models import intoto as intoto_pb
 from sigstore_models.bundle import v1 as bundle_pb
@@ -33,7 +34,7 @@ from model_signing._signing import sign_sigstore_pb as sigstore_pb
 from model_signing._signing import signing
 
 
-def _check_supported_ec_key(public_key: ec.EllipticCurvePublicKey):
+def _check_supported_ec_key(public_key: crypto_types.PublicKeyTypes):
     """Checks if the elliptic curve key is supported by our package.
 
     We only support a family of curves, trying to match those specified by
@@ -44,8 +45,11 @@ def _check_supported_ec_key(public_key: ec.EllipticCurvePublicKey):
         public_key: The public key to check. Can be obtained from a private key.
 
     Raises:
-        ValueError: The key is not supported.
+        ValueError: The key is not supported, or is not an elliptic curve one.
     """
+    if not isinstance(public_key, ec.EllipticCurvePublicKey):
+        raise ValueError("Only elliptic curve keys are supported")
+
     curve = public_key.curve.name
     if curve not in ["secp256r1", "secp384r1", "secp521r1"]:
         raise ValueError(f"Unsupported key for curve '{curve}'")
