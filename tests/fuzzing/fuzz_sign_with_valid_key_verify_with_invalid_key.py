@@ -107,7 +107,10 @@ def TestOneInput(data: bytes) -> None:
         # Verify with the fuzzed public key.
         vcfg = model_signing.verifying.Config()
         vcfg.set_hashing_config(hcfg)
-        verifier = vcfg.use_elliptic_key_verifier(public_key=pubkey_path)
+        try:
+            verifier = vcfg.use_elliptic_key_verifier(public_key=pubkey_path)
+        except ValueError:
+            return  # skip failing on unsupported keys or invalid PEM files
         verifier.verify(model_path, sig_path)
 
 
