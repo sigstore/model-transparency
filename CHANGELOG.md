@@ -17,6 +17,7 @@ All versions prior to 1.0.0 are untracked.
 
 ### Fixed
 - Fixed a bug where ignored symlinks could raise `ValueError`s if allow_symlinks was unset, even though they were skipped during serialization. ([#550](https://github.com/sigstore/model-transparency/pull/550))
+- Fixed a bug where any PEM encoded key could be read during the key-based flows which resulted in a Python exception because the rest of the code only supported elliptic curve keys. ([#573](https://github.com/sigstore/model-transparency/pull/573))
 
 ### Removed
 - ...
