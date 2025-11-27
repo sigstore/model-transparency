@@ -161,6 +161,9 @@ pythonpath = "src"
 
 [tool.ruff]
 line-length = 80
+exclude = [
+    "docs/demo.ipynb",
+]
 
 [tool.ruff.format]
 docstring-code-format = true
