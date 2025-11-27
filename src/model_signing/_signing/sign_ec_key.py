@@ -17,7 +17,6 @@
 import base64
 import hashlib
 import pathlib
-from typing import Optional
 
 from cryptography import exceptions
 from cryptography.hazmat.primitives import hashes
@@ -72,22 +71,22 @@ def get_ec_key_hash(
     """
     key_size = public_key.curve.key_size
 
-    # TODO: Once Python 3.9 support is deprecated revert to using `match`
-    if key_size == 256:
-        return hashes.SHA256()
-    if key_size == 384:
-        return hashes.SHA384()
-    if key_size == 521:
-        return hashes.SHA512()
-
-    raise ValueError(f"Unexpected key size {key_size}")
+    match key_size:
+        case 256:
+            return hashes.SHA256()
+        case 384:
+            return hashes.SHA384()
+        case 521:
+            return hashes.SHA512()
+        case _:
+            raise ValueError(f"Unexpected key size {key_size}")
 
 
 class Signer(sigstore_pb.Signer):
     """Signer using an elliptic curve private key."""
 
     def __init__(
-        self, private_key_path: pathlib.Path, password: Optional[str] = None
+        self, private_key_path: pathlib.Path, password: str | None = None
     ):
         """Initializes the signer with the private key and optional password.
 

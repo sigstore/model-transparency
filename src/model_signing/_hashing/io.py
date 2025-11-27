@@ -36,7 +36,6 @@ Example usage for `ShardedFileHasher`, reading only the second part of a file:
 """
 
 import pathlib
-from typing import Optional
 
 import blake3
 from typing_extensions import override
@@ -70,7 +69,7 @@ class SimpleFileHasher(FileHasher):
         content_hasher: hashing.StreamingHashEngine,
         *,
         chunk_size: int = 1_048_576,
-        digest_name_override: Optional[str] = None,
+        digest_name_override: str | None = None,
     ):
         """Initializes an instance to hash a file with a specific `HashEngine`.
 
@@ -149,7 +148,7 @@ class Blake3FileHasher(FileHasher):
         file: pathlib.Path,
         *,
         max_threads: int = blake3.blake3.AUTO,
-        digest_name_override: Optional[str] = None,
+        digest_name_override: str | None = None,
     ):
         """Initializes an instance to hash a file.
 
@@ -210,7 +209,7 @@ class ShardedFileHasher(SimpleFileHasher):
         end: int,
         chunk_size: int = 1_048_576,
         shard_size: int = 1_000_000_000,
-        digest_name_override: Optional[str] = None,
+        digest_name_override: str | None = None,
     ):
         """Initializes an instance to hash a file with a specific `HashEngine`.
 

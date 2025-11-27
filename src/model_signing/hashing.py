@@ -51,7 +51,7 @@ from collections.abc import Callable, Iterable
 import os
 import pathlib
 import sys
-from typing import Literal, Optional, Union
+from typing import Literal
 
 import blake3
 
@@ -71,16 +71,13 @@ else:
 
 # `TypeAlias` only exists from Python 3.10
 # `TypeAlias` is deprecated in Python 3.12 in favor of `type`
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
+from typing import TypeAlias
 
 
 # Type alias to support `os.PathLike`, `str` and `bytes` objects in the API
 # When Python 3.12 is the minimum supported version we can use `type`
 # When Python 3.11 is the minimum supported version we can use `|`
-PathLike: TypeAlias = Union[str, bytes, os.PathLike]
+PathLike: TypeAlias = str | bytes | os.PathLike
 
 
 def hash(model_path: PathLike) -> manifest.Manifest:
@@ -147,7 +144,7 @@ class Config:
         self,
         model_path: PathLike,
         *,
-        files_to_hash: Optional[Iterable[PathLike]] = None,
+        files_to_hash: Iterable[PathLike] | None = None,
     ) -> manifest.Manifest:
         """Hashes a model using the current configuration."""
         # All paths in ``_ignored_paths`` are expected to be relative to the
@@ -196,21 +193,23 @@ class Config:
         Returns:
             An instance of the requested hasher.
         """
-        # TODO: Once Python 3.9 support is deprecated revert to using `match`
-        if hashing_algorithm == "sha256":
-            return memory.SHA256()
-        if hashing_algorithm == "blake2":
-            return memory.BLAKE2()
-        if hashing_algorithm == "blake3":
-            return memory.BLAKE3()
-
-        raise ValueError(f"Unsupported hashing method {hashing_algorithm}")
+        match hashing_algorithm:
+            case "sha256":
+                return memory.SHA256()
+            case "blake2":
+                return memory.BLAKE2()
+            case "blake3":
+                return memory.BLAKE3()
+            case _:
+                raise ValueError(
+                    f"Unsupported hashing method {hashing_algorithm}"
+                )
 
     def _build_file_hasher_factory(
         self,
         hashing_algorithm: Literal["sha256", "blake2", "blake3"] = "sha256",
         chunk_size: int = 1048576,
-        max_workers: Optional[int] = None,
+        max_workers: int | None = None,
     ) -> Callable[[pathlib.Path], io.FileHasher]:
         """Builds the hasher factory for a serialization by file.
 
@@ -280,7 +279,7 @@ class Config:
         *,
         hashing_algorithm: Literal["sha256", "blake2", "blake3"] = "sha256",
         chunk_size: int = 1048576,
-        max_workers: Optional[int] = None,
+        max_workers: int | None = None,
         allow_symlinks: bool = False,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ) -> Self:
@@ -324,7 +323,7 @@ class Config:
         hashing_algorithm: Literal["sha256", "blake2", "blake3"] = "sha256",
         chunk_size: int = 1048576,
         shard_size: int = 1_000_000_000,
-        max_workers: Optional[int] = None,
+        max_workers: int | None = None,
         allow_symlinks: bool = False,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ) -> Self:

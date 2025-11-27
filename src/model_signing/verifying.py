@@ -40,7 +40,6 @@ The API defined here is stable and backwards compatible.
 from collections.abc import Iterable
 import pathlib
 import sys
-from typing import Optional
 
 from model_signing import hashing
 from model_signing import manifest
@@ -193,22 +192,22 @@ class Config:
         """Attempts to guess the hashing config from a manifest."""
         args = source_manifest.serialization_type
         method = args["method"]
-        # TODO: Once Python 3.9 support is deprecated revert to using `match`
-        if method == "files":
-            self._hashing_config = hashing.Config().use_file_serialization(
-                hashing_algorithm=args["hash_type"],
-                allow_symlinks=args["allow_symlinks"],
-                ignore_paths=args.get("ignore_paths", frozenset()),
-            )
-        elif method == "shards":
-            self._hashing_config = hashing.Config().use_shard_serialization(
-                hashing_algorithm=args["hash_type"],
-                shard_size=args["shard_size"],
-                allow_symlinks=args["allow_symlinks"],
-                ignore_paths=args.get("ignore_paths", frozenset()),
-            )
-        else:
-            raise ValueError("Cannot guess the hashing configuration")
+        match method:
+            case "files":
+                self._hashing_config = hashing.Config().use_file_serialization(
+                    hashing_algorithm=args["hash_type"],
+                    allow_symlinks=args["allow_symlinks"],
+                    ignore_paths=args.get("ignore_paths", frozenset()),
+                )
+            case "shards":
+                self._hashing_config = hashing.Config().use_shard_serialization(
+                    hashing_algorithm=args["hash_type"],
+                    shard_size=args["shard_size"],
+                    allow_symlinks=args["allow_symlinks"],
+                    ignore_paths=args.get("ignore_paths", frozenset()),
+                )
+            case _:
+                raise ValueError("Cannot guess the hashing configuration")
 
     def use_sigstore_verifier(
         self,
@@ -216,7 +215,7 @@ class Config:
         identity: str,
         oidc_issuer: str,
         use_staging: bool = False,
-        trust_config: Optional[pathlib.Path] = None,
+        trust_config: pathlib.Path | None = None,
     ) -> Self:
         """Configures the verification of signatures produced by Sigstore.
 

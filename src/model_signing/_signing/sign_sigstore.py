@@ -16,7 +16,7 @@
 
 import pathlib
 import sys
-from typing import Optional, cast
+from typing import cast
 
 from google.protobuf import json_format
 from sigstore import dsse as sigstore_dsse
@@ -66,14 +66,14 @@ class Signer(signing.Signer):
     def __init__(
         self,
         *,
-        oidc_issuer: Optional[str] = None,
+        oidc_issuer: str | None = None,
         use_ambient_credentials: bool = True,
         use_staging: bool = False,
-        identity_token: Optional[str] = None,
+        identity_token: str | None = None,
         force_oob: bool = False,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-        trust_config: Optional[pathlib.Path] = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        trust_config: pathlib.Path | None = None,
     ):
         """Initializes Sigstore signers.
 
@@ -185,7 +185,7 @@ class Verifier(signing.Verifier):
         identity: str,
         oidc_issuer: str,
         use_staging: bool = False,
-        trust_config: Optional[pathlib.Path] = None,
+        trust_config: pathlib.Path | None = None,
     ):
         """Initializes Sigstore verifiers.
 

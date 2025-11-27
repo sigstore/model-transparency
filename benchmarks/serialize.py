@@ -17,7 +17,6 @@
 import argparse
 from collections.abc import Callable
 import pathlib
-from typing import Optional
 
 from model_signing._hashing import hashing
 from model_signing._hashing import io
@@ -41,15 +40,17 @@ def get_hash_engine_factory(
     Raises:
         ValueError: if the algorithm is not implemented/not valid.
     """
-    # TODO: Once Python 3.9 support is deprecated revert to using `match`
-    if hash_algorithm == "sha256":
-        return memory.SHA256
-    if hash_algorithm == "blake2":
-        return memory.BLAKE2
-    if hash_algorithm == "blake3":
-        return memory.BLAKE3
-
-    raise ValueError(f"Cannot convert {hash_algorithm} to a hash engine")
+    match hash_algorithm:
+        case "sha256":
+            return memory.SHA256
+        case "blake2":
+            return memory.BLAKE2
+        case "blake3":
+            return memory.BLAKE3
+        case _:
+            raise ValueError(
+                f"Cannot convert {hash_algorithm} to a hash engine"
+            )
 
 
 def get_sharded_file_hasher_factory(
@@ -106,7 +107,7 @@ def get_file_hasher_factory(
     return _hasher_factory
 
 
-def run(args: argparse.Namespace) -> Optional[signing.Payload]:
+def run(args: argparse.Namespace) -> signing.Payload | None:
     """Performs the benchmark.
 
     Args:

@@ -17,7 +17,6 @@ import pathlib
 import shutil
 import subprocess
 import sys
-from typing import Optional
 
 import pytest
 
@@ -272,7 +271,7 @@ class TestPkcs11URI:
 
 
 class TestPkcs11SoftHSMSigning:
-    def run_softhsm_setup(self, cmd: str) -> tuple[Optional[bytes], int]:
+    def run_softhsm_setup(self, cmd: str) -> tuple[bytes | None, int]:
         curr_dir = os.path.dirname(os.path.realpath(__file__))
         softhsm_setup = os.path.join(
             curr_dir, "../../scripts/pkcs11-tests/softhsm_setup"

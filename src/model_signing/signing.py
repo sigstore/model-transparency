@@ -45,7 +45,6 @@ The API defined here is stable and backwards compatible.
 from collections.abc import Iterable
 import pathlib
 import sys
-from typing import Optional
 
 from model_signing import hashing
 from model_signing._signing import sign_certificate as certificate
@@ -124,14 +123,14 @@ class Config:
     def use_sigstore_signer(
         self,
         *,
-        oidc_issuer: Optional[str] = None,
+        oidc_issuer: str | None = None,
         use_ambient_credentials: bool = False,
         use_staging: bool = False,
         force_oob: bool = False,
-        identity_token: Optional[str] = None,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-        trust_config: Optional[pathlib.Path] = None,
+        identity_token: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        trust_config: pathlib.Path | None = None,
     ) -> Self:
         """Configures the signing to be performed with Sigstore.
 
@@ -188,7 +187,7 @@ class Config:
         return self
 
     def use_elliptic_key_signer(
-        self, *, private_key: hashing.PathLike, password: Optional[str] = None
+        self, *, private_key: hashing.PathLike, password: str | None = None
     ) -> Self:
         """Configures the signing to be performed using elliptic curve keys.
 

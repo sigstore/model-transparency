@@ -17,7 +17,6 @@
 import argparse
 import itertools
 import pathlib
-from typing import Optional
 
 import numpy as np
 
@@ -46,7 +45,7 @@ def create_file_of_given_size(path: str, size: int) -> None:
 
 
 def generate_file_sizes(
-    total_size: int, count: int, weights: Optional[list[int]] = None
+    total_size: int, count: int, weights: list[int] | None = None
 ) -> list[int]:
     """Generate file sizes splitting a total size into multiple files.
 
