@@ -102,7 +102,7 @@ class Config:
             model_path: The path to the model to sign.
             signature_path: The path of the resulting signature.
         """
-        if not self._signer:
+        if self._signer is None:
             self.use_sigstore_signer()
         manifest = self._hashing_config.hash(model_path)
         payload = signing.Payload(manifest)
