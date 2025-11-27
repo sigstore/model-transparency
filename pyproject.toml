@@ -173,7 +173,8 @@ ignore = [
   # TODO: selectively enable back most of these in subsequent PRs
   "B024", "D100", "D101", "D102", "D103", "D104", "D105", "D107", "D417",
   # Unnecessary arguments can help with clarity
-  "UP012", "UP015"
+  "UP012", "UP015",
+  "PLC0415", # Lazy imports
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]

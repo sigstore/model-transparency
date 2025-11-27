@@ -136,7 +136,7 @@ class Signer(sigstore_pb.Signer):
         if label is not None:
             msg = f"label {label}"
         if id is not None:
-            if len(msg):
+            if msg:
                 msg += " and "
             msg += f"id {id}"
 
