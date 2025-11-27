@@ -19,7 +19,6 @@ import contextlib
 import logging
 import pathlib
 import sys
-from typing import Optional
 
 import click
 
@@ -185,7 +184,7 @@ class _PKICmdGroup(click.Group):
 
     def get_command(
         self, ctx: click.Context, cmd_name: str
-    ) -> Optional[click.Command]:
+    ) -> click.Command | None:
         """Retrieves a command with a given name.
 
         We use this to make Sigstore signing be the default, if it is missing.
@@ -196,7 +195,7 @@ class _PKICmdGroup(click.Group):
 
     def resolve_command(
         self, ctx: click.Context, args: Sequence[str]
-    ) -> tuple[Optional[str], Optional[click.Command], Iterable[str]]:
+    ) -> tuple[str | None, click.Command | None, Iterable[str]]:
         """Resolves a command and its arguments.
 
         We use this to make Sigstore signing be the default and correctly alter
@@ -332,10 +331,10 @@ def _sign_sigstore(
     use_ambient_credentials: bool,
     use_staging: bool,
     oauth_force_oob: bool,
-    identity_token: Optional[str] = None,
-    client_id: Optional[str] = None,
-    client_secret: Optional[str] = None,
-    trust_config: Optional[pathlib.Path] = None,
+    identity_token: str | None = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+    trust_config: pathlib.Path | None = None,
 ) -> None:
     """Sign using Sigstore (DEFAULT signing method).
 
@@ -420,7 +419,7 @@ def _sign_private_key(
     allow_symlinks: bool,
     signature: pathlib.Path,
     private_key: pathlib.Path,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> None:
     """Sign using a private key (paired with a public one).
 
@@ -666,7 +665,7 @@ def _verify_sigstore(
     identity_provider: str,
     use_staging: bool,
     ignore_unsigned_files: bool,
-    trust_config: Optional[pathlib.Path] = None,
+    trust_config: pathlib.Path | None = None,
 ) -> None:
     """Verify using Sigstore (DEFAULT verification method).
 
