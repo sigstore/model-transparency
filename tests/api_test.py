@@ -18,6 +18,7 @@ from base64 import b64decode
 from collections.abc import Iterable
 from datetime import datetime
 from datetime import timedelta
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -383,3 +384,267 @@ class TestCertificateSigning:
             signature, ignore_git_paths, ["model.sig", "ignored"]
         )
         assert get_model_name(signature) == os.path.basename(model_path)
+
+
+def _create_mock_oci_manifest_from_directory(
+    model_path: Path, include_config: bool = True
+) -> dict:
+    """Create a mock OCI manifest from a local directory.
+
+    This simulates what `skopeo inspect --raw` would return for an ORAS-uploaded
+    model where each file is a separate layer with annotations.
+    """
+    layers = []
+
+    for file_path in sorted(model_path.rglob("*")):
+        if file_path.is_file():
+            relative_path = file_path.relative_to(model_path)
+
+            with open(file_path, "rb") as f:
+                file_content = f.read()
+            digest_hex = hashlib.sha256(file_content).hexdigest()
+            digest = f"sha256:{digest_hex}"
+
+            media_type = "application/octet-stream"
+            if relative_path.suffix == ".json":
+                media_type = "application/json"
+            elif relative_path.suffix in [".txt", ".md"]:
+                media_type = "text/plain"
+            elif relative_path.suffix == ".md":
+                media_type = "text/markdown"
+
+            layer = {
+                "mediaType": media_type,
+                "digest": digest,
+                "size": len(file_content),
+                "annotations": {
+                    "org.opencontainers.image.title": str(relative_path)
+                },
+            }
+            layers.append(layer)
+
+    manifest = {
+        "schemaVersion": 2,
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "layers": layers,
+    }
+
+    if include_config:
+        config_content = b'{"architecture":"amd64","os":"linux"}'
+        config_digest_hex = hashlib.sha256(config_content).hexdigest()
+        manifest["config"] = {
+            "mediaType": "application/vnd.oci.image.config.v1+json",
+            "digest": f"sha256:{config_digest_hex}",
+            "size": len(config_content),
+        }
+
+    return manifest
+
+
+class TestOCIManifestSigning:
+    """Tests for signing and verifying with OCI manifests."""
+
+    def test_sign_oci_manifest_verify_oci_manifest(
+        self, base_path, populate_tmpdir
+    ):
+        """Test signing from OCI manifest and verifying against OCI manifest."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        oci_manifest = _create_mock_oci_manifest_from_directory(model_path)
+
+        model_manifest = hashing.create_manifest_from_oci_layers(oci_manifest)
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key, password=None
+        ).sign_from_manifest(model_manifest, signature)
+
+        verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key
+        ).verify_from_oci_manifest(oci_manifest, signature)
+
+    def test_sign_oci_manifest_verify_local_files(
+        self, base_path, populate_tmpdir
+    ):
+        """Test signing from OCI manifest and verifying against local files."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        oci_manifest = _create_mock_oci_manifest_from_directory(
+            model_path, include_config=False
+        )
+
+        model_manifest = hashing.create_manifest_from_oci_layers(
+            oci_manifest, include_config=False
+        )
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key, password=None
+        ).sign_from_manifest(model_manifest, signature)
+
+        verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=[signature], ignore_git_paths=False
+            )
+        ).verify(model_path, signature)
+
+    def test_sign_local_files_verify_oci_manifest(
+        self, base_path, populate_tmpdir
+    ):
+        """Test signing from local files and verifying against OCI manifest."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key, password=None
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=[signature], ignore_git_paths=False
+            )
+        ).sign(model_path, signature)
+
+        oci_manifest = _create_mock_oci_manifest_from_directory(model_path)
+
+        verifier = verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key
+        )
+
+        try:
+            verifier.verify_from_oci_manifest(
+                oci_manifest, signature, include_config=False
+            )
+        except ValueError as e:
+            error_msg = str(e).lower()
+            assert (
+                "mismatch" in error_msg
+                or "manifest" in error_msg
+                or "digest" in error_msg
+                or "signature" in error_msg
+            )
+
+    def test_create_manifest_from_oci_layers_missing_layers(self):
+        """Test that missing 'layers' field raises ValueError."""
+        invalid_manifest = {"schemaVersion": 2}
+        with pytest.raises(ValueError, match="missing 'layers' field"):
+            hashing.create_manifest_from_oci_layers(invalid_manifest)
+
+    def test_create_manifest_from_oci_layers_empty_layers(self):
+        """Test that empty layers array raises ValueError."""
+        manifest = {"layers": []}
+        with pytest.raises(ValueError, match="No digests found"):
+            hashing.create_manifest_from_oci_layers(manifest)
+
+    def test_verify_oci_manifest_mismatch_digest(
+        self, base_path, populate_tmpdir
+    ):
+        """Test verification fails when OCI manifest digests don't match."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        oci_manifest1 = _create_mock_oci_manifest_from_directory(
+            model_path, include_config=False
+        )
+        model_manifest = hashing.create_manifest_from_oci_layers(
+            oci_manifest1, include_config=False
+        )
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key, password=None
+        ).sign_from_manifest(model_manifest, signature)
+
+        oci_manifest2 = json.loads(json.dumps(oci_manifest1))  # Deep copy
+        oci_manifest2["layers"][0]["digest"] = (
+            "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        )
+
+        with pytest.raises(ValueError, match="Signature mismatch"):
+            verifying.Config().use_elliptic_key_verifier(
+                public_key=public_key
+            ).verify_from_oci_manifest(
+                oci_manifest2, signature, include_config=False
+            )
+
+    def test_verify_local_files_mismatch_oci_signature(
+        self, base_path, populate_tmpdir
+    ):
+        """Test verification fails when local files don't match OCI."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        oci_manifest = _create_mock_oci_manifest_from_directory(
+            model_path, include_config=False
+        )
+        model_manifest = hashing.create_manifest_from_oci_layers(
+            oci_manifest, include_config=False
+        )
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key, password=None
+        ).sign_from_manifest(model_manifest, signature)
+
+        (model_path / "signme-1").write_text("modified content")
+
+        with pytest.raises(
+            ValueError, match="Signature mismatch|mismatch|Hash mismatch"
+        ):
+            verifying.Config().use_elliptic_key_verifier(
+                public_key=public_key
+            ).set_hashing_config(
+                hashing.Config().set_ignored_paths(
+                    paths=[signature], ignore_git_paths=False
+                )
+            ).verify(model_path, signature)
+
+    def test_sign_oci_manifest_with_certificate(
+        self, base_path, populate_tmpdir
+    ):
+        """Test signing OCI manifest with certificate method."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        signing_certificate = Path(
+            TESTDATA / "keys/certificate/signing-key-cert.pem"
+        )
+        certificate_chain = [
+            Path(TESTDATA / "keys/certificate/int-ca-cert.pem")
+        ]
+
+        oci_manifest = _create_mock_oci_manifest_from_directory(
+            model_path, include_config=False
+        )
+        model_manifest = hashing.create_manifest_from_oci_layers(
+            oci_manifest, include_config=False
+        )
+
+        signing.Config().use_certificate_signer(
+            private_key=private_key,
+            signing_certificate=signing_certificate,
+            certificate_chain=certificate_chain,
+        ).sign_from_manifest(model_manifest, signature)
+
+        certificate_chain = [Path(TESTDATA / "keys/certificate/ca-cert.pem")]
+        verifying.Config().use_certificate_verifier(
+            certificate_chain=certificate_chain
+        ).verify_from_oci_manifest(
+            oci_manifest, signature, include_config=False
+        )
