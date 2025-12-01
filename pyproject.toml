@@ -15,7 +15,6 @@ authors = [
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -38,7 +37,7 @@ dependencies = [
   "sigstore-models>=0.0.5",
   "typing_extensions",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = [
   "machine learning",
   "artificial intelligence",
@@ -89,7 +88,7 @@ features = [
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+python = ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
 [tool.hatch.envs.bench]
 description = """Custom environment for running benchmarks.
@@ -105,7 +104,7 @@ extra-dependencies = [
 ]
 
 [[tool.hatch.envs.bench.matrix]]
-python = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+python = ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
 [tool.hatch.envs.bench.scripts]
 generate = "python benchmarks/generate.py {args}"
@@ -162,6 +161,9 @@ pythonpath = "src"
 
 [tool.ruff]
 line-length = 80
+exclude = [
+    "docs/demo.ipynb",
+]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -174,7 +176,8 @@ ignore = [
   # TODO: selectively enable back most of these in subsequent PRs
   "B024", "D100", "D101", "D102", "D103", "D104", "D105", "D107", "D417",
   # Unnecessary arguments can help with clarity
-  "UP012", "UP015"
+  "UP012", "UP015",
+  "PLC0415", # Lazy imports
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]

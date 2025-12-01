@@ -16,7 +16,6 @@ import base64
 from collections.abc import Iterable
 import hashlib
 import pathlib
-from typing import Optional
 
 from asn1crypto.algos import DSASignature
 from asn1crypto.core import OctetString
@@ -124,7 +123,7 @@ class Signer(sigstore_pb.Signer):
         return self._public_key
 
     def find_object(
-        self, clas: int, label: Optional[str], id: Optional[bytes]
+        self, clas: int, label: str | None, id: bytes | None
     ) -> PyKCS11.CK_OBJECT_HANDLE:
         """Find an object given its class and optional label and id."""
         if label is None and id is None:
@@ -137,7 +136,7 @@ class Signer(sigstore_pb.Signer):
         if label is not None:
             msg = f"label {label}"
         if id is not None:
-            if len(msg):
+            if msg:
                 msg += " and "
             msg += f"id {id}"
 

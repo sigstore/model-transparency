@@ -20,7 +20,7 @@ All versions prior to 1.0.0 are untracked.
 - Fixed a bug where any PEM encoded key could be read during the key-based flows which resulted in a Python exception because the rest of the code only supported elliptic curve keys. ([#573](https://github.com/sigstore/model-transparency/pull/573))
 
 ### Removed
-- ...
+- Removed Python 3.9 support due to it reaching EOL 2025-10-31 (https://devguide.python.org/versions/)
 
 ## [1.1.1] - 2025-10-10
 

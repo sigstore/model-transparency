@@ -19,7 +19,6 @@ import concurrent.futures
 import itertools
 import os
 import pathlib
-from typing import Optional
 
 from typing_extensions import override
 
@@ -39,7 +38,7 @@ class Serializer(serialization.Serializer):
         self,
         file_hasher_factory: Callable[[pathlib.Path], io.FileHasher],
         *,
-        max_workers: Optional[int] = None,
+        max_workers: int | None = None,
         allow_symlinks: bool = False,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ):
@@ -82,7 +81,7 @@ class Serializer(serialization.Serializer):
         model_path: pathlib.Path,
         *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
-        files_to_hash: Optional[Iterable[pathlib.Path]] = None,
+        files_to_hash: Iterable[pathlib.Path] | None = None,
     ) -> manifest.Manifest:
         """Serializes the model given by the `model_path` argument.
 

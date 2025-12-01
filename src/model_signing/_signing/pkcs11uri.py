@@ -19,7 +19,6 @@ import os
 from os import stat
 import re
 from stat import S_ISREG
-from typing import Optional
 from urllib import parse
 from urllib.parse import urlparse
 
@@ -88,7 +87,7 @@ class Pkcs11URI:
 
     def get_attribute_bytes(
         self, attr_map: dict[str, str], name: str
-    ) -> Optional[bytes]:
+    ) -> bytes | None:
         """Get an attribute in form of bytes, if available."""
         if name not in attr_map:
             return None
@@ -97,11 +96,11 @@ class Pkcs11URI:
             vb += ord(c).to_bytes(length=1, byteorder="big")
         return vb
 
-    def get_path_attribute_bytes(self, name: str) -> Optional[bytes]:
+    def get_path_attribute_bytes(self, name: str) -> bytes | None:
         """Get a path attribute as <bytes>."""
         return self.get_attribute_bytes(self.path_attributes, name)
 
-    def get_query_attribute_bytes(self, name: str) -> Optional[bytes]:
+    def get_query_attribute_bytes(self, name: str) -> bytes | None:
         """Get a query attribute as <bytes>."""
         return self.get_attribute_bytes(self.query_attributes, name)
 
@@ -130,7 +129,7 @@ class Pkcs11URI:
 
     def get_path_attribute(
         self, name: str, pctencode: bool = False
-    ) -> Optional[str]:
+    ) -> str | None:
         """Get a path attribute by its name, possibly in pct-encode form."""
         v = self.path_attributes.get(name)
         if v is not None and pctencode:
@@ -168,7 +167,7 @@ class Pkcs11URI:
 
     def get_query_attribute(
         self, name: str, pctencode: bool = False
-    ) -> Optional[str]:
+    ) -> str | None:
         """Get a query attribute by its name, possibly in pct-encode form."""
         v = self.query_attributes.get(name)
         if v is not None and pctencode:
@@ -397,7 +396,7 @@ class Pkcs11URI:
         dirs = ", ".join(searchdirs)
         raise ValueError(f"No module '{module_name}' could be found in {dirs}")
 
-    def get_keyid_and_label(self) -> tuple[Optional[bytes], Optional[str]]:
+    def get_keyid_and_label(self) -> tuple[bytes | None, str | None]:
         """Get the id for the key and its label."""
         keyid = self.get_path_attribute_bytes("id")
         label = self.get_path_attribute("object")
@@ -412,7 +411,7 @@ class Pkcs11URI:
         lib: PyKCS11.PyKCS11Lib,
         slot_id: int,
         pin: str,
-        token_label: Optional[str],
+        token_label: str | None,
     ) -> PyKCS11.Session:
         """Open a session.
 
@@ -429,7 +428,7 @@ class Pkcs11URI:
             session.login(pin)
         return session
 
-    def get_login_parameters(self) -> tuple[Optional[str], str, int]:
+    def get_login_parameters(self) -> tuple[str | None, str, int]:
         """Get the login parameters PIN, module, and slot-id from the URI."""
         pin = None
         if self.has_pin():
