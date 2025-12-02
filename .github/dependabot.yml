@@ -18,7 +18,6 @@ updates:
   - package-ecosystem: "pip"
     directories:
       - "/"
-#      - "slsa_for_models/install"  # requirement lockfiles have to be maintained manually
     schedule:
       interval: "weekly"
     groups:
@@ -28,7 +27,6 @@ updates:
   - package-ecosystem: "docker"
     directories:
       - "/"
-      - "slsa_for_models/kubeflow/images/*"
     schedule:
       interval: "weekly"
   - package-ecosystem: "github-actions"

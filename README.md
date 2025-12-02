@@ -9,7 +9,6 @@
   - [Model Signing CLI](#model-signing-cli)
   - [Model Signing API](#model-signing-api)
   - [Model Signing Format](#model-signing-format)
-- [SLSA for ML](#slsa-for-ml)
 - [Status](#status)
 - [Contributing](#contributing)
 
@@ -396,20 +395,8 @@ for more details.
 For a diagram showing the model signing format as well as an explanation of the
 layers, see the [model signing format](docs/model_signing_format.md) document.
 
-## SLSA for ML
-
-This is a separate project from the `model_signing` package, aimed at generating
-[SLSA][slsa] provenance for ML models, using either Github Actions or Google
-Cloud Platform.
-
-See [slsa_for_models/README.md](slsa_for_models/README.md) for more information.
-
 ## Contributing
 
 Please see the [Contributor Guide](CONTRIBUTING.md) for more information.
 
-[slsa]: https://slsa.dev/
-[saif]: https://blog.google/technology/safety-security/introducing-googles-secure-ai-framework/
 [openssf]: https://openssf.org/
-[slsa-generator]: https://github.com/slsa-framework/slsa-github-generator
-[solarwinds]: https://www.techtarget.com/whatis/feature/SolarWinds-hack-explained-Everything-you-need-to-know
