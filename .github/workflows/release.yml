@@ -104,7 +104,7 @@ jobs:
             APP_VERSION=${{ env.APP_VERSION }}
 
       - id: docker_meta_minimal
-        uses: docker/metadata-action@318604b99e75e41977312d83839a89be02ca4893 # v5.9.0
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
           images: ${{ steps.build_minimal_image.outputs.image }}
           tags: type=sha,format=long,type=ref,event=branch
@@ -139,7 +139,7 @@ jobs:
             APP_VERSION=${{ env.APP_VERSION }}
 
       - id: docker_meta_full
-        uses: docker/metadata-action@318604b99e75e41977312d83839a89be02ca4893 # v5.9.0
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
           images: ${{ steps.build_full_image.outputs.image }}
           tags: type=sha,format=long,type=ref,event=branch
