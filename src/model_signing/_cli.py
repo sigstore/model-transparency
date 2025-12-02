@@ -16,6 +16,7 @@
 
 from collections.abc import Iterable, Sequence
 import contextlib
+import enum
 import json
 import logging
 import pathlib
@@ -41,6 +42,67 @@ class NoOpTracer:
 
 # Global tracer variable, we will initialized this within the main() function
 tracer = None
+
+
+class PathType(enum.Enum):
+    """Type of path detected for model signing/verification."""
+
+    MODEL_DIRECTORY = "model_directory"
+    OCI_MANIFEST = "oci_manifest"
+
+
+class ModelPath:
+    """Wrapper for a model directory path."""
+
+    def __init__(self, path: pathlib.Path):
+        """Initialize with a model directory path.
+
+        Args:
+            path: Path to the model directory.
+        """
+        self._path = path
+
+    @property
+    def path(self) -> pathlib.Path:
+        """Get the model directory path."""
+        return self._path
+
+    def exists(self) -> bool:
+        """Check if the path exists."""
+        return self._path.exists()
+
+
+class OCIManifestPath:
+    """Wrapper for an OCI manifest JSON file path with cached JSON data."""
+
+    def __init__(self, path: pathlib.Path, data: dict):
+        """Initialize with an OCI manifest file path and parsed JSON data.
+
+        Args:
+            path: Path to the OCI manifest JSON file.
+            data: Parsed JSON data from the manifest file.
+        """
+        self._path = path
+        self._data = data
+
+    @property
+    def path(self) -> pathlib.Path:
+        """Get the OCI manifest file path."""
+        return self._path
+
+    @property
+    def data(self) -> dict:
+        """Get the parsed JSON data from the manifest file."""
+        return self._data
+
+    @property
+    def model_name(self) -> str | None:
+        """Get the model name derived from the manifest file stem."""
+        return self._path.stem if self._path else None
+
+    def exists(self) -> bool:
+        """Check if the path exists."""
+        return self._path.exists()
 
 
 # Decorator for the commonly used argument for the model path or model manifest.
@@ -160,10 +222,22 @@ _allow_symlinks_option = click.option(
 
 def _detect_path_type(
     path: pathlib.Path,
-) -> tuple[Optional[pathlib.Path], Optional[pathlib.Path]]:
-    """Detect if a path is a model directory or an OCI manifest file."""
+) -> tuple[PathType, ModelPath | OCIManifestPath]:
+    """Detect if a path is a model directory or an OCI manifest file.
+
+    Args:
+        path: The path to detect.
+
+    Returns:
+        A tuple of (PathType, wrapper_object) where wrapper_object is either
+        ModelPath or OCIManifestPath. The OCIManifestPath caches the parsed
+        JSON data to avoid loading it twice.
+
+    Raises:
+        ValueError: If the path is None or invalid.
+    """
     if path is None:
-        return (None, None)
+        raise ValueError("Path cannot be None")
 
     if path.is_file() and path.suffix.lower() == ".json":
         try:
@@ -172,12 +246,12 @@ def _detect_path_type(
             if isinstance(data, dict) and (
                 "layers" in data or "schemaVersion" in data
             ):
-                return (None, path)
+                return (PathType.OCI_MANIFEST, OCIManifestPath(path, data))
         except (json.JSONDecodeError, OSError):
             pass
 
     # Default model dir
-    return (path, None)
+    return (PathType.MODEL_DIRECTORY, ModelPath(path))
 
 
 def _resolve_ignore_paths(
@@ -402,29 +476,25 @@ def _sign_sigstore(
         )
         span.set_attribute("sigstore.use_staging", use_staging)
         try:
-            actual_model_path, oci_manifest_path = _detect_path_type(model_path)
+            path_type, path_wrapper = _detect_path_type(model_path)
 
-            if oci_manifest_path:
-                if not oci_manifest_path.exists():
+            if path_type == PathType.OCI_MANIFEST:
+                oci_manifest = path_wrapper
+                assert isinstance(oci_manifest, OCIManifestPath)
+                if not oci_manifest.exists():
                     click.echo(
-                        f"OCI manifest file not found: {oci_manifest_path}",
+                        f"OCI manifest file not found: {oci_manifest.path}",
                         err=True,
                     )
                     sys.exit(1)
 
                 span.set_attribute(
-                    "sigstore.oci_manifest", str(oci_manifest_path)
+                    "sigstore.oci_manifest", str(oci_manifest.path)
                 )
-                with open(oci_manifest_path, "r", encoding="utf-8") as f:
-                    oci_data = json.load(f)
-
-                model_name = None
-                if oci_manifest_path:
-                    model_name = oci_manifest_path.stem
 
                 model_manifest = (
                     model_signing.hashing.create_manifest_from_oci_layers(
-                        oci_data, model_name=model_name
+                        oci_manifest.data, model_name=oci_manifest.model_name
                     )
                 )
 
@@ -438,17 +508,14 @@ def _sign_sigstore(
                     trust_config=trust_config,
                 ).sign_from_manifest(model_manifest, signature)
             else:
-                if not actual_model_path:
-                    click.echo(
-                        "MODEL_PATH_OR_MANIFEST must be provided", err=True
-                    )
-                    sys.exit(1)
+                model_path_obj = path_wrapper
+                assert isinstance(model_path_obj, ModelPath)
 
                 span.set_attribute(
-                    "sigstore.model_path", str(actual_model_path)
+                    "sigstore.model_path", str(model_path_obj.path)
                 )
                 ignored = _resolve_ignore_paths(
-                    actual_model_path, list(ignore_paths) + [signature]
+                    model_path_obj.path, list(ignore_paths) + [signature]
                 )
                 model_signing.signing.Config().use_sigstore_signer(
                     use_ambient_credentials=use_ambient_credentials,
@@ -464,7 +531,7 @@ def _sign_sigstore(
                         paths=ignored, ignore_git_paths=ignore_git_paths
                     )
                     .set_allow_symlinks(allow_symlinks)
-                ).sign(actual_model_path, signature)
+                ).sign(model_path_obj.path, signature)
         except Exception as err:
             click.echo(f"Signing failed with error: {err}", err=True)
             sys.exit(1)
@@ -508,23 +575,21 @@ def _sign_private_key(
     management protocols.
     """
     try:
-        actual_model_path, oci_manifest_path = _detect_path_type(model_path)
+        path_type, path_wrapper = _detect_path_type(model_path)
 
-        if oci_manifest_path:
-            if not oci_manifest_path.exists():
+        if path_type == PathType.OCI_MANIFEST:
+            oci_manifest = path_wrapper
+            assert isinstance(oci_manifest, OCIManifestPath)
+            if not oci_manifest.exists():
                 click.echo(
-                    f"OCI manifest file not found: {oci_manifest_path}",
+                    f"OCI manifest file not found: {oci_manifest.path}",
                     err=True,
                 )
                 sys.exit(1)
 
-            with open(oci_manifest_path, "r", encoding="utf-8") as f:
-                oci_data = json.load(f)
-
-            model_name = oci_manifest_path.stem
             model_manifest = (
                 model_signing.hashing.create_manifest_from_oci_layers(
-                    oci_data, model_name=model_name
+                    oci_manifest.data, model_name=oci_manifest.model_name
                 )
             )
 
@@ -532,12 +597,11 @@ def _sign_private_key(
                 private_key=private_key, password=password
             ).sign_from_manifest(model_manifest, signature)
         else:
-            if not actual_model_path:
-                click.echo("MODEL_PATH_OR_MANIFEST must be provided", err=True)
-                sys.exit(1)
+            model_path_obj = path_wrapper
+            assert isinstance(model_path_obj, ModelPath)
 
             ignored = _resolve_ignore_paths(
-                actual_model_path, list(ignore_paths) + [signature]
+                model_path_obj.path, list(ignore_paths) + [signature]
             )
             model_signing.signing.Config().use_elliptic_key_signer(
                 private_key=private_key, password=password
@@ -547,7 +611,7 @@ def _sign_private_key(
                     paths=ignored, ignore_git_paths=ignore_git_paths
                 )
                 .set_allow_symlinks(allow_symlinks)
-            ).sign(actual_model_path, signature)
+            ).sign(model_path_obj.path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
@@ -584,23 +648,21 @@ def _sign_pkcs11_key(
     management protocols.
     """
     try:
-        actual_model_path, oci_manifest_path = _detect_path_type(model_path)
+        path_type, path_wrapper = _detect_path_type(model_path)
 
-        if oci_manifest_path:
-            if not oci_manifest_path.exists():
+        if path_type == PathType.OCI_MANIFEST:
+            oci_manifest = path_wrapper
+            assert isinstance(oci_manifest, OCIManifestPath)
+            if not oci_manifest.exists():
                 click.echo(
-                    f"OCI manifest file not found: {oci_manifest_path}",
+                    f"OCI manifest file not found: {oci_manifest.path}",
                     err=True,
                 )
                 sys.exit(1)
 
-            with open(oci_manifest_path, "r", encoding="utf-8") as f:
-                oci_data = json.load(f)
-
-            model_name = oci_manifest_path.stem
             model_manifest = (
                 model_signing.hashing.create_manifest_from_oci_layers(
-                    oci_data, model_name=model_name
+                    oci_manifest.data, model_name=oci_manifest.model_name
                 )
             )
 
@@ -608,12 +670,11 @@ def _sign_pkcs11_key(
                 pkcs11_uri=pkcs11_uri
             ).sign_from_manifest(model_manifest, signature)
         else:
-            if not actual_model_path:
-                click.echo("MODEL_PATH_OR_MANIFEST must be provided", err=True)
-                sys.exit(1)
+            model_path_obj = path_wrapper
+            assert isinstance(model_path_obj, ModelPath)
 
             ignored = _resolve_ignore_paths(
-                actual_model_path, list(ignore_paths) + [signature]
+                model_path_obj.path, list(ignore_paths) + [signature]
             )
             model_signing.signing.Config().use_pkcs11_signer(
                 pkcs11_uri=pkcs11_uri
@@ -623,7 +684,7 @@ def _sign_pkcs11_key(
                     paths=ignored, ignore_git_paths=ignore_git_paths
                 )
                 .set_allow_symlinks(allow_symlinks)
-            ).sign(actual_model_path, signature)
+            ).sign(model_path_obj.path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
@@ -667,23 +728,21 @@ def _sign_certificate(
     Note that we don't offer certificate and key management protocols.
     """
     try:
-        actual_model_path, oci_manifest_path = _detect_path_type(model_path)
+        path_type, path_wrapper = _detect_path_type(model_path)
 
-        if oci_manifest_path:
-            if not oci_manifest_path.exists():
+        if path_type == PathType.OCI_MANIFEST:
+            oci_manifest = path_wrapper
+            assert isinstance(oci_manifest, OCIManifestPath)
+            if not oci_manifest.exists():
                 click.echo(
-                    f"OCI manifest file not found: {oci_manifest_path}",
+                    f"OCI manifest file not found: {oci_manifest.path}",
                     err=True,
                 )
                 sys.exit(1)
 
-            with open(oci_manifest_path, "r", encoding="utf-8") as f:
-                oci_data = json.load(f)
-
-            model_name = oci_manifest_path.stem
             model_manifest = (
                 model_signing.hashing.create_manifest_from_oci_layers(
-                    oci_data, model_name=model_name
+                    oci_manifest.data, model_name=oci_manifest.model_name
                 )
             )
 
@@ -693,12 +752,11 @@ def _sign_certificate(
                 certificate_chain=certificate_chain,
             ).sign_from_manifest(model_manifest, signature)
         else:
-            if not actual_model_path:
-                click.echo("MODEL_PATH_OR_MANIFEST must be provided", err=True)
-                sys.exit(1)
+            model_path_obj = path_wrapper
+            assert isinstance(model_path_obj, ModelPath)
 
             ignored = _resolve_ignore_paths(
-                actual_model_path, list(ignore_paths) + [signature]
+                model_path_obj.path, list(ignore_paths) + [signature]
             )
             model_signing.signing.Config().use_certificate_signer(
                 private_key=private_key,
@@ -710,7 +768,7 @@ def _sign_certificate(
                     paths=ignored, ignore_git_paths=ignore_git_paths
                 )
                 .set_allow_symlinks(allow_symlinks)
-            ).sign(actual_model_path, signature)
+            ).sign(model_path_obj.path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
@@ -755,23 +813,21 @@ def _sign_pkcs11_certificate(
     Note that we don't offer certificate and key management protocols.
     """
     try:
-        actual_model_path, oci_manifest_path = _detect_path_type(model_path)
+        path_type, path_wrapper = _detect_path_type(model_path)
 
-        if oci_manifest_path:
-            if not oci_manifest_path.exists():
+        if path_type == PathType.OCI_MANIFEST:
+            oci_manifest = path_wrapper
+            assert isinstance(oci_manifest, OCIManifestPath)
+            if not oci_manifest.exists():
                 click.echo(
-                    f"OCI manifest file not found: {oci_manifest_path}",
+                    f"OCI manifest file not found: {oci_manifest.path}",
                     err=True,
                 )
                 sys.exit(1)
 
-            with open(oci_manifest_path, "r", encoding="utf-8") as f:
-                oci_data = json.load(f)
-
-            model_name = oci_manifest_path.stem
             model_manifest = (
                 model_signing.hashing.create_manifest_from_oci_layers(
-                    oci_data, model_name=model_name
+                    oci_manifest.data, model_name=oci_manifest.model_name
                 )
             )
 
@@ -781,12 +837,11 @@ def _sign_pkcs11_certificate(
                 certificate_chain=certificate_chain,
             ).sign_from_manifest(model_manifest, signature)
         else:
-            if not actual_model_path:
-                click.echo("MODEL_PATH_OR_MANIFEST must be provided", err=True)
-                sys.exit(1)
+            model_path_obj = path_wrapper
+            assert isinstance(model_path_obj, ModelPath)
 
             ignored = _resolve_ignore_paths(
-                actual_model_path, list(ignore_paths) + [signature]
+                model_path_obj.path, list(ignore_paths) + [signature]
             )
             model_signing.signing.Config().use_pkcs11_certificate_signer(
                 pkcs11_uri=pkcs11_uri,
@@ -798,7 +853,7 @@ def _sign_pkcs11_certificate(
                     paths=ignored, ignore_git_paths=ignore_git_paths
                 )
                 .set_allow_symlinks(allow_symlinks)
-            ).sign(actual_model_path, signature)
+            ).sign(model_path_obj.path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
@@ -886,40 +941,37 @@ def _verify_sigstore(
         span.set_attribute("sigstore.oidc_issuer", identity_provider)
         span.set_attribute("sigstore.use_staging", use_staging)
         try:
-            actual_model_path, oci_manifest_path = _detect_path_type(model_path)
+            path_type, path_wrapper = _detect_path_type(model_path)
 
-            if oci_manifest_path:
-                if not oci_manifest_path.exists():
+            if path_type == PathType.OCI_MANIFEST:
+                oci_manifest = path_wrapper
+                assert isinstance(oci_manifest, OCIManifestPath)
+                if not oci_manifest.exists():
                     click.echo(
-                        f"OCI manifest file not found: {oci_manifest_path}",
+                        f"OCI manifest file not found: {oci_manifest.path}",
                         err=True,
                     )
                     sys.exit(1)
 
                 span.set_attribute(
-                    "sigstore.oci_manifest", str(oci_manifest_path)
+                    "sigstore.oci_manifest", str(oci_manifest.path)
                 )
-                with open(oci_manifest_path, "r", encoding="utf-8") as f:
-                    oci_data = json.load(f)
 
                 model_signing.verifying.Config().use_sigstore_verifier(
                     identity=identity,
                     oidc_issuer=identity_provider,
                     use_staging=use_staging,
                     trust_config=trust_config,
-                ).verify_from_oci_manifest(oci_data, signature)
+                ).verify_from_oci_manifest(oci_manifest.data, signature)
             else:
-                if not actual_model_path:
-                    click.echo(
-                        "MODEL_PATH_OR_MANIFEST must be provided", err=True
-                    )
-                    sys.exit(1)
+                model_path_obj = path_wrapper
+                assert isinstance(model_path_obj, ModelPath)
 
                 span.set_attribute(
-                    "sigstore.model_path", str(actual_model_path)
+                    "sigstore.model_path", str(model_path_obj.path)
                 )
                 ignored = _resolve_ignore_paths(
-                    actual_model_path, list(ignore_paths) + [signature]
+                    model_path_obj.path, list(ignore_paths) + [signature]
                 )
                 model_signing.verifying.Config().use_sigstore_verifier(
                     identity=identity,
@@ -933,7 +985,7 @@ def _verify_sigstore(
                     )
                     .set_allow_symlinks(allow_symlinks)
                 ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
-                    actual_model_path, signature
+                    model_path_obj.path, signature
                 )
         except Exception as err:
             click.echo(f"Verification failed with error: {err}", err=True)
@@ -979,29 +1031,27 @@ def _verify_private_key(
     management protocols.
     """
     try:
-        actual_model_path, oci_manifest_path = _detect_path_type(model_path)
+        path_type, path_wrapper = _detect_path_type(model_path)
 
-        if oci_manifest_path:
-            if not oci_manifest_path.exists():
+        if path_type == PathType.OCI_MANIFEST:
+            oci_manifest = path_wrapper
+            assert isinstance(oci_manifest, OCIManifestPath)
+            if not oci_manifest.exists():
                 click.echo(
-                    f"OCI manifest file not found: {oci_manifest_path}",
+                    f"OCI manifest file not found: {oci_manifest.path}",
                     err=True,
                 )
                 sys.exit(1)
 
-            with open(oci_manifest_path, "r", encoding="utf-8") as f:
-                oci_data = json.load(f)
-
             model_signing.verifying.Config().use_elliptic_key_verifier(
                 public_key=public_key
-            ).verify_from_oci_manifest(oci_data, signature)
+            ).verify_from_oci_manifest(oci_manifest.data, signature)
         else:
-            if not actual_model_path:
-                click.echo("MODEL_PATH_OR_MANIFEST must be provided", err=True)
-                sys.exit(1)
+            model_path_obj = path_wrapper
+            assert isinstance(model_path_obj, ModelPath)
 
             ignored = _resolve_ignore_paths(
-                actual_model_path, list(ignore_paths) + [signature]
+                model_path_obj.path, list(ignore_paths) + [signature]
             )
             model_signing.verifying.Config().use_elliptic_key_verifier(
                 public_key=public_key
@@ -1012,7 +1062,7 @@ def _verify_private_key(
                 )
                 .set_allow_symlinks(allow_symlinks)
             ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
-                actual_model_path, signature
+                model_path_obj.path, signature
             )
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
@@ -1064,30 +1114,28 @@ def _verify_certificate(
         logging.basicConfig(format="%(message)s", level=logging.INFO)
 
     try:
-        actual_model_path, oci_manifest_path = _detect_path_type(model_path)
+        path_type, path_wrapper = _detect_path_type(model_path)
 
-        if oci_manifest_path:
-            if not oci_manifest_path.exists():
+        if path_type == PathType.OCI_MANIFEST:
+            oci_manifest = path_wrapper
+            assert isinstance(oci_manifest, OCIManifestPath)
+            if not oci_manifest.exists():
                 click.echo(
-                    f"OCI manifest file not found: {oci_manifest_path}",
+                    f"OCI manifest file not found: {oci_manifest.path}",
                     err=True,
                 )
                 sys.exit(1)
 
-            with open(oci_manifest_path, "r", encoding="utf-8") as f:
-                oci_data = json.load(f)
-
             model_signing.verifying.Config().use_certificate_verifier(
                 certificate_chain=certificate_chain,
                 log_fingerprints=log_fingerprints,
-            ).verify_from_oci_manifest(oci_data, signature)
+            ).verify_from_oci_manifest(oci_manifest.data, signature)
         else:
-            if not actual_model_path:
-                click.echo("MODEL_PATH_OR_MANIFEST must be provided", err=True)
-                sys.exit(1)
+            model_path_obj = path_wrapper
+            assert isinstance(model_path_obj, ModelPath)
 
             ignored = _resolve_ignore_paths(
-                actual_model_path, list(ignore_paths) + [signature]
+                model_path_obj.path, list(ignore_paths) + [signature]
             )
             model_signing.verifying.Config().use_certificate_verifier(
                 certificate_chain=certificate_chain,
@@ -1099,7 +1147,7 @@ def _verify_certificate(
                 )
                 .set_allow_symlinks(allow_symlinks)
             ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
-                actual_model_path, signature
+                model_path_obj.path, signature
             )
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)

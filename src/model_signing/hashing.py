@@ -125,7 +125,7 @@ def parse_digest_string(digest_str: str) -> hashing.Digest:
 
 def create_manifest_from_oci_layers(
     oci_manifest: dict,
-    model_name: Optional[str] = None,
+    model_name: str | None = None,
     include_config: bool = True,
 ) -> manifest.Manifest:
     """Create a manifest from an OCI image manifest.
