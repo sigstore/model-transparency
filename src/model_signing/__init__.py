@@ -60,7 +60,8 @@ model_signing.signing.Config().use_elliptic_key_signer(
 
 This example generates a signature using a private key based on elliptic curve
 cryptography. It also hashes the model by ignoring `README.md` and any git
-related file present in the model directory.
+related file present in the model directory. Keys can also be provided as bytes
+from memory instead of file paths.
 
 We also support signing with signing certificates, using a similar API as above.
 
@@ -97,6 +98,9 @@ model_signing.verifying.Config().use_elliptic_key_verifier(
     public_key="key.pub"
 ).verify("finbert", "finbert.sig")
 ```
+
+Public keys can also be provided as bytes (PEM format or compressed format),
+and signatures can be provided as JSON strings or bytes instead of file paths.
 
 A reminder that we still need to set the verification configuration. This sets
 up the cryptographic primitives to verify the signature and is needed to know

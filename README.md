@@ -359,6 +359,14 @@ model_signing.signing.Config().use_elliptic_key_signer(
 )
 ```
 
+Keys can also be provided from memory as bytes instead of file paths:
+```python
+private_key_bytes = Path("key.priv").read_bytes()
+model_signing.signing.Config().use_elliptic_key_signer(
+    private_key=private_key_bytes
+).sign("finbert", "finbert.sig")
+```
+
 The same signing configuration can be used to sign multiple models:
 
 ```python
@@ -393,6 +401,16 @@ verifying_config = model_signing.signing.Config().use_elliptic_key_verifier(
 
 for model in all_models:
     verifying_config.verify(model, f"{model}_sharded.sig")
+```
+
+Public keys can also be provided from memory as bytes (PEM format or compressed 33-byte format for secp256r1), and signatures can be provided as JSON strings or bytes:
+```python
+public_key_bytes = Path("key.pub").read_bytes()
+signature_bytes = Path("model.sig").read_bytes()
+verifying_config = model_signing.verifying.Config().use_elliptic_key_verifier(
+    public_key=public_key_bytes
+)
+verifying_config.verify("finbert", signature_bytes)
 ```
 
 Consult the
