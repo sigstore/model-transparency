@@ -109,8 +109,30 @@ class Signature(signing.Signature):
 
     @classmethod
     @override
-    def read(cls, path: pathlib.Path) -> Self:
-        content = path.read_text(encoding="utf-8")
+    def read(cls, path_or_content: pathlib.Path | str | bytes) -> Self:
+        """Read a signature from a file path, JSON string, or bytes.
+
+        Args:
+            path_or_content:
+                - A path to a JSON signature file
+                - A JSON string containing the signature
+                - Bytes containing the JSON signature (UTF-8 encoded)
+
+        Returns:
+            The loaded signature.
+        """
+        match path_or_content:
+            case pathlib.Path():
+                content = path_or_content.read_text(encoding="utf-8")
+            case bytes():
+                content = path_or_content.decode("utf-8")
+            case str():
+                content = path_or_content
+            case _:
+                raise TypeError(
+                    f"Expected pathlib.Path, str, or bytes, "
+                    f"got {type(path_or_content)}"
+                )
         parsed_dict = json.loads(content)
 
         # adjust parsed_dict due to previous usage of protobufs
