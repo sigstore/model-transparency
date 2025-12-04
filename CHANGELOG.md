@@ -10,7 +10,7 @@ All versions prior to 1.0.0 are untracked.
 ## [Unreleased]
 
 ### Added
-- ...
+- Added support for providing elliptic curve keys and signatures from memory (as bytes) in the library API. Private and public keys can now be passed as bytes in addition to file paths, and public keys also support compressed format (33 bytes for secp256r1). Signatures can be provided as JSON strings or bytes in addition to file paths.
 
 ### Changed
 - ...
