@@ -28,6 +28,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "PyYAML",
   "asn1crypto",
   "blake3",
   "click",
