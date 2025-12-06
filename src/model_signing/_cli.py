@@ -19,6 +19,9 @@ import contextlib
 import logging
 import pathlib
 import sys
+import yaml 
+from pydantic import ValidationError 
+from model_signing.model_card import ModelCardMetadata
 
 import click
 
@@ -155,6 +158,15 @@ _allow_symlinks_option = click.option(
     help="Whether to allow following symlinks when signing or verifying files.",
 )
 
+# --- NEW OPTION ---
+# Decorator for the commonly used option to specify a model card
+_readme_option = click.option(
+    "--readme",
+    type=pathlib.Path,
+    metavar="README_PATH",
+    help="Path to the Model Card (README.md) containing YAML metadata to include in the signature predicate.",
+)
+
 
 def _resolve_ignore_paths(
     model_path: pathlib.Path, paths: Iterable[pathlib.Path]
@@ -169,6 +181,37 @@ def _resolve_ignore_paths(
         except ValueError:
             continue
     return resolved_paths
+
+
+# Model card Parser
+def _parse_model_card(path: pathlib.Path) -> dict:
+    """Parses and VALIDATES YAML front matter from a Model Card README."""
+    if not path.exists():
+        click.echo(f"Error: Model Card file {path} not found.", err=True)
+        sys.exit(1)
+        
+    try:
+        content = path.read_text(encoding="utf-8")
+        if content.lstrip().startswith("---"):
+            parts = content.split("---", 2)
+            if len(parts) >= 3:
+                raw_data = yaml.safe_load(parts[1])
+                if isinstance(raw_data, dict):
+                    # --- STRICT VALIDATION HAPPENS HERE ---
+                    try:
+                        validated_model = ModelCardMetadata(**raw_data)
+                        # Return dict, excluding None values to keep payload small
+                        return validated_model.model_dump(exclude_none=True)
+                    except ValidationError as e:
+                        click.echo(f"Error: Model Card YAML validation failed!", err=True)
+                        for err in e.errors():
+                            click.echo(f"  - Field '{err['loc'][0]}': {err['msg']}", err=True)
+                        sys.exit(1)
+                        
+        return {}
+    except Exception as e:
+        click.echo(f"Error parsing YAML from {path}: {e}", err=True)
+        sys.exit(1)
 
 
 class _PKICmdGroup(click.Group):
@@ -286,6 +329,7 @@ def _sign() -> None:
 @_write_signature_option
 @_sigstore_staging_option
 @_trust_config_option
+@_readme_option  # <--- ADDED OPTION
 @click.option(
     "--use_ambient_credentials",
     type=bool,
@@ -335,35 +379,33 @@ def _sign_sigstore(
     client_id: str | None = None,
     client_secret: str | None = None,
     trust_config: pathlib.Path | None = None,
+    readme: pathlib.Path | None = None,  # <--- ADDED ARGUMENT
 ) -> None:
-    """Sign using Sigstore (DEFAULT signing method).
-
-    Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
+    """
+    Sign using Sigstore (DEFAULT signing method).
+        Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
     (as per `--signature` option). Files in IGNORE_PATHS are not part of the
     signature.
-
     If using Sigstore, we need to provision an OIDC token. In general, this is
     taken from an interactive OIDC flow, but ambient credentials could be used
     to use workload identity tokens (e.g., when running in GitHub actions).
     Alternatively, a constant identity token can be provided via
     `--identity_token`.
-
     Sigstore allows users to use a staging instance for test-only signatures.
     Passing the `--use_staging` flag would use that instance instead of the
     production one.
-
     Additionally, you can specify a custom trust configuration JSON file using
     the `--trust_config` flag. This allows you to fully customize the PKI
     (Private Key Infrastructure) used in the signing process. By providing a
     `--trust_config`, you can define your own transparency logs, certificate
     authorities, and other trust settings, enabling full control over the
     trust model, including which PKI to use for signature verification.
-
     If `--trust_config` is not provided, the default Sigstore instance is
     used, which is pre-configured with Sigstore’s own trusted transparency
     logs and certificate authorities. This provides a ready-to-use default
     trust model for most use cases but may not be suitable for custom or
     highly regulated environments.
+
     """
     with tracer.start_as_current_span("Sign") as span:
         span.set_attribute("sigstore.sign_method", "sigstore")
@@ -373,6 +415,10 @@ def _sign_sigstore(
             "sigstore.use_ambient_credentials", use_ambient_credentials
         )
         span.set_attribute("sigstore.use_staging", use_staging)
+
+        # <--- PARSE METADATA --->
+        metadata = _parse_model_card(readme) if readme else None
+
         try:
             ignored = _resolve_ignore_paths(
                 model_path, list(ignore_paths) + [signature]
@@ -391,7 +437,7 @@ def _sign_sigstore(
                     paths=ignored, ignore_git_paths=ignore_git_paths
                 )
                 .set_allow_symlinks(allow_symlinks)
-            ).sign(model_path, signature)
+            ).sign(model_path, signature, metadata=metadata) # <--- PASS METADATA
         except Exception as err:
             click.echo(f"Signing failed with error: {err}", err=True)
             sys.exit(1)
@@ -406,6 +452,7 @@ def _sign_sigstore(
 @_allow_symlinks_option
 @_write_signature_option
 @_private_key_option
+@_readme_option  # <--- ADDED OPTION
 @click.option(
     "--password",
     type=str,
@@ -420,20 +467,23 @@ def _sign_private_key(
     signature: pathlib.Path,
     private_key: pathlib.Path,
     password: str | None = None,
+    readme: pathlib.Path | None = None,  # <--- ADDED ARGUMENT
 ) -> None:
     """Sign using a private key (paired with a public one).
 
     Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
     (as per `--signature` option). Files in IGNORE_PATHS are not part of the
     signature.
-
     Traditionally, signing could be achieved by using a public/private key pair.
     Pass the signing key using `--private_key`.
-
     Note that this method does not provide a way to tie to the identity of the
     signer, outside of pairing the keys. Also note that we don't offer key
     management protocols.
+
     """
+    # <--- PARSE METADATA --->
+    metadata = _parse_model_card(readme) if readme else None
+    
     try:
         ignored = _resolve_ignore_paths(
             model_path, list(ignore_paths) + [signature]
@@ -444,7 +494,7 @@ def _sign_private_key(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
             .set_allow_symlinks(allow_symlinks)
-        ).sign(model_path, signature)
+        ).sign(model_path, signature, metadata=metadata) # <--- PASS METADATA
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
@@ -459,6 +509,7 @@ def _sign_private_key(
 @_allow_symlinks_option
 @_write_signature_option
 @_pkcs11_uri_option
+@_readme_option  # <--- ADDED OPTION
 def _sign_pkcs11_key(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
@@ -466,20 +517,23 @@ def _sign_pkcs11_key(
     allow_symlinks: bool,
     signature: pathlib.Path,
     pkcs11_uri: str,
+    readme: pathlib.Path | None = None,  # <--- ADDED ARGUMENT
 ) -> None:
     """Sign using a private key using a PKCS #11 URI.
 
     Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
     (as per `--signature` option). Files in IGNORE_PATHS are not part of the
     signature.
-
     Traditionally, signing could be achieved by using a public/private key pair.
     Pass the PKCS #11 URI of the signing key using `--pkcs11_uri`.
-
     Note that this method does not provide a way to tie to the identity of the
     signer, outside of pairing the keys. Also note that we don't offer key
     management protocols.
+
     """
+    # <--- PARSE METADATA --->
+    metadata = _parse_model_card(readme) if readme else None
+
     try:
         ignored = _resolve_ignore_paths(
             model_path, list(ignore_paths) + [signature]
@@ -490,7 +544,7 @@ def _sign_pkcs11_key(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
             .set_allow_symlinks(allow_symlinks)
-        ).sign(model_path, signature)
+        ).sign(model_path, signature, metadata=metadata) # <--- PASS METADATA
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
@@ -507,6 +561,7 @@ def _sign_pkcs11_key(
 @_private_key_option
 @_signing_certificate_option
 @_certificate_root_of_trust_option
+@_readme_option  # <--- ADDED OPTION
 def _sign_certificate(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
@@ -516,13 +571,13 @@ def _sign_certificate(
     private_key: pathlib.Path,
     signing_certificate: pathlib.Path,
     certificate_chain: Iterable[pathlib.Path],
+    readme: pathlib.Path | None = None,  # <--- ADDED ARGUMENT
 ) -> None:
-    """Sign using a certificate.
-
+    """
+    Sign using a certificate.
     Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
     (as per `--signature` option). Files in IGNORE_PATHS are not part of the
     signature.
-
     Traditionally, signing can be achieved by using keys from a certificate.
     The certificate can also provide the identity of the signer, making this
     method more informative than just using a public/private key pair for
@@ -531,8 +586,10 @@ def _sign_certificate(
     chain via `--certificate_chain` to establish root of trust (this option can
     be repeated as needed, or all cerificates could be placed in a single file).
 
-    Note that we don't offer certificate and key management protocols.
     """
+    # <--- PARSE METADATA --->
+    metadata = _parse_model_card(readme) if readme else None
+
     try:
         ignored = _resolve_ignore_paths(
             model_path, list(ignore_paths) + [signature]
@@ -545,7 +602,7 @@ def _sign_certificate(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
             .set_allow_symlinks(allow_symlinks)
-        ).sign(model_path, signature)
+        ).sign(model_path, signature, metadata=metadata) # <--- PASS METADATA
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
@@ -562,6 +619,7 @@ def _sign_certificate(
 @_pkcs11_uri_option
 @_signing_certificate_option
 @_certificate_root_of_trust_option
+@_readme_option  # <--- ADDED OPTION
 def _sign_pkcs11_certificate(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
@@ -571,13 +629,13 @@ def _sign_pkcs11_certificate(
     pkcs11_uri: str,
     signing_certificate: pathlib.Path,
     certificate_chain: Iterable[pathlib.Path],
+    readme: pathlib.Path | None = None,  # <--- ADDED ARGUMENT
 ) -> None:
     """Sign using a certificate.
-
+    
     Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
     (as per `--signature` option). Files in IGNORE_PATHS are not part of the
     signature.
-
     Traditionally, signing can be achieved by using keys from a certificate.
     The certificate can also provide the identity of the signer, making this
     method more informative than just using a public/private key pair for
@@ -586,9 +644,10 @@ def _sign_pkcs11_certificate(
     Optionally, pass a certificate chain via `--certificate_chain` to establish
     root of trust (this option can be repeated as needed, or all cerificates
     could be placed in a single file).
-
-    Note that we don't offer certificate and key management protocols.
     """
+    # <--- PARSE METADATA --->
+    metadata = _parse_model_card(readme) if readme else None
+
     try:
         ignored = _resolve_ignore_paths(
             model_path, list(ignore_paths) + [signature]
@@ -601,7 +660,7 @@ def _sign_pkcs11_certificate(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
             .set_allow_symlinks(allow_symlinks)
-        ).sign(model_path, signature)
+        ).sign(model_path, signature, metadata=metadata) # <--- PASS METADATA
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
@@ -609,25 +668,22 @@ def _sign_pkcs11_certificate(
     click.echo("Signing succeeded")
 
 
+# ... (Verify group remains unchanged) ...
 @main.group(name="verify", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
 def _verify() -> None:
     """Verify models.
-
     Given a model and a cryptographic signature (in the form of a Sigstore
     bundle) for the model, this call checks that the model matches the
     signature, that the model has not been tampered with. We support any model
     format, either as a signle file or as a directory.
-
     We support multiple PKI methods, specified as subcommands. By default, the
     signature is assumed to be generated via Sigstore (as if invoking `sigstore`
     subcommand).
-
     To enable verification with custom PKI configurations, use the
     `--trust_config` option. This allows you to specify your own set of trusted
     public keys, transparency logs, and certificate authorities for verifying
     the signature. If not provided, the default Sigstore instance and its
     associated public keys, logs, and authorities are used.
-
     Use each subcommand's `--help` option for details on each mode.
     """
 

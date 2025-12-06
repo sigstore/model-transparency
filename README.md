@@ -390,6 +390,15 @@ Consult the
 [official documentation](https://sigstore.github.io/model-transparency/model_signing.html)
 for more details.
 
+
+### Model Card Signing 
+
+You can also include Model Card metadata in the signature by pointing to your README:
+make sure that your model card follows hugging face [model card structure](https://huggingface.co/docs/hub/en/model-cards) as that is best practice 
+
+```bash
+model_signing sign sigstore <model_path> --readme README.md
+
 ### Model Signing Format
 
 For a diagram showing the model signing format as well as an explanation of the
