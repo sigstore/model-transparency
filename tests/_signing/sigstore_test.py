@@ -332,3 +332,91 @@ class TestSigning:
 
         with pytest.raises(ValueError, match="Expected in-toto .* payload"):
             self._verify_dsse_signature(signature_path)
+
+    def test_sign_with_custom_trust_config(
+        self,
+        sample_model_folder,
+        mocked_oidc_provider,
+        mocked_sigstore_signer,
+        mocked_sigstore_models,
+        tmp_path,
+    ):
+        trust_config_path = (
+            pathlib.Path(__file__).parent
+            / "testdata"
+            / "custom_trust_config.json"
+        )
+
+        serializer = file.Serializer(
+            self._file_hasher_factory, allow_symlinks=True
+        )
+        manifest = serializer.serialize(sample_model_folder)
+        signature_path = tmp_path / "model.sig"
+
+        mocked_client_trust_config = mocked_sigstore_models["ClientTrustConfig"]
+        mocked_custom_config = mock.MagicMock()
+        mocked_client_trust_config.from_json.return_value = mocked_custom_config
+
+        signer = sigstore.Signer(
+            use_staging=False, trust_config=trust_config_path
+        )
+        payload = signing.Payload(manifest)
+        signature = signer.sign(payload)
+        signature.write(signature_path)
+
+        assert mocked_client_trust_config.from_json.called
+        call_args = mocked_client_trust_config.from_json.call_args
+        assert call_args is not None
+        assert isinstance(call_args[0][0], str)
+        trust_config_content = json.loads(call_args[0][0])
+        assert trust_config_content["mediaType"] == (
+            "application/vnd.dev.sigstore.clienttrustconfig.v0.1+json"
+        )
+        assert "signing_config" in trust_config_content
+        assert "trustedRoot" in trust_config_content
+
+    def test_verify_with_custom_trust_config(
+        self,
+        sample_model_folder,
+        mocked_oidc_provider,
+        mocked_sigstore_signer,
+        mocked_sigstore_models,
+        mocked_sigstore_verifier,
+        tmp_path,
+    ):
+        trust_config_path = (
+            pathlib.Path(__file__).parent
+            / "testdata"
+            / "custom_trust_config.json"
+        )
+
+        serializer = file.Serializer(
+            self._file_hasher_factory, allow_symlinks=True
+        )
+        manifest = serializer.serialize(sample_model_folder)
+        signature_path = tmp_path / "model.sig"
+        self._sign_manifest(manifest, signature_path, sigstore.Signer)
+
+        mocked_client_trust_config = mocked_sigstore_models["ClientTrustConfig"]
+        mocked_custom_config = mock.MagicMock()
+        mocked_client_trust_config.from_json.return_value = mocked_custom_config
+
+        verifier = sigstore.Verifier(
+            identity="test",
+            oidc_issuer="test",
+            use_staging=False,
+            trust_config=trust_config_path,
+        )
+        signature = sigstore.Signature.read(signature_path)
+        verifier.verify(signature)
+
+        assert mocked_client_trust_config.from_json.called
+        call_args = mocked_client_trust_config.from_json.call_args
+        assert call_args is not None
+        assert isinstance(call_args[0][0], str)
+        trust_config_content = json.loads(call_args[0][0])
+        assert trust_config_content["mediaType"] == (
+            "application/vnd.dev.sigstore.clienttrustconfig.v0.1+json"
+        )
+        assert "signing_config" in trust_config_content
+        assert "trustedRoot" in trust_config_content
