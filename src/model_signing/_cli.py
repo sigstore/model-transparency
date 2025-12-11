@@ -668,7 +668,7 @@ def _sign_pkcs11_certificate(
     click.echo("Signing succeeded")
 
 
-# ... (Verify group remains unchanged) ...
+
 @main.group(name="verify", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
 def _verify() -> None:
     """Verify models.
