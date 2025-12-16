@@ -25,7 +25,6 @@ import itertools
 import logging
 import os
 import pathlib
-from typing import Optional
 
 from typing_extensions import override
 
@@ -57,7 +56,7 @@ class IncrementalSerializer(serialization.Serializer):
         file_hasher_factory: Callable[[pathlib.Path], io.FileHasher],
         existing_manifest: manifest.Manifest,
         *,
-        max_workers: Optional[int] = None,
+        max_workers: int | None = None,
         allow_symlinks: bool = False,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ):
@@ -95,12 +94,26 @@ class IncrementalSerializer(serialization.Serializer):
                 if isinstance(item, manifest._File):
                     self._existing_items[item.path] = item
 
-        # Precompute serialization description
-        hasher = file_hasher_factory(pathlib.Path())
-        self._serialization_description = manifest._FileSerialization(
-            hasher.digest_name, self._allow_symlinks, self._ignore_paths
-        )
-        self._is_blake3 = hasher.digest_name == "blake3"
+        # Copy serialization description from existing manifest
+        if isinstance(
+            existing_manifest._serialization_type, manifest._FileSerialization
+        ):
+            # Copy from file-based serialization
+            self._serialization_description = manifest._FileSerialization(
+                existing_manifest._serialization_type._hash_type,
+                existing_manifest._serialization_type._allow_symlinks,
+                existing_manifest._serialization_type._ignore_paths,
+            )
+            self._is_blake3 = (
+                existing_manifest._serialization_type._hash_type == "blake3"
+            )
+        else:
+            # Fall back to creating new one for shard-based manifests
+            hasher = file_hasher_factory(pathlib.Path())
+            self._serialization_description = manifest._FileSerialization(
+                hasher.digest_name, self._allow_symlinks, self._ignore_paths
+            )
+            self._is_blake3 = hasher.digest_name == "blake3"
 
     def set_allow_symlinks(self, allow_symlinks: bool) -> None:
         """Set whether following symlinks is allowed."""
@@ -177,7 +190,7 @@ class IncrementalSerializer(serialization.Serializer):
         model_path: pathlib.Path,
         *,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
-        files_to_hash: Optional[Iterable[pathlib.Path]] = None,
+        files_to_hash: Iterable[pathlib.Path] | None = None,
     ) -> manifest.Manifest:
         """Serializes the model, only re-hashing changed/new files.
 

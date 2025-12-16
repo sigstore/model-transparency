@@ -83,7 +83,7 @@ def sign_incremental(
     identity: str,
     oidc_issuer: str,
     use_staging: bool = False,
-    files_to_hash: Optional[Iterable[hashing.PathLike]] = None,
+    files_to_hash: Iterable[hashing.PathLike] | None = None,
 ):
     """Signs a model incrementally, only re-hashing changed files.
 
@@ -185,7 +185,7 @@ class Config:
         identity: str,
         oidc_issuer: str,
         use_staging: bool = False,
-        files_to_hash: Optional[Iterable[hashing.PathLike]] = None,
+        files_to_hash: Iterable[hashing.PathLike] | None = None,
     ):
         """Signs a model incrementally using the current configuration.
 

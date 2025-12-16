@@ -380,13 +380,11 @@ class Config:
         self,
         existing_manifest: manifest.Manifest,
         *,
-        hashing_algorithm: Optional[
-            Literal["sha256", "blake2", "blake3"]
-        ] = None,
+        hashing_algorithm: Literal["sha256", "blake2", "blake3"] | None = None,
         chunk_size: int = 1048576,
-        max_workers: Optional[int] = None,
-        allow_symlinks: Optional[bool] = None,
-        ignore_paths: Optional[Iterable[pathlib.Path]] = None,
+        max_workers: int | None = None,
+        allow_symlinks: bool | None = None,
+        ignore_paths: Iterable[pathlib.Path] | None = None,
     ) -> Self:
         """Configures incremental serialization for selective file re-hashing.
 
