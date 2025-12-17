@@ -107,3 +107,29 @@ def test_blake3_file_serialization_with_max_workers(tmp_path):
     # All manifests should be equal
     assert manifest1 == manifest2
     assert manifest1 == manifest3
+
+
+def test_incremental_serialization_extracts_parameters(tmp_path):
+    """Test parameter extraction in use_incremental_serialization."""
+    model = tmp_path / "model"
+    model.mkdir()
+    (model / "file1.txt").write_text("content1")
+    (model / "file2.txt").write_text("content2")
+
+    # Create initial manifest with blake2 algorithm
+    cfg1 = hashing.Config().use_file_serialization(hashing_algorithm="blake2")
+    initial_manifest = cfg1.hash(model)
+
+    # Verify initial manifest has blake2b
+    assert initial_manifest.serialization_type["hash_type"] == "blake2b"
+
+    # Now use incremental serialization WITHOUT specifying hashing_algorithm
+    # It should auto-extract blake2 from initial_manifest
+    cfg2 = hashing.Config().use_incremental_serialization(initial_manifest)
+    new_manifest = cfg2.hash(model)
+
+    # Verify new manifest uses same hash algorithm (blake2b)
+    assert new_manifest.serialization_type["hash_type"] == "blake2b"
+
+    # Manifests should be equal (same files, same digests, same parameters)
+    assert initial_manifest == new_manifest
