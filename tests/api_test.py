@@ -182,6 +182,52 @@ class TestSigstoreSigning:
             sample_model_folder
         )
 
+    @pytest.mark.integration
+    def test_sign_and_verify_with_custom_trust_config(
+        self, sigstore_oidc_beacon_token, sample_model_folder, tmp_path
+    ):
+        trust_config_path = (
+            Path(__file__).parent
+            / "_signing"
+            / "testdata"
+            / "custom_trust_config.json"
+        )
+
+        sc = signing.Config()
+        sc.use_sigstore_signer(
+            use_staging=False,
+            identity_token=sigstore_oidc_beacon_token,
+            trust_config=trust_config_path,
+        )
+        signature_path = tmp_path / "model.sig"
+        sc.sign(sample_model_folder, signature_path)
+
+        expected_identity = "https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon/.github/workflows/extremely-dangerous-oidc-beacon.yml@refs/heads/main"
+        expected_oidc_issuer = "https://token.actions.githubusercontent.com"
+        verifying.Config().use_sigstore_verifier(
+            identity=expected_identity,
+            oidc_issuer=expected_oidc_issuer,
+            use_staging=False,
+            trust_config=trust_config_path,
+        ).verify(sample_model_folder, signature_path)
+
+        assert get_signed_files(signature_path) == [
+            "d0/f00",
+            "d0/f01",
+            "d0/f02",
+            "d1/f10",
+            "d1/f11",
+            "d1/f12",
+            "f0",
+            "f1",
+            "f2",
+            "f3",
+        ]
+        check_ignore_paths(signature_path, True, [])
+        assert get_model_name(signature_path) == os.path.basename(
+            sample_model_folder
+        )
+
 
 class TestKeySigning:
     def test_sign_and_verify(self, base_path, populate_tmpdir):
