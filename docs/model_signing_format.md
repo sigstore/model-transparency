@@ -66,6 +66,10 @@ library after passing it an In-Toto Statement. This API will sign the statement,
 producing a DSSE envelope, along with a DSSE log entry that is submitted to the
 transparency log.
 
+## Excluded Files
+
+Signature and attestation files are automatically excluded from the model signature to allow attestations (SLSA provenance, SBOMs, etc.) to accumulate independently throughout a model's lifecycle. Excluded patterns include `*.sig`, `*.sigstore.json`, and `claims.jsonl`.
+
 ## Example Format
 
 Below is an example of the Sigstore bundle showing each of the layers described above.
