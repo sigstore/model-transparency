@@ -51,13 +51,26 @@ class Signature(signing.Signature):
 
     @override
     def write(self, path: pathlib.Path) -> None:
-        path.write_text(self.bundle.to_json(), encoding="utf-8")
+        # Convert to compact JSON (single line) for JSONL format
+        import json
+
+        bundle_dict = json.loads(self.bundle.to_json())
+        compact_json = json.dumps(bundle_dict, separators=(",", ":"))
+
+        # Append to file if it exists (for accumulating attestations)
+        # Otherwise create new file
+        mode = "a" if path.exists() else "w"
+        with path.open(mode, encoding="utf-8") as f:
+            f.write(compact_json + "\n")
 
     @classmethod
     @override
     def read(cls, path: pathlib.Path) -> Self:
         content = path.read_text(encoding="utf-8")
-        return cls(sigstore_models.Bundle.from_json(content))
+        # Handle JSONL format: read the last line (most recent attestation)
+        lines = content.strip().split("\n")
+        last_line = lines[-1]
+        return cls(sigstore_models.Bundle.from_json(last_line))
 
 
 class Signer(signing.Signer):
