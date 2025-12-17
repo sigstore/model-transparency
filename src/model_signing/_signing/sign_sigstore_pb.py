@@ -106,14 +106,14 @@ class Signature(signing.Signature):
     @override
     def write(self, path: pathlib.Path) -> None:
         # Convert to compact JSON (single line) for JSONL format
-        bundle_dict = json.loads(self.bundle.to_json())
-        compact_json = json.dumps(bundle_dict, separators=(",", ":"))
+        # by removing newlines from the bundle's JSON output
+        bundle_json = self.bundle.to_json().replace("\n", "")
 
         # Append to file if it exists (for accumulating attestations)
         # Otherwise create new file
         mode = "a" if path.exists() else "w"
         with path.open(mode, encoding="utf-8") as f:
-            f.write(compact_json + "\n")
+            f.write(bundle_json + "\n")
 
     @classmethod
     @override
