@@ -28,7 +28,7 @@ then sharing it between signing and verification.
 
 ```python
 hashing_config = model_signing.hashing.Config().set_ignored_paths(
-    paths=["README.md"], ignore_git_paths=True
+    paths=["README.md"], ignore_git_paths=True, ignore_att_paths=True
 )
 
 signing_config = (
@@ -47,7 +47,7 @@ verifying_config = (
 The API defined here is stable and backwards compatible.
 """
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 import os
 import pathlib
 import sys
@@ -78,6 +78,26 @@ from typing import TypeAlias
 # When Python 3.12 is the minimum supported version we can use `type`
 # When Python 3.11 is the minimum supported version we can use `|`
 PathLike: TypeAlias = str | bytes | os.PathLike
+
+
+# Git-related paths that are optionally ignored when hashing models.
+_GIT_IGNORE_PATHS: list[str] = [
+    ".git/",
+    ".gitattributes",
+    ".github/",
+    ".gitignore",
+]
+
+# Signature and attestation paths that are ignored by default when
+# hashing models. These files should be signed independently to allow
+# attestations to accumulate throughout a model's lifecycle without
+# invalidating the original signature. Can be controlled via the
+# ignore_att_paths parameter.
+_ATTESTATION_IGNORE_PATHS: list[str] = [
+    "*.sig",  # Signature files
+    "*.sigstore.json",  # Individual attestation files
+    "claims.jsonl",  # Bundled attestation files
+]
 
 
 def hash(model_path: PathLike) -> manifest.Manifest:
@@ -129,14 +149,16 @@ class Config:
     This configuration class also supports configuring which paths from the
     model directory should be ignored. These are files that doesn't impact the
     behavior of the model, or files that won't be distributed with the model. By
-    default, only files that are associated with a git repository (`.git`,
-    `.gitattributes`, `.gitignore`, etc.) are ignored.
+    default, files associated with a git repository (`.git`, `.gitattributes`,
+    `.gitignore`, etc.) and attestation files (`*.sig`, `*.sigstore.json`,
+    `claims.jsonl`) are ignored.
     """
 
     def __init__(self):
         """Initializes the default configuration for hashing."""
         self._ignored_paths = frozenset()
         self._ignore_git_paths = True
+        self._ignore_att_paths = True
         self.use_file_serialization()
         self._allow_symlinks = False
 
@@ -160,18 +182,23 @@ class Config:
                 continue
             ignored_paths.append(full)
 
+        def expand_patterns(patterns: list[str]) -> Iterator[pathlib.Path]:
+            """Expand glob patterns and yield paths."""
+            for pattern in patterns:
+                if "*" in pattern or "?" in pattern or "[" in pattern:
+                    # Expand glob pattern
+                    yield from model_path.glob(pattern)
+                else:
+                    # Literal path
+                    yield model_path / pattern
+
+        # Optionally exclude signature and attestation files
+        if self._ignore_att_paths:
+            ignored_paths.extend(expand_patterns(_ATTESTATION_IGNORE_PATHS))
+
+        # Optionally exclude git-related files
         if self._ignore_git_paths:
-            ignored_paths.extend(
-                [
-                    model_path / p
-                    for p in [
-                        ".git/",
-                        ".gitattributes",
-                        ".github/",
-                        ".gitignore",
-                    ]
-                ]
-            )
+            ignored_paths.extend(expand_patterns(_GIT_IGNORE_PATHS))
 
         self._serializer.set_allow_symlinks(self._allow_symlinks)
 
@@ -375,7 +402,11 @@ class Config:
         return self
 
     def set_ignored_paths(
-        self, *, paths: Iterable[PathLike], ignore_git_paths: bool = True
+        self,
+        *,
+        paths: Iterable[PathLike],
+        ignore_git_paths: bool = True,
+        ignore_att_paths: bool = True,
     ) -> Self:
         """Configures the paths to be ignored during serialization of a model.
 
@@ -390,6 +421,10 @@ class Config:
             paths: The paths to ignore.
             ignore_git_paths: Whether to ignore git related paths (default) or
               include them in the signature.
+            ignore_att_paths: Whether to ignore signature and attestation files
+              (default) or include them in the signature. Recommended to keep
+              True to allow attestations to accumulate throughout the model's
+              lifecycle without invalidating the original signature.
 
         Returns:
             The new hashing configuration with a new set of ignored paths.
@@ -398,6 +433,7 @@ class Config:
         # the model directory later when hashing.
         self._ignored_paths = frozenset(pathlib.Path(p) for p in paths)
         self._ignore_git_paths = ignore_git_paths
+        self._ignore_att_paths = ignore_att_paths
         return self
 
     def add_ignored_paths(
