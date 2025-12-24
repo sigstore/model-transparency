@@ -10,7 +10,8 @@ All versions prior to 1.0.0 are untracked.
 ## [Unreleased]
 
 ### Added
-- ...
+
+- Added support for parsing and signing Model Card metadata (YAML front matter) via the `--readme` flag in the CLI. ([#583](https://github.com/sigstore/model-transparency/issues/583))
 
 ### Changed
 - ...
