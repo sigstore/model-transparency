@@ -383,3 +383,296 @@ class TestCertificateSigning:
             signature, ignore_git_paths, ["model.sig", "ignored"]
         )
         assert get_model_name(signature) == os.path.basename(model_path)
+
+
+class TestMLDSASigning:
+    """Integration tests for ML-DSA signing and verification."""
+
+    def test_sign_and_verify_basic(self, base_path, populate_tmpdir):
+        """Test basic ML-DSA signing and verification without password."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        ignore_paths = []
+        ignore_git_paths = False
+        signature = Path(model_path / "model.sig")
+
+        # Generate temporary ML-DSA key pair for testing
+        from dilithium_py.ml_dsa import ML_DSA_65
+        ml_dsa = ML_DSA_65
+
+        with TemporaryDirectory() as tmpdir:
+            private_key = Path(tmpdir) / "test.priv"
+            public_key = Path(tmpdir) / "test.pub"
+
+            # Generate key pair
+            pk, sk = ml_dsa.keygen()
+            private_key.write_bytes(sk)
+            public_key.write_bytes(pk)
+
+            # Sign the model
+            signing.Config().use_ml_dsa_signer(
+                private_key=private_key,
+                variant="ML_DSA_65"
+            ).set_hashing_config(
+                hashing.Config().set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+            ).sign(model_path, signature)
+
+            # Verify the signature
+            verifying.Config().use_ml_dsa_verifier(
+                    public_key=public_key,
+                    variant="ML_DSA_65"
+                ).set_hashing_config(
+                hashing.Config().set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+            ).verify(model_path, signature)
+
+            assert get_signed_files(signature) == [
+                ".gitignore",
+                "signme-1",
+                "signme-2",
+            ]
+            check_ignore_paths(signature, ignore_git_paths, ["model.sig"])
+            assert get_model_name(signature) == os.path.basename(model_path)
+
+    def test_sign_and_verify_with_password(self, base_path, populate_tmpdir):
+        """Test ML-DSA signing with encrypted private key."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        test_password = "test_secure_password_123"
+
+        # Generate temporary ML-DSA key pair
+        from dilithium_py.ml_dsa import ML_DSA_65
+        from model_signing._signing.sign_ml_dsa import encrypt_private_key
+
+        ml_dsa = ML_DSA_65
+
+        with TemporaryDirectory() as tmpdir:
+            private_key = Path(tmpdir) / "test.priv"
+            public_key = Path(tmpdir) / "test.pub"
+            encrypted_key = Path(tmpdir) / "test_encrypted.priv"
+
+            # Generate and encrypt key pair
+            pk, sk = ml_dsa.keygen()
+            private_key.write_bytes(sk)
+            public_key.write_bytes(pk)
+
+            # Encrypt the private key
+            encrypted_data = encrypt_private_key(sk, test_password)
+            encrypted_key.write_bytes(encrypted_data)
+
+            # Sign with encrypted key
+            signing.Config().use_ml_dsa_signer(
+                private_key=encrypted_key,
+                variant="ML_DSA_65",
+                password=test_password
+            ).set_hashing_config(
+                hashing.Config().set_ignored_paths(
+                    paths=[signature],
+                    ignore_git_paths=False,
+                )
+            ).sign(model_path, signature)
+
+            # Verify the signature
+            verifying.Config().use_ml_dsa_verifier(
+                    public_key=public_key,
+                    variant="ML_DSA_65"
+                ).set_hashing_config(
+                hashing.Config().set_ignored_paths(
+                    paths=[signature],
+                    ignore_git_paths=False,
+                )
+            ).verify(model_path, signature)
+
+            assert get_signed_files(signature) == [
+                ".gitignore",
+                "signme-1",
+                "signme-2",
+            ]
+
+    def test_encrypted_key_wrong_password(self, base_path, populate_tmpdir):
+        """Test that wrong password raises appropriate error."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        correct_password = "correct_password"
+        wrong_password = "wrong_password"
+
+        from dilithium_py.ml_dsa import ML_DSA_44
+        from model_signing._signing.sign_ml_dsa import encrypt_private_key
+
+        ml_dsa = ML_DSA_44
+
+        with TemporaryDirectory() as tmpdir:
+            private_key = Path(tmpdir) / "test.priv"
+            encrypted_key = Path(tmpdir) / "test_encrypted.priv"
+
+            # Generate and encrypt key
+            pk, sk = ml_dsa.keygen()
+            private_key.write_bytes(sk)
+            encrypted_data = encrypt_private_key(sk, correct_password)
+            encrypted_key.write_bytes(encrypted_data)
+
+            # Try to sign with wrong password - should raise ValueError
+            with pytest.raises(ValueError, match="Failed to decrypt key"):
+                signing.Config().use_ml_dsa_signer(
+                    private_key=encrypted_key,
+                    variant="ML_DSA_44",
+                    password=wrong_password
+                ).sign(model_path, signature)
+
+    def test_encrypted_key_no_password_provided(self, base_path, populate_tmpdir):
+        """Test that encrypted key without password raises error."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        password = "test_password"
+
+        from dilithium_py.ml_dsa import ML_DSA_87
+        from model_signing._signing.sign_ml_dsa import encrypt_private_key
+
+        ml_dsa = ML_DSA_87
+
+        with TemporaryDirectory() as tmpdir:
+            encrypted_key = Path(tmpdir) / "test_encrypted.priv"
+
+            # Generate and encrypt key
+            pk, sk = ml_dsa.keygen()
+            encrypted_data = encrypt_private_key(sk, password)
+            encrypted_key.write_bytes(encrypted_data)
+
+            # Try to sign without password - should raise ValueError
+            with pytest.raises(ValueError, match="Private key is encrypted but no password provided"):
+                signing.Config().use_ml_dsa_signer(
+                    private_key=encrypted_key,
+                    variant="ML_DSA_87",
+                    password=None
+                ).sign(model_path, signature)
+
+    def test_raw_key_password_provided(self, base_path, populate_tmpdir):
+        """Test that providing password for raw key raises error."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+
+        from dilithium_py.ml_dsa import ML_DSA_65
+
+        ml_dsa = ML_DSA_65
+
+        with TemporaryDirectory() as tmpdir:
+            private_key = Path(tmpdir) / "test.priv"
+
+            # Generate raw key
+            pk, sk = ml_dsa.keygen()
+            private_key.write_bytes(sk)
+
+            # Try to sign with password but raw key - should raise ValueError
+            with pytest.raises(ValueError, match="Password provided but private key is not encrypted"):
+                signing.Config().use_ml_dsa_signer(
+                    private_key=private_key,
+                    variant="ML_DSA_65",
+                    password="some_password"
+                ).sign(model_path, signature)
+
+    def test_all_variants(self, base_path, populate_tmpdir):
+        """Test all three ML-DSA variants (44, 65, 87)."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+
+        from dilithium_py.ml_dsa import ML_DSA_44, ML_DSA_65, ML_DSA_87
+
+        variants = [
+            ("ML_DSA_44", ML_DSA_44, 2560),
+            ("ML_DSA_65", ML_DSA_65, 4032),
+            ("ML_DSA_87", ML_DSA_87, 4896),
+        ]
+
+        for variant_name, ml_dsa, expected_size in variants:
+            with TemporaryDirectory() as tmpdir:
+                signature = Path(model_path / f"model_{variant_name}.sig")
+                private_key = Path(tmpdir) / "test.priv"
+                public_key = Path(tmpdir) / "test.pub"
+
+                # Generate key pair
+                pk, sk = ml_dsa.keygen()
+                private_key.write_bytes(sk)
+                public_key.write_bytes(pk)
+
+                # Verify key size
+                assert len(sk) == expected_size, f"Expected {expected_size} bytes for {variant_name}"
+
+                # Sign and verify
+                signing.Config().use_ml_dsa_signer(
+                    private_key=private_key,
+                    variant=variant_name
+                ).set_hashing_config(
+                    hashing.Config().set_ignored_paths(paths=[signature])
+                ).sign(model_path, signature)
+
+                verifying.Config().use_ml_dsa_verifier(
+                    public_key=public_key,
+                    variant=variant_name
+                ).set_hashing_config(
+                    hashing.Config().set_ignored_paths(paths=[signature])
+                ).verify(model_path, signature)
+
+                # Clean up signature file
+                signature.unlink()
+
+    def test_sign_with_ignored_paths(self, base_path, populate_tmpdir):
+        """Test ML-DSA signing with git paths ignored."""
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        ignore_paths = [Path(model_path / "ignored")]
+        ignore_git_paths = True
+
+        from dilithium_py.ml_dsa import ML_DSA_65
+
+        ml_dsa = ML_DSA_65
+
+        with TemporaryDirectory() as tmpdir:
+            private_key = Path(tmpdir) / "test.priv"
+            public_key = Path(tmpdir) / "test.pub"
+
+            # Generate key pair
+            pk, sk = ml_dsa.keygen()
+            private_key.write_bytes(sk)
+            public_key.write_bytes(pk)
+
+            # Sign with ignored paths
+            signing.Config().use_ml_dsa_signer(
+                private_key=private_key,
+                variant="ML_DSA_65"
+            ).set_hashing_config(
+                hashing.Config().set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+            ).sign(model_path, signature)
+
+            # Verify
+            verifying.Config().use_ml_dsa_verifier(
+                    public_key=public_key,
+                    variant="ML_DSA_65"
+                ).set_hashing_config(
+                hashing.Config().set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+            ).verify(model_path, signature)
+
+            assert get_signed_files(signature) == ["signme-1", "signme-2"]
+            check_ignore_paths(signature, ignore_git_paths, ["model.sig", "ignored"])
