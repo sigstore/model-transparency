@@ -248,7 +248,7 @@ the PKCS #11 device and store it in a file in PEM format. With can then use:
 
 #### Post-Quantum Cryptography with ML-DSA
 
-Model signing supports post-quantum cryptographic signatures using **ML-DSA** (Module Lattice Digital Signature Algorithm), standardized as [NIST FIPS 204](https://csrc.nist.gov/publications/detail/fips/204/final) in August 2024. ML-DSA provides security against both classical and quantum computer attacks, making it suitable for long-term security requirements.
+Model signing supports post-quantum cryptographic signatures using **ML-DSA** (Module Lattice Digital Signature Algorithm), standardized as [NIST FIPS 204](https://csrc.nist.gov/pubs/fips/204/final) in August 2024. ML-DSA provides security against both classical and quantum computer attacks, making it suitable for long-term security requirements.
 
 To enable ML-DSA support, install the optional dependencies:
 
@@ -364,10 +364,10 @@ Note that ML-DSA signatures are significantly larger than traditional ECDSA sign
 
 | Algorithm | Public Key | Private Key | Signature | Quantum-Safe |
 |-----------|------------|-------------|-----------|--------------|
-| ECDSA P-256 | 91 B | 121 B | 70 B | ? |
-| ML-DSA-44 | 1,312 B | 2,560 B | 2,420 B | ? |
-| ML-DSA-65 | 1,952 B | 4,032 B | 3,309 B | ? |
-| ML-DSA-87 | 2,592 B | 4,896 B | 4,627 B | ? |
+| ECDSA P-256 | 91 B | 121 B | 70 B | No |
+| ML-DSA-44 | 1,312 B | 2,560 B | 2,420 B | Yes (NIST Level 2) |
+| ML-DSA-65 | 1,952 B | 4,032 B | 3,309 B | Yes (NIST Level 3) |
+| ML-DSA-87 | 2,592 B | 4,896 B | 4,627 B | Yes (NIST Level 5) |
 
 While ML-DSA signatures are larger, they provide quantum-resistant security, which is increasingly important for long-term model integrity protection.
 
@@ -390,8 +390,6 @@ model_signing.verifying.Config().use_ml_dsa_verifier(
     variant="ML_DSA_65"
 ).verify("bert-base-uncased", "model.sig")
 ```
-
-For more details, see the [ML-DSA implementation documentation](ML_DSA_IMPLEMENTATION.md).
 
 #### OpenTelemetry Support
 

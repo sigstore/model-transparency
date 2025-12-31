@@ -11,7 +11,7 @@ import pathlib
 import sys
 
 # Add src to path for direct execution
-sys.path.insert(0, str(pathlib.Path(__file__).parent / "src"))
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "src"))
 
 from model_signing._signing.sign_ml_dsa import encrypt_private_key, decrypt_private_key, _ENCRYPTED_KEY_HEADER
 

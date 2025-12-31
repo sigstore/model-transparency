@@ -698,21 +698,3 @@ model_signing sign ml-dsa my_model \
     --signature model.sig
 ```
 
-### Getting Help
-
-- **Documentation**: [model-signing documentation](https://github.com/sigstore/model-transparency)
-- **Issues**: [GitHub Issues](https://github.com/sigstore/model-transparency/issues)
-- **Security**: Report security issues to security@sigstore.dev
-- **ML-DSA Spec**: [NIST FIPS 204](https://csrc.nist.gov/publications/detail/fips/204/final)
-
-## Conclusion
-
-ML-DSA provides quantum-resistant signatures for long-term model integrity protection. While the keys and signatures are larger than traditional methods, they ensure your models remain secure even against future quantum computers.
-
-For most use cases, we recommend:
-- **ML-DSA-65** for production models
-- **Password-protected keys** for enhanced security
-- **CI/CD integration** for automated signing
-- **Regular key rotation** (annually or as needed)
-
-Start with the basic examples and gradually adopt advanced features as your security requirements evolve.
