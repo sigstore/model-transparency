@@ -292,3 +292,46 @@ class Config:
             log_fingerprints=log_fingerprints,
         )
         return self
+
+    def use_ml_dsa_verifier(
+        self,
+        *,
+        public_key: hashing.PathLike,
+        variant: str = "ML_DSA_65",
+    ) -> Self:
+        """Configures verification of ML-DSA (post-quantum) signatures.
+
+        The verifier in this configuration is changed to one that performs
+        verification of sigstore bundles signed by an ML-DSA private key.
+        The public key used in the configuration must match the private key
+        used during signing.
+
+        ML-DSA (Module Lattice Digital Signature Algorithm) is a post-quantum
+        cryptographic algorithm standardized in NIST FIPS 204, providing
+        security against both classical and quantum computer attacks.
+
+        Args:
+            public_key: The path to the ML-DSA public key (raw bytes format).
+            variant: The ML-DSA security level. Must match the variant used
+                during signing. Options are:
+                - "ML_DSA_44": NIST security level 2 (comparable to AES-128)
+                - "ML_DSA_65": NIST security level 3 (comparable to AES-192) - Default
+                - "ML_DSA_87": NIST security level 5 (comparable to AES-256)
+
+        Return:
+            The new verification configuration.
+
+        Raises:
+            ImportError: If dilithium-py is not installed.
+        """
+        try:
+            from model_signing._signing import sign_ml_dsa as ml_dsa
+        except ImportError as e:
+            raise RuntimeError(
+                "ML-DSA functionality requires the 'dilithium-py' package. "
+                "Install with 'pip install dilithium-py'."
+            ) from e
+
+        self._uses_sigstore = False
+        self._verifier = ml_dsa.Verifier(pathlib.Path(public_key), variant)
+        return self

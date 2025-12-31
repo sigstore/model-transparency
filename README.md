@@ -246,6 +246,153 @@ the PKCS #11 device and store it in a file in PEM format. With can then use:
        --public_key key.pub  /path/to/your/model
 ```
 
+#### Post-Quantum Cryptography with ML-DSA
+
+Model signing supports post-quantum cryptographic signatures using **ML-DSA** (Module Lattice Digital Signature Algorithm), standardized as [NIST FIPS 204](https://csrc.nist.gov/publications/detail/fips/204/final) in August 2024. ML-DSA provides security against both classical and quantum computer attacks, making it suitable for long-term security requirements.
+
+To enable ML-DSA support, install the optional dependencies:
+
+```bash
+pip install model-signing[pqc]
+```
+
+ML-DSA supports three security levels:
+
+- **ML-DSA-44**: NIST Level 2 (comparable to AES-128) - For IoT and bandwidth-constrained environments
+- **ML-DSA-65**: NIST Level 3 (comparable to AES-192) - **Recommended** for most production use cases
+- **ML-DSA-87**: NIST Level 5 (comparable to AES-256) - For ultra-high security needs
+
+##### Generating ML-DSA Keys
+
+The easiest way to generate ML-DSA keys is using the `keygen` command:
+
+```bash
+[...]$ model_signing keygen ml-dsa --output mykey --variant ML_DSA_65
+```
+
+This will create `mykey.priv` and `mykey.pub` files with the specified security level.
+
+Alternatively, you can generate keys programmatically in Python:
+
+```python
+from dilithium_py.ml_dsa import ML_DSA_65
+import pathlib
+
+# Generate key pair
+public_key, private_key = ML_DSA_65.keygen()
+
+# Save keys to files
+pathlib.Path("ml_dsa_65.pub").write_bytes(public_key)
+pathlib.Path("ml_dsa_65.priv").write_bytes(private_key)
+```
+
+Or as a one-liner in bash:
+
+```bash
+python -c "from dilithium_py.ml_dsa import ML_DSA_65; import pathlib; pk, sk = ML_DSA_65.keygen(); pathlib.Path('ml_dsa_65.pub').write_bytes(pk); pathlib.Path('ml_dsa_65.priv').write_bytes(sk)"
+```
+
+##### Signing with ML-DSA
+
+Sign a model using the generated ML-DSA private key:
+
+```bash
+[...]$ model_signing sign ml-dsa bert-base-uncased \
+       --private_key ml_dsa_65.priv \
+       --variant ML_DSA_65 \
+       --signature model.sig
+```
+
+The `--variant` flag accepts `ML_DSA_44`, `ML_DSA_65` (default), or `ML_DSA_87`.
+
+##### Verifying ML-DSA Signatures
+
+Verify the signature using the corresponding public key:
+
+```bash
+[...]$ model_signing verify ml-dsa bert-base-uncased \
+       --signature model.sig \
+       --public_key ml_dsa_65.pub \
+       --variant ML_DSA_65
+```
+
+##### Password-Protected ML-DSA Keys
+
+For enhanced security, ML-DSA private keys can be encrypted with a password using AES-256-GCM encryption:
+
+**Encrypting an Existing Key:**
+
+```bash
+[...]$ python scripts/ml_dsa_key_tool.py encrypt ml_dsa_65.priv \
+       --output ml_dsa_65_encrypted.priv \
+       --password "your_secure_password"
+```
+
+**Signing with an Encrypted Key:**
+
+```bash
+[...]$ model_signing sign ml-dsa bert-base-uncased \
+       --private_key ml_dsa_65_encrypted.priv \
+       --password "your_secure_password" \
+       --signature model.sig
+```
+
+**Verifying Encrypted Keys:**
+
+```bash
+[...]$ python scripts/ml_dsa_key_tool.py verify ml_dsa_65_encrypted.priv \
+       --password "your_secure_password"
+```
+
+**Decrypting Keys (if needed):**
+
+```bash
+[...]$ python scripts/ml_dsa_key_tool.py decrypt ml_dsa_65_encrypted.priv \
+       --output ml_dsa_65_decrypted.priv \
+       --password "your_secure_password"
+```
+
+**Security Notes:**
+- Encrypted keys use AES-256-GCM with PBKDF2 key derivation (100,000 iterations)
+- The encryption adds 56 bytes overhead (12-byte header + 16-byte salt + 12-byte nonce + 16-byte authentication tag)
+- Store passwords securely - never commit them to version control
+- Consider using environment variables or secure key management systems for automated workflows
+
+##### ML-DSA Signature Sizes
+
+Note that ML-DSA signatures are significantly larger than traditional ECDSA signatures due to the nature of post-quantum algorithms:
+
+| Algorithm | Public Key | Private Key | Signature | Quantum-Safe |
+|-----------|------------|-------------|-----------|--------------|
+| ECDSA P-256 | 91 B | 121 B | 70 B | ? |
+| ML-DSA-44 | 1,312 B | 2,560 B | 2,420 B | ? |
+| ML-DSA-65 | 1,952 B | 4,032 B | 3,309 B | ? |
+| ML-DSA-87 | 2,592 B | 4,896 B | 4,627 B | ? |
+
+While ML-DSA signatures are larger, they provide quantum-resistant security, which is increasingly important for long-term model integrity protection.
+
+##### Using ML-DSA in Python API
+
+You can also use ML-DSA signing and verification programmatically:
+
+```python
+import model_signing
+
+# Sign with ML-DSA
+model_signing.signing.Config().use_ml_dsa_signer(
+    private_key="ml_dsa_65.priv",
+    variant="ML_DSA_65"
+).sign("bert-base-uncased", "model.sig")
+
+# Verify with ML-DSA
+model_signing.verifying.Config().use_ml_dsa_verifier(
+    public_key="ml_dsa_65.pub",
+    variant="ML_DSA_65"
+).verify("bert-base-uncased", "model.sig")
+```
+
+For more details, see the [ML-DSA implementation documentation](ML_DSA_IMPLEMENTATION.md).
+
 #### OpenTelemetry Support
 
 Model signing supports optional distributed tracing and observability through OpenTelemetry. This allows you to monitor signing operations, track performance, and integrate with observability platforms.

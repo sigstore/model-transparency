@@ -21,6 +21,7 @@ echo "ignore" > "${ignorefile}"
 sigfile_key="${TMPDIR}/model.sig-key"
 sigfile_certificate="${TMPDIR}/model.sig-certificate"
 sigfile_sigstore="${TMPDIR}/model.sig-sigstore"
+sigfile_mldsa="${TMPDIR}/model.sig-mldsa"
 
 TOKENPROJ="${TMPDIR}/tokenproj"
 mkdir -p "${TOKENPROJ}" || exit 1
@@ -64,6 +65,19 @@ if ! python -m model_signing \
 	"${MODELDIR}" || \
   test ! -f "${sigfile_certificate}"; then
 	echo "Error: 'sign certificate' failed"
+	exit 1
+fi
+
+echo "Signing with 'ml-dsa' method"
+
+if ! python -m model_signing \
+	sign ml-dsa \
+	--signature "${sigfile_mldsa}" \
+	--private_key ./keys/ml-dsa/signing-key.priv \
+	--ignore-paths "${ignorefile}" \
+	"${MODELDIR}" || \
+  test ! -f "${sigfile_mldsa}"; then
+	echo "Error: 'sign ml-dsa' failed"
 	exit 1
 fi
 
@@ -155,6 +169,30 @@ for version in v1.0.1 v1.0.0 v0.3.1 v0.3.0; do
 			--ignore-paths "${ignorefile}" \
 			"${MODELDIR}" 2>&1); then
 			echo "Error: 'verify certificate' failed with ${version}"
+			echo "${out}"
+			exit 1
+		fi
+		if ! grep -q "succeeded" <<< "${out}"; then
+			echo "verification failed:"
+			echo "${out}"
+			exit 1
+		fi
+	esac
+
+	# ML-DSA is only available in v1.1.0+
+	case "${version}" in
+	v0.* | v1.0.*)
+		echo "Skipping 'verify ml-dsa' method (not available in ${version})"
+		;;
+	*)
+		echo "Testing 'verify ml-dsa' method"
+		if ! out=$(python -m model_signing \
+			verify ml-dsa \
+			--signature "${sigfile_mldsa}" \
+			--public_key ./keys/ml-dsa/signing-key.pub \
+			--ignore-paths "${ignorefile}" \
+			"${MODELDIR}" 2>&1); then
+			echo "Error: 'verify ml-dsa' failed with ${version}"
 			echo "${out}"
 			exit 1
 		fi

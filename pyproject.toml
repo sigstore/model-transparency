@@ -52,6 +52,9 @@ keywords = [
 pkcs11 = [
     "PyKCS11",
 ]
+pqc = [
+    "dilithium-py>=1.3.0",
+]
 otel = [
   "opentelemetry-api",
   "opentelemetry-sdk",
