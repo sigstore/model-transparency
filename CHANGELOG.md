@@ -10,7 +10,7 @@ All versions prior to 1.0.0 are untracked.
 ## [Unreleased]
 
 ### Added
-- ...
+- Added support for signing with Key Management Service (KMS) providers through KMS URIs. Supported providers include AWS KMS, Google Cloud KMS, Azure Key Vault, and a file-based backend for testing. Install with `pip install model-signing[kms]` to enable this functionality.
 
 ### Changed
 - ...

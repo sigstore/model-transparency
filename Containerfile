@@ -38,7 +38,7 @@ COPY src /app/src
 COPY pyproject.toml /app/
 COPY README.md /app/
 COPY LICENSE /app/
-RUN pip install .[pkcs11,otel]
+RUN pip install .[pkcs11,otel,kms]
 
 FROM base AS minimal_image
 COPY --from=minimal_install /usr/local/bin /usr/local/bin
