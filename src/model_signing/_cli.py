@@ -180,6 +180,7 @@ class _PKICmdGroup(click.Group):
         "certificate",
         "pkcs11-key",
         "pkcs11-certificate",
+        "kms-key",
     ]
 
     def get_command(
@@ -486,6 +487,72 @@ def _sign_pkcs11_key(
         )
         model_signing.signing.Config().use_pkcs11_signer(
             pkcs11_uri=pkcs11_uri
+        ).set_hashing_config(
+            model_signing.hashing.Config()
+            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
+            .set_allow_symlinks(allow_symlinks)
+        ).sign(model_path, signature)
+    except Exception as err:
+        click.echo(f"Signing failed with error: {err}", err=True)
+        sys.exit(1)
+
+    click.echo("Signing succeeded")
+
+
+# Decorator for the commonly used option to set a KMS URI
+_kms_uri_option = click.option(
+    "--kms_uri",
+    type=str,
+    metavar="KMS_URI",
+    required=True,
+    help=(
+        "KMS URI of the private key (e.g., kms://aws/key-id, "
+        "kms://aws/arn:aws:kms:region:account-id:key/key-id, "
+        "kms://gcp/project/location/keyring/key, kms://azure/vault/key)."
+    ),
+)
+
+
+@_sign.command(name="kms-key")
+@_model_path_argument
+@_ignore_paths_option
+@_ignore_git_paths_option
+@_allow_symlinks_option
+@_write_signature_option
+@_kms_uri_option
+def _sign_kms_key(
+    model_path: pathlib.Path,
+    ignore_paths: Iterable[pathlib.Path],
+    ignore_git_paths: bool,
+    allow_symlinks: bool,
+    signature: pathlib.Path,
+    kms_uri: str,
+) -> None:
+    """Sign using a private key using a KMS URI.
+
+    Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
+    (as per `--signature` option). Files in IGNORE_PATHS are not part of the
+    signature.
+
+    Signing can be achieved by using a key stored in a Key Management Service.
+    Pass the KMS URI of the signing key using `--kms_uri`.
+
+    Supported KMS providers:
+    - AWS KMS: kms://aws/<key-id-or-arn>?region=<region>
+    - Google Cloud KMS: kms://gcp/<project>/<location>/<keyring>/<key>
+    - Azure Key Vault: kms://azure/<vault-url>/<key-name>?version=<version>
+    - File (for testing): kms://file/<path>
+
+    Note that this method does not provide a way to tie to the identity of the
+    signer, outside of pairing the keys. Also note that we don't offer key
+    management protocols.
+    """
+    try:
+        ignored = _resolve_ignore_paths(
+            model_path, list(ignore_paths) + [signature]
+        )
+        model_signing.signing.Config().use_kms_signer(
+            kms_uri=kms_uri
         ).set_hashing_config(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)

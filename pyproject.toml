@@ -52,6 +52,12 @@ keywords = [
 pkcs11 = [
     "PyKCS11",
 ]
+kms = [
+    "boto3",
+    "google-cloud-kms",
+    "azure-keyvault-keys",
+    "azure-identity",
+]
 otel = [
   "opentelemetry-api",
   "opentelemetry-sdk",
@@ -85,6 +91,7 @@ randomize = true
 extra-args = ["-m", "not integration"]
 features = [
     "pkcs11",
+    "kms",
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
@@ -135,6 +142,7 @@ extra-dependencies = [
 ]
 features = [
     "pkcs11",
+    "kms",
 ]
 installer = "pip"
 python = "3.12"

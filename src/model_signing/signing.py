@@ -295,3 +295,33 @@ class Config:
             module_paths=module_paths,
         )
         return self
+
+    def use_kms_signer(self, *, kms_uri: str) -> Self:
+        """Configures the signing to be performed using KMS.
+
+        The signer in this configuration is changed to one that performs signing
+        using a key stored in a Key Management Service (KMS).
+
+        Supported KMS providers:
+        - AWS KMS: kms://aws/<key-id-or-arn>?region=<region>
+        - Google Cloud KMS: kms://gcp/<project>/<location>/<keyring>/<key>
+        - Azure Key Vault: kms://azure/<vault-url>/<key-name>?version=<version>
+        - File (for testing): kms://file/<path>
+
+        Args:
+            kms_uri: The KMS URI specifying the provider and key.
+
+        Return:
+            The new signing configuration.
+        """
+        try:
+            from model_signing._signing import sign_kms as kms_signer
+        except ImportError as e:
+            raise RuntimeError(
+                "KMS functionality requires KMS provider libraries. "
+                "Install with 'pip install model-signing[kms]' or install "
+                "provider-specific packages (boto3, google-cloud-kms, "
+                "azure-keyvault-keys)."
+            ) from e
+        self._signer = kms_signer.Signer(kms_uri)
+        return self

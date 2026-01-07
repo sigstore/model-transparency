@@ -35,7 +35,8 @@ We support generating signatures via [Sigstore](https://www.sigstore.dev/), a
 tool for making code signatures transparent without requiring management of
 cryptographic key material. But we also support traditional signing methods, so
 models can be signed with public keys or signing certificates as well as
-PKCS #11 enabled devices *(install with `pip install model-signing[pkcs11]` to enable this functionality)*.
+PKCS #11 enabled devices *(install with `pip install model-signing[pkcs11]` to enable this functionality)*
+and Key Management Service (KMS) providers *(install with `pip install model-signing[kms]` to enable this functionality)*.
 
 The signing part creates a
 [sigstore bundle](https://github.com/sigstore/protobuf-specs/blob/main/protos/sigstore_bundle.proto)
@@ -245,6 +246,61 @@ the PKCS #11 device and store it in a file in PEM format. With can then use:
 [...]$ model_signing verify key --signature model.sig\
        --public_key key.pub  /path/to/your/model
 ```
+
+#### Signing with KMS URIs
+
+Signing with Key Management Service (KMS) providers is supported through
+KMS URIs. The URI specifies the KMS provider and key location. Supported
+providers include AWS KMS, Google Cloud KMS, Azure Key Vault, and a file-based
+backend for testing.
+
+The following KMS providers are supported:
+
+    - AWS KMS: `kms://aws/<key-id-or-arn>?region=<region>`
+      - Requires `boto3` library
+      - The key-id-or-arn can be either:
+        - A simple key ID (e.g., `f26f2baa-8865-459d-a275-8fca1d15119f`)
+        - A full key ARN (e.g., `arn:aws:kms:us-east-1:123456789012:key/f26f2baa-8865-459d-a275-8fca1d15119f`)
+      - Region is optional and defaults to the configured AWS region
+    - Google Cloud KMS: `kms://gcp/<project>/<location>/<keyring>/<key>`
+      - Requires `google-cloud-kms` library
+      - The key must be configured for asymmetric signing with ECDSA
+    - Azure Key Vault: `kms://azure/<vault-url>/<key-name>?version=<version>`
+      - Requires `azure-keyvault-keys` and `azure-identity` libraries
+      - The vault-url should be the full vault URL (e.g., `https://vault.vault.azure.net`)
+      - Version is optional and defaults to the latest version
+    - File (for testing): `kms://file/<path>`
+      - Uses a local PEM-encoded private key file
+      - Useful for testing without cloud KMS access
+
+The signing key must be of type NIST P256/384/521 (secp256r1/secp384r1/secp521r1).
+
+With a KMS URI, we can use the following for signing:
+
+```bash
+[...]$ model_signing sign kms-key --signature model.sig \
+       --kms_uri "kms://aws/arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012" \
+       /path/to/your/model
+```
+
+For signature verification, retrieve the public key from the KMS and store it
+in a file in PEM format. Then use:
+
+```bash
+[...]$ model_signing verify key --signature model.sig \
+       --public_key key.pub /path/to/your/model
+```
+
+To install KMS support, use:
+
+```bash
+[...]$ pip install model-signing[kms]
+```
+
+Or install provider-specific packages:
+- AWS: `pip install boto3`
+- Google Cloud: `pip install google-cloud-kms`
+- Azure: `pip install azure-keyvault-keys azure-identity`
 
 #### OpenTelemetry Support
 

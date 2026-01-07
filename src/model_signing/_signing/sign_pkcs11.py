@@ -24,7 +24,6 @@ from asn1crypto.keys import PublicKeyInfo
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec
 from google.protobuf import json_format
 import PyKCS11
 from sigstore_models import intoto as intoto_pb
@@ -36,30 +35,13 @@ from model_signing._signing import sign_ec_key as ec_key
 from model_signing._signing import sign_sigstore_pb as sigstore_pb
 from model_signing._signing import signing
 from model_signing._signing.pkcs11uri import Pkcs11URI
+from model_signing._signing.sign_ec_key import _check_supported_ec_key
 
 
 MODULE_PATHS: Iterable[str] = [
     "/usr/lib64/pkcs11/",  # Fedora, RHEL, openSUSE
     "/usr/lib/pkcs11/",  # Fedora 32 bit, ArchLinux
 ]
-
-
-def _check_supported_ec_key(public_key: ec.EllipticCurvePublicKey):
-    """Checks if the elliptic curve key is supported by our package.
-
-    We only support a family of curves, trying to match those specified by
-    Sigstore's protobuf specs.
-    See https://github.com/sigstore/model-transparency/issues/385.
-
-    Args:
-        public_key: The public key to check. Can be obtained from a private key.
-
-    Raises:
-        ValueError: The key is not supported.
-    """
-    curve = public_key.curve.name
-    if curve not in ["secp256r1", "secp384r1", "secp521r1"]:
-        raise ValueError(f"Unsupported key for curve '{curve}'")
 
 
 def encode_ec_public_key(public_key: PyKCS11.CK_OBJECT_HANDLE) -> PublicKeyInfo:

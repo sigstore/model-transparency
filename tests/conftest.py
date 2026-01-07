@@ -121,3 +121,19 @@ def symlink_model_folder(
     symlink_file = model_dir / "symlink_file"
     os.symlink(external_file.absolute(), symlink_file.absolute())
     return model_dir
+
+
+@pytest.fixture
+def base_path() -> pathlib.Path:
+    """Base path for tests."""
+    return pathlib.Path(__file__).parent
+
+
+@pytest.fixture
+def populate_tmpdir(tmp_path: pathlib.Path) -> pathlib.Path:
+    """Populate a temporary directory with test files."""
+    (tmp_path / "signme-1").write_text("signme-1")
+    (tmp_path / "signme-2").write_text("signme-2")
+    (tmp_path / ".gitignore").write_text(".foo")
+    (tmp_path / "ignored").write_text("ignored")
+    return tmp_path
