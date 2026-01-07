@@ -263,6 +263,51 @@ def main(log_level: str) -> None:
         sys.exit(1)
 
 
+@main.command(name="digest")
+@_model_path_argument
+@_ignore_paths_option
+@_ignore_git_paths_option
+@_allow_symlinks_option
+def _digest(
+    model_path: pathlib.Path,
+    ignore_paths: Iterable[pathlib.Path],
+    ignore_git_paths: bool,
+    allow_symlinks: bool,
+) -> None:
+    """Computes the digest of a model.
+
+    The digest subcommand serializes a model directory and computes the "root"
+    digest (hash), the same used when signing and as the attestation subject.
+
+    By default, git-related files are ignored (same behavior as the sign
+    command). Use --no-ignore-git-paths to include them. To ignore other
+    files from the directory serialization, use --ignore-paths.
+    """
+    from model_signing._hashing import memory
+
+    try:
+        # First, generate the manifest of the model directory
+        ignored = _resolve_ignore_paths(model_path, list(ignore_paths))
+        manifest = (
+            model_signing.hashing.Config()
+            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
+            .set_allow_symlinks(allow_symlinks)
+            .hash(model_path)
+        )
+
+        # Then, hash the resource descriptors as done when signing
+        hasher = memory.SHA256()
+        for descriptor in manifest.resource_descriptors():
+            hasher.update(descriptor.digest.digest_value)
+        root_digest = hasher.compute()
+
+        click.echo(f"{root_digest.algorithm}:{root_digest.digest_hex}")
+
+    except Exception as err:
+        click.echo(f"Computing digest failed: {err}", err=True)
+        sys.exit(1)
+
+
 @main.group(name="sign", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
 def _sign() -> None:
     """Sign models.
