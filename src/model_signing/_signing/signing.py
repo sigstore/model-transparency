@@ -251,11 +251,12 @@ class Payload:
     ```
     """
 
-    def __init__(self, manifest: manifest.Manifest):
+    def __init__(self, manifest: manifest.Manifest, metadata: dict | None = None):
         """Builds an instance of this in-toto payload.
 
         Args:
             manifest: the manifest to convert to signing payload.
+            metadata: optional dictionary of metadata (e.g. Model Card) to include in the predicate.
         """
         hasher = memory.SHA256()
         resources = []
@@ -274,11 +275,13 @@ class Payload:
             name=manifest.model_name, digest=root_digest
         ).pb
 
-        predicate = {
-            "serialization": manifest.serialization_type,
-            "resources": resources,
-            # other properties can go here
-        }
+        # Initialize predicate with metadata if provided, otherwise empty dict
+        predicate = metadata.copy() if metadata else {}
+
+        # Force set the critical fields (overwriting metadata if keys collide)
+        # to ensure the signature remains valid for verification.
+        predicate["serialization"] = manifest.serialization_type
+        predicate["resources"] = resources
 
         self.statement = statement.Statement(
             subjects=[subject],

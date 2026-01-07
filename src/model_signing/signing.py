@@ -45,7 +45,6 @@ The API defined here is stable and backwards compatible.
 from collections.abc import Iterable
 import pathlib
 import sys
-
 from model_signing import hashing
 from model_signing._signing import sign_certificate as certificate
 from model_signing._signing import sign_ec_key as ec_key
@@ -59,7 +58,7 @@ else:
     from typing_extensions import Self
 
 
-def sign(model_path: hashing.PathLike, signature_path: hashing.PathLike):
+def sign(model_path: hashing.PathLike, signature_path: hashing.PathLike, metadata: dict | None = None):
     """Signs a model using the default configuration.
 
     In this default configuration we sign using Sigstore and the default hashing
@@ -71,7 +70,7 @@ def sign(model_path: hashing.PathLike, signature_path: hashing.PathLike):
         model_path: the path to the model to sign.
         signature_path: the path of the resulting signature.
     """
-    Config().sign(model_path, signature_path)
+    Config().sign(model_path, signature_path, metadata= metadata)
 
 
 class Config:
@@ -93,7 +92,7 @@ class Config:
         self._signer = None
 
     def sign(
-        self, model_path: hashing.PathLike, signature_path: hashing.PathLike
+        self, model_path: hashing.PathLike, signature_path: hashing.PathLike,metadata: dict | None = None
     ):
         """Signs a model using the current configuration.
 
@@ -104,7 +103,7 @@ class Config:
         if not self._signer:
             self.use_sigstore_signer()
         manifest = self._hashing_config.hash(model_path)
-        payload = signing.Payload(manifest)
+        payload = signing.Payload(manifest, metadata=metadata)
         signature = self._signer.sign(payload)
         signature.write(pathlib.Path(signature_path))
 
