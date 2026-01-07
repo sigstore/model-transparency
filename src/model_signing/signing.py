@@ -47,6 +47,7 @@ import pathlib
 import sys
 
 from model_signing import hashing
+from model_signing import manifest
 from model_signing._signing import sign_certificate as certificate
 from model_signing._signing import sign_ec_key as ec_key
 from model_signing._signing import sign_sigstore as sigstore
@@ -105,6 +106,28 @@ class Config:
             self.use_sigstore_signer()
         manifest = self._hashing_config.hash(model_path)
         payload = signing.Payload(manifest)
+        signature = self._signer.sign(payload)
+        signature.write(pathlib.Path(signature_path))
+
+    def sign_from_manifest(
+        self,
+        model_manifest: manifest.Manifest,
+        signature_path: hashing.PathLike,
+    ):
+        """Sign a pre-constructed manifest without needing model files.
+
+        This method is useful for OCI workflows where you have the manifest
+        data (e.g., from `skopeo inspect --raw`) but don't have the actual
+        model files on disk.
+
+        Args:
+            model_manifest: A Manifest object created from OCI image data.
+              Can be created using `hashing.create_manifest_from_oci_layers()`.
+            signature_path: The path where the signature will be written.
+        """
+        if not self._signer:
+            self.use_sigstore_signer()
+        payload = signing.Payload(model_manifest)
         signature = self._signer.sign(payload)
         signature.write(pathlib.Path(signature_path))
 
