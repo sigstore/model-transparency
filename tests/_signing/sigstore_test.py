@@ -332,3 +332,45 @@ class TestSigning:
 
         with pytest.raises(ValueError, match="Expected in-toto .* payload"):
             self._verify_dsse_signature(signature_path)
+
+    def test_append_to_existing_claims_jsonl(
+        self, sample_model_folder, mocked_sigstore, tmp_path
+    ):
+        """Test that signing appends to existing claims.jsonl file.
+
+        This implements the unified bundle layout from issue #587, where
+        attestations accumulate in a single claims.jsonl file as the model
+        moves through its lifecycle.
+        """
+        serializer = file.Serializer(
+            self._file_hasher_factory, allow_symlinks=True
+        )
+        manifest = serializer.serialize(sample_model_folder)
+        signature_path = tmp_path / "claims.jsonl"
+
+        # First signing - should create the file
+        self._sign_manifest(manifest, signature_path, sigstore.Signer)
+
+        # Verify file exists and has one line
+        assert signature_path.exists()
+        lines = signature_path.read_text(encoding="utf-8").strip().split("\n")
+        assert len(lines) == 1
+        # Verify it's valid JSON
+        first_bundle = json.loads(lines[0])
+        assert "_type" in first_bundle
+
+        # Second signing - should append to the file
+        self._sign_manifest(manifest, signature_path, sigstore.Signer)
+
+        # Verify file now has two lines
+        lines = signature_path.read_text(encoding="utf-8").strip().split("\n")
+        assert len(lines) == 2
+
+        # Verify both lines are valid JSON bundles
+        first_bundle = json.loads(lines[0])
+        second_bundle = json.loads(lines[1])
+        assert "_type" in first_bundle
+        assert "_type" in second_bundle
+
+        # Both bundles should be independently valid
+        # (We can't fully verify with mocked sigstore, but structure is valid)

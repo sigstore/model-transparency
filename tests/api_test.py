@@ -59,14 +59,20 @@ def populate_tmpdir(tmp_path: Path) -> Path:
 
 def get_signed_files(modelsig: Path) -> list[str]:
     with open(modelsig, "r") as file:
-        signature = json.load(file)
+        content = file.read().strip()
+        # Handle JSONL format: read last line (most recent attestation)
+        lines = content.split("\n")
+        signature = json.loads(lines[-1])
     payload = json.loads(b64decode(signature["dsseEnvelope"]["payload"]))
     return [entry["name"] for entry in payload["predicate"]["resources"]]
 
 
 def get_ignore_paths(modelsig: Path) -> list[str]:
     with open(modelsig, "r") as file:
-        signature = json.load(file)
+        content = file.read().strip()
+        # Handle JSONL format: read last line (most recent attestation)
+        lines = content.split("\n")
+        signature = json.loads(lines[-1])
     payload = json.loads(b64decode(signature["dsseEnvelope"]["payload"]))
     ignore_paths = payload["predicate"]["serialization"]["ignore_paths"]
     ignore_paths.sort()
@@ -87,7 +93,10 @@ def check_ignore_paths(
 
 def get_model_name(modelsig: Path) -> str:
     with open(modelsig, "r") as file:
-        signature = json.load(file)
+        content = file.read().strip()
+        # Handle JSONL format: read last line (most recent attestation)
+        lines = content.split("\n")
+        signature = json.loads(lines[-1])
     payload = json.loads(b64decode(signature["dsseEnvelope"]["payload"]))
     return payload["subject"][0]["name"]
 
