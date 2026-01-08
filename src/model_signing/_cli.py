@@ -180,6 +180,7 @@ class _PKICmdGroup(click.Group):
         "certificate",
         "pkcs11-key",
         "pkcs11-certificate",
+        "ml-dsa",
     ]
 
     def get_command(
@@ -609,6 +610,91 @@ def _sign_pkcs11_certificate(
     click.echo("Signing succeeded")
 
 
+@_sign.command(name="ml-dsa")
+@_model_path_argument
+@_ignore_paths_option
+@_ignore_git_paths_option
+@_allow_symlinks_option
+@_write_signature_option
+@_private_key_option
+@click.option(
+    "--password",
+    type=str,
+    metavar="PASSWORD",
+    help="Password for the encrypted key, if any.",
+)
+@click.option(
+    "--variant",
+    type=click.Choice(["ML_DSA_44", "ML_DSA_65", "ML_DSA_87"], case_sensitive=True),
+    default="ML_DSA_65",
+    show_default=True,
+    metavar="VARIANT",
+    help=(
+        "ML-DSA security level to use. "
+        "ML_DSA_44 (level 2), ML_DSA_65 (level 3), ML_DSA_87 (level 5)."
+    ),
+)
+def _sign_ml_dsa(
+    model_path: pathlib.Path,
+    ignore_paths: Iterable[pathlib.Path],
+    ignore_git_paths: bool,
+    allow_symlinks: bool,
+    signature: pathlib.Path,
+    private_key: pathlib.Path,
+    password: str | None,
+    variant: str,
+) -> None:
+    """Sign using ML-DSA post-quantum cryptography.
+
+    Signing the model at MODEL_PATH, produces the signature at SIGNATURE_PATH
+    (as per `--signature` option). Files in IGNORE_PATHS are not part of the
+    signature.
+
+    ML-DSA (Module Lattice Digital Signature Algorithm) is a post-quantum
+    cryptographic algorithm standardized in NIST FIPS 204. It provides security
+    against both classical and quantum computer attacks, making it suitable for
+    long-term security requirements.
+
+    Pass the ML-DSA private key using `--private_key`. The key can be either
+    in raw bytes format or encrypted format. If encrypted, provide the password
+    using `--password`.
+
+    Security levels:
+    - ML_DSA_44: NIST security level 2 (comparable to AES-128)
+    - ML_DSA_65: NIST security level 3 (comparable to AES-192) - Default
+    - ML_DSA_87: NIST security level 5 (comparable to AES-256)
+
+    Note: ML-DSA signatures are larger than traditional signatures
+    (e.g., ~3.3KB for ML_DSA_65 vs ~70B for ECDSA). This is a known
+    tradeoff for post-quantum security.
+
+    Note that we don't offer key management protocols.
+    """
+    try:
+        ignored = _resolve_ignore_paths(
+            model_path, list(ignore_paths) + [signature]
+        )
+        model_signing.signing.Config().use_ml_dsa_signer(
+            private_key=private_key, variant=variant, password=password
+        ).set_hashing_config(
+            model_signing.hashing.Config()
+            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
+            .set_allow_symlinks(allow_symlinks)
+        ).sign(model_path, signature)
+    except ImportError:
+        click.echo(
+            "ML-DSA support requires the 'dilithium-py' package. "
+            "Install with: pip install dilithium-py",
+            err=True,
+        )
+        sys.exit(1)
+    except Exception as err:
+        click.echo(f"Signing failed with error: {err}", err=True)
+        sys.exit(1)
+
+    click.echo("Signing succeeded")
+
+
 @main.group(name="verify", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
 def _verify() -> None:
     """Verify models.
@@ -821,6 +907,89 @@ def _verify_certificate(
         ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
             model_path, signature
         )
+    except Exception as err:
+        click.echo(f"Verification failed with error: {err}", err=True)
+        sys.exit(1)
+
+    click.echo("Verification succeeded")
+
+
+@_verify.command(name="ml-dsa")
+@_model_path_argument
+@_read_signature_option
+@_ignore_paths_option
+@_ignore_git_paths_option
+@_allow_symlinks_option
+@click.option(
+    "--public_key",
+    type=pathlib.Path,
+    metavar="PUBLIC_KEY",
+    required=True,
+    help="Path to the ML-DSA public key used for verification.",
+)
+@click.option(
+    "--variant",
+    type=click.Choice(["ML_DSA_44", "ML_DSA_65", "ML_DSA_87"], case_sensitive=True),
+    default="ML_DSA_65",
+    show_default=True,
+    metavar="VARIANT",
+    help=(
+        "ML-DSA security level (must match signing key). "
+        "ML_DSA_44 (level 2), ML_DSA_65 (level 3), ML_DSA_87 (level 5)."
+    ),
+)
+@_ignore_unsigned_files_option
+def _verify_ml_dsa(
+    model_path: pathlib.Path,
+    signature: pathlib.Path,
+    ignore_paths: Iterable[pathlib.Path],
+    ignore_git_paths: bool,
+    allow_symlinks: bool,
+    public_key: pathlib.Path,
+    variant: str,
+    ignore_unsigned_files: bool,
+) -> None:
+    """Verify using ML-DSA post-quantum cryptography.
+
+    Verifies the integrity of model at MODEL_PATH, according to signature from
+    SIGNATURE_PATH (given via `--signature` option). Files in IGNORE_PATHS are
+    ignored.
+
+    ML-DSA (Module Lattice Digital Signature Algorithm) provides security
+    against both classical and quantum computer attacks. The variant must match
+    the one used during signing.
+
+    The public key provided via `--public_key` must have been paired with the
+    private key used when generating the signature. The key should be in raw
+    bytes format (as generated by dilithium-py).
+
+    Security levels:
+    - ML_DSA_44: NIST security level 2 (comparable to AES-128)
+    - ML_DSA_65: NIST security level 3 (comparable to AES-192) - Default
+    - ML_DSA_87: NIST security level 5 (comparable to AES-256)
+
+    Note that we don't offer key management protocols.
+    """
+    try:
+        ignored = _resolve_ignore_paths(
+            model_path, list(ignore_paths) + [signature]
+        )
+        model_signing.verifying.Config().use_ml_dsa_verifier(
+            public_key=public_key, variant=variant
+        ).set_hashing_config(
+            model_signing.hashing.Config()
+            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
+            .set_allow_symlinks(allow_symlinks)
+        ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+            model_path, signature
+        )
+    except ImportError:
+        click.echo(
+            "ML-DSA support requires the 'dilithium-py' package. "
+            "Install with: pip install dilithium-py",
+            err=True,
+        )
+        sys.exit(1)
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
         sys.exit(1)
