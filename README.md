@@ -204,6 +204,70 @@ Similarly, for key verification, we can use
        --signature resnet.sig --public_key key.pub
 ```
 
+#### Signing and Verifying OCI Images
+
+The tool supports signing and verifying OCI model images directly from their manifest without requiring the model files on disk. This is useful for signing images in registries without pulling them.
+
+**Signing from OCI Manifest:**
+
+```bash
+# Get the OCI manifest (from skopeo inspect --raw)
+[...]$ skopeo inspect --raw docker://quay.io/user/model:latest > manifest.json
+
+# Sign using the manifest
+[...]$ model_signing sign manifest.json
+```
+
+**Verifying OCI Images:**
+
+You can verify in two ways:
+
+1. **Against the OCI manifest** (no files needed):
+```bash
+[...]$ model_signing verify manifest.json \
+  --signature model.sig \
+  --identity user@example.com \
+  --identity_provider https://accounts.google.com
+```
+
+2. **Against local model files** (automatically detects OCI layer signatures):
+```bash
+[...]$ model_signing verify model_dir \
+  --signature model.sig \
+  --identity user@example.com \
+  --identity_provider https://accounts.google.com
+```
+
+The tool automatically detects OCI manifest signatures and matches files by path using `org.opencontainers.image.title` annotations (ORAS-style). For multi-layer images, verification against local files attempts to match individual files by path.
+
+**Python API:**
+
+```python
+import json
+from model_signing import hashing, signing, verifying
+
+# Sign from OCI manifest
+with open("manifest.json") as f:
+    oci_data = json.load(f)
+
+manifest = hashing.create_manifest_from_oci_layers(oci_data)
+signing.Config().use_sigstore_signer().sign_from_manifest(
+    manifest, "model.sig"
+)
+
+# Verify from OCI manifest
+verifying.Config().use_sigstore_verifier(
+    identity="user@example.com",
+    oidc_issuer="https://accounts.google.com"
+).verify_from_oci_manifest(oci_data, "model.sig")
+
+# Or verify from local files (automatically handles OCI signatures)
+verifying.Config().use_sigstore_verifier(
+    identity="user@example.com",
+    oidc_issuer="https://accounts.google.com"
+).verify("model_dir", "model.sig")
+```
+
 #### Signing with PKCS #11 URIs
 
 Signing with PKCS #11 enabled crypto devices is supported through RFC 7512

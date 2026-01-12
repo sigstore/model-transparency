@@ -43,6 +43,7 @@ import sys
 
 from model_signing import hashing
 from model_signing import manifest
+from model_signing._hashing import hashing as _hashing
 from model_signing._signing import sign_certificate as certificate
 from model_signing._signing import sign_ec_key as ec_key
 from model_signing._signing import sign_sigstore as sigstore
@@ -80,8 +81,13 @@ class Config:
     ):
         """Verifies that a model conforms to a signature.
 
+        This method can verify signatures created from either:
+        - Local files (normal verification)
+        - Model manifests
+
         Args:
             model_path: The path to the model to verify.
+            signature_path: The path to the signature file.
 
         Raises:
             ValueError: No verifier has been configured.
@@ -114,6 +120,183 @@ class Config:
 
         actual_manifest = self._hashing_config.hash(
             model_path, files_to_hash=files_to_hash
+        )
+
+        if actual_manifest != expected_manifest:
+            diff_message = self._get_manifest_diff(
+                actual_manifest, expected_manifest
+            )
+            raise ValueError(f"Signature mismatch: {diff_message}")
+
+    def _verify_oci_layers_from_files(
+        self, model_path: hashing.PathLike, expected_manifest: manifest.Manifest
+    ):
+        """Verify OCI layer-based signature against local files.
+
+        This verifies by matching file paths from the signature with local
+        files. If the signature was created from an OCI manifest with file
+        path annotations (e.g., org.opencontainers.image.title), it matches
+        files by path and compares their digests.
+
+        Args:
+            model_path: Path to local model directory
+            expected_manifest: Manifest extracted from signature (contains
+                layer digests)
+
+        Raises:
+            ValueError: If local files don't match the OCI layer digests
+        """
+        model_path = pathlib.Path(model_path)
+
+        # Check if this is an ORAS-style manifest with file paths in
+        # identifiers (not generic layer_*.tar.gz names)
+        has_file_paths = False
+        expected_file_digests = {}
+
+        for rd in expected_manifest.resource_descriptors():
+            identifier = str(rd.identifier)
+            if identifier == "config.json":
+                continue
+            is_generic_layer = identifier.startswith(
+                "layer_"
+            ) and identifier.endswith(".tar.gz")
+            if not is_generic_layer:
+                has_file_paths = True
+                expected_file_digests[identifier] = rd.digest
+
+        if has_file_paths:
+            # ORAS-style: verify by matching individual files by path
+            return self._verify_oci_files_by_path(
+                model_path, expected_file_digests
+            )
+        else:
+            print(
+                "Verification failed: The signature bundle does not contain"
+                "file path information."
+                "Verification must be performed on an ORAS-style artifact.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+    def _verify_oci_files_by_path(
+        self,
+        model_path: pathlib.Path,
+        expected_file_digests: dict[str, _hashing.Digest],
+    ):
+        """Verify OCI files by matching paths and computing file digests."""
+        import hashlib
+
+        missing_files = []
+        mismatched_files = []
+        verified_files = []
+
+        for file_path_str, expected_digest in expected_file_digests.items():
+            local_file_path = model_path / file_path_str
+
+            if not local_file_path.exists():
+                missing_files.append(file_path_str)
+                continue
+
+            if not local_file_path.is_file():
+                continue
+
+            with open(local_file_path, "rb") as f:
+                file_content = f.read()
+                file_digest_value = hashlib.sha256(file_content).digest()
+                file_digest = _hashing.Digest("sha256", file_digest_value)
+
+            if file_digest == expected_digest:
+                verified_files.append(file_path_str)
+            else:
+                mismatched_files.append(
+                    (
+                        file_path_str,
+                        expected_digest.digest_hex,
+                        file_digest.digest_hex,
+                    )
+                )
+
+        if missing_files or mismatched_files:
+            error_parts = []
+            if missing_files:
+                missing_list = ", ".join(missing_files[:5])
+                more_text = (
+                    f" ... and {len(missing_files) - 5} more"
+                    if len(missing_files) > 5
+                    else ""
+                )
+                error_parts.append(
+                    f"Missing files ({len(missing_files)}): "
+                    f"{missing_list}{more_text}"
+                )
+            if mismatched_files:
+                mismatches = []
+                for path, expected, actual in mismatched_files[:3]:
+                    mismatches.append(
+                        f"  {path}: expected {expected[:16]}..., "
+                        f"got {actual[:16]}..."
+                    )
+                mismatch_text = "\n".join(mismatches)
+                more_mismatches = (
+                    f"\n  ... and {len(mismatched_files) - 3} more"
+                    if len(mismatched_files) > 3
+                    else ""
+                )
+                error_parts.append(
+                    f"Hash mismatches ({len(mismatched_files)}):\n"
+                    f"{mismatch_text}{more_mismatches}"
+                )
+
+            error_msg = (
+                "Verification failed:\n"
+                + "\n".join(error_parts)
+                + "\n\n"
+                + f"Successfully verified {len(verified_files)} file(s)."
+            )
+            raise ValueError(error_msg)
+
+        return
+
+    def verify_from_oci_manifest(
+        self,
+        oci_manifest: dict,
+        signature_path: hashing.PathLike,
+        *,
+        include_config: bool = True,
+    ):
+        """Verifies that an OCI image manifest conforms to a signature.
+
+        This method verifies a signature against an OCI image manifest without
+        requiring the actual model files. It extracts the expected manifest from
+        the signature and compares it with a manifest created from the OCI image
+        manifest.
+
+        Args:
+            oci_manifest: The OCI image manifest as a dictionary (from JSON).
+              Expected to have "layers" array with "digest" fields,
+              and optionally a "config" field with a "digest".
+            signature_path: The path to the signature file.
+            include_config: Whether to include the config blob digest in the
+              comparison. Should match the value used during signing.
+              Default is True.
+
+        Raises:
+            ValueError: No verifier has been configured,
+            the OCI manifest is invalid, or verification
+            fails.
+        """
+        if self._verifier is None:
+            raise ValueError("Attempting to verify with no configured verifier")
+
+        if self._uses_sigstore:
+            signature = sigstore.Signature.read(pathlib.Path(signature_path))
+        else:
+            signature = sigstore_pb.Signature.read(pathlib.Path(signature_path))
+
+        expected_manifest = self._verifier.verify(signature)
+
+        actual_manifest = hashing.create_manifest_from_oci_layers(
+            oci_manifest, include_config=include_config
         )
 
         if actual_manifest != expected_manifest:
