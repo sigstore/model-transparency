@@ -116,6 +116,15 @@ This will open an OIDC flow to obtain a short lived token for the certificate.
 The identity used during signing and the provider must be reused during
 verification.
 
+To only compute and output the digest of the model, you can use the `digest`
+subcommand, pointing it to the model directory:
+
+```bash
+[...]$ model_signing digest bert-base-uncased
+```
+
+The digest subcommand follows the same ignore rules used when signing.
+
 ## Using Private Sigstore Instances
 
 To use a private Sigstore setup (e.g. custom Rekor/Fulcio), use the `--trust_config` flag:
