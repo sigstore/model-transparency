@@ -105,13 +105,24 @@ class Signature(signing.Signature):
 
     @override
     def write(self, path: pathlib.Path) -> None:
-        path.write_text(self.bundle.to_json(), encoding="utf-8")
+        # Convert to compact JSON (single line) for JSONL format
+        # by removing newlines from the bundle's JSON output
+        bundle_json = self.bundle.to_json().replace("\n", "")
+
+        # Append to file if it exists (for accumulating attestations)
+        # Otherwise create new file
+        mode = "a" if path.exists() else "w"
+        with path.open(mode, encoding="utf-8") as f:
+            f.write(bundle_json + "\n")
 
     @classmethod
     @override
     def read(cls, path: pathlib.Path) -> Self:
         content = path.read_text(encoding="utf-8")
-        parsed_dict = json.loads(content)
+        # Handle JSONL format: read the last line (most recent attestation)
+        lines = content.strip().split("\n")
+        last_line = lines[-1]
+        parsed_dict = json.loads(last_line)
 
         # adjust parsed_dict due to previous usage of protobufs
         if "tlogEntries" not in parsed_dict["verificationMaterial"]:
