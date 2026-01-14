@@ -44,19 +44,6 @@ GIT_IGNORE_PATHS: Iterable[str] = [
 ]
 
 
-@pytest.fixture
-def base_path() -> Path:
-    return Path(__file__).parent
-
-
-@pytest.fixture
-def populate_tmpdir(tmp_path: Path) -> Path:
-    Path(tmp_path / "signme-1").write_text("signme-1")
-    Path(tmp_path / "signme-2").write_text("signme-2")
-    Path(tmp_path / ".gitignore").write_text(".foo")
-    return tmp_path
-
-
 def get_signed_files(modelsig: Path) -> list[str]:
     with open(modelsig, "r") as file:
         signature = json.load(file)
@@ -216,6 +203,7 @@ class TestKeySigning:
 
         assert get_signed_files(signature) == [
             ".gitignore",
+            "ignored",
             "signme-1",
             "signme-2",
         ]
@@ -284,6 +272,7 @@ class TestCertificateSigning:
 
         assert get_signed_files(signature) == [
             ".gitignore",
+            "ignored",
             "signme-1",
             "signme-2",
         ]
@@ -355,6 +344,7 @@ class TestCertificateSigning:
 
         assert get_signed_files(signature) == [
             ".gitignore:0:4",
+            "ignored:0:7",
             "signme-1:0:8",
             "signme-2:0:8",
         ]
