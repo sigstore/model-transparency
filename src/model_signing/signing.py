@@ -295,3 +295,52 @@ class Config:
             module_paths=module_paths,
         )
         return self
+
+    def use_ml_dsa_signer(
+        self,
+        *,
+        private_key: hashing.PathLike,
+        variant: str = "ML_DSA_65",
+        password: str | None = None,
+    ) -> Self:
+        """Configures signing to be performed using ML-DSA (post-quantum).
+
+        The signer in this configuration is changed to one that performs signing
+        using ML-DSA (Module Lattice Digital Signature Algorithm), a post-quantum
+        cryptographic algorithm standardized in NIST FIPS 204.
+
+        ML-DSA provides security against both classical and quantum computer
+        attacks, making it suitable for long-term security requirements.
+
+        Args:
+            private_key: The path to the ML-DSA private key (raw bytes or
+                encrypted format).
+            variant: The ML-DSA security level. Options are:
+                - "ML_DSA_44": NIST security level 2 (comparable to AES-128)
+                - "ML_DSA_65": NIST security level 3 (comparable to AES-192) - Default
+                - "ML_DSA_87": NIST security level 5 (comparable to AES-256)
+            password: Optional password if the private key is encrypted.
+
+        Return:
+            The new signing configuration.
+
+        Raises:
+            ImportError: If dilithium-py is not installed.
+            ValueError: If password is required but not provided, or provided
+                for unencrypted key.
+
+        Note:
+            ML-DSA signatures are significantly larger than traditional signatures
+            (e.g., ~3.3KB for ML_DSA_65 vs ~70B for ECDSA). This is a known
+            tradeoff for post-quantum security.
+        """
+        try:
+            from model_signing._signing import sign_ml_dsa as ml_dsa
+        except ImportError as e:
+            raise RuntimeError(
+                "ML-DSA functionality requires the 'dilithium-py' package. "
+                "Install with 'pip install dilithium-py'."
+            ) from e
+
+        self._signer = ml_dsa.Signer(pathlib.Path(private_key), variant, password)
+        return self
