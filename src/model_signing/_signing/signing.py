@@ -70,7 +70,8 @@ def read_text_input(path_or_content: SignatureInput) -> str:
             return path_or_content
         case _:
             raise TypeError(
-                f"Expected pathlib.Path, str, or bytes, got {type(path_or_content)}"
+                "Expected pathlib.Path, str, or bytes, "
+                f"got {type(path_or_content)}"
             )
 
 

@@ -209,7 +209,8 @@ class Config:
             case bytes():
                 self._signer = ec_key.Signer(private_key, password)
             case _:
-                self._signer = ec_key.Signer(pathlib.Path(private_key), password)
+                key_path = pathlib.Path(private_key)
+                self._signer = ec_key.Signer(key_path, password)
         return self
 
     def use_certificate_signer(

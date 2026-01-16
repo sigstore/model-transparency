@@ -16,7 +16,6 @@
 
 import base64
 import hashlib
-import pathlib
 
 from cryptography import exceptions
 from cryptography.hazmat.primitives import hashes
@@ -119,9 +118,7 @@ def _load_private_key(
     return loaded_key
 
 
-def _load_public_key(
-    public_key: signing.KeyInput,
-) -> ec.EllipticCurvePublicKey:
+def _load_public_key(public_key: signing.KeyInput) -> ec.EllipticCurvePublicKey:
     """Load a public key from a path, bytes (PEM/DER), or compressed format.
 
     Args:
@@ -143,7 +140,9 @@ def _load_public_key(
     curve = _COMPRESSED_SIZE_TO_CURVE.get(len(key_bytes))
     if curve is not None:
         try:
-            return ec.EllipticCurvePublicKey.from_encoded_point(curve, key_bytes)
+            return ec.EllipticCurvePublicKey.from_encoded_point(
+                curve, key_bytes
+            )
         except (ValueError, exceptions.UnsupportedAlgorithm) as e:
             raise ValueError(
                 f"Failed to load compressed public key for {curve.name}: {e}"
