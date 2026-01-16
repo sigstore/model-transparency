@@ -205,9 +205,11 @@ class Config:
         Return:
             The new signing configuration.
         """
-        if not isinstance(private_key, bytes):
-            private_key = pathlib.Path(private_key)
-        self._signer = ec_key.Signer(private_key, password)
+        match private_key:
+            case bytes():
+                self._signer = ec_key.Signer(private_key, password)
+            case _:
+                self._signer = ec_key.Signer(pathlib.Path(private_key), password)
         return self
 
     def use_certificate_signer(

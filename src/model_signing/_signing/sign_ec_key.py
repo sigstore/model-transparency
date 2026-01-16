@@ -33,6 +33,19 @@ from model_signing._signing import sign_sigstore_pb as sigstore_pb
 from model_signing._signing import signing
 
 
+_SUPPORTED_CURVES = [ec.SECP256R1(), ec.SECP384R1(), ec.SECP521R1()]
+
+
+def _compressed_key_size(curve: ec.EllipticCurve) -> int:
+    """Compressed EC public keys: 1 byte prefix + key_size_bytes."""
+    return 1 + (curve.key_size + 7) // 8
+
+
+_COMPRESSED_SIZE_TO_CURVE: dict[int, ec.EllipticCurve] = {
+    _compressed_key_size(curve): curve for curve in _SUPPORTED_CURVES
+}
+
+
 def _check_supported_ec_key(public_key: crypto_types.PublicKeyTypes):
     """Checks if the elliptic curve key is supported by our package.
 
@@ -49,9 +62,9 @@ def _check_supported_ec_key(public_key: crypto_types.PublicKeyTypes):
     if not isinstance(public_key, ec.EllipticCurvePublicKey):
         raise ValueError("Only elliptic curve keys are supported")
 
-    curve = public_key.curve.name
-    if curve not in ["secp256r1", "secp384r1", "secp521r1"]:
-        raise ValueError(f"Unsupported key for curve '{curve}'")
+    supported_names = {c.name for c in _SUPPORTED_CURVES}
+    if public_key.curve.name not in supported_names:
+        raise ValueError(f"Unsupported key for curve '{public_key.curve.name}'")
 
 
 def get_ec_key_hash(
@@ -83,7 +96,7 @@ def get_ec_key_hash(
 
 
 def _load_private_key(
-    private_key: pathlib.Path | bytes, password: str | None = None
+    private_key: signing.KeyInput, password: str | None = None
 ) -> ec.EllipticCurvePrivateKey:
     """Load a private key from a path or bytes.
 
@@ -98,16 +111,7 @@ def _load_private_key(
     Raises:
         ValueError: If the key format is invalid or unsupported.
     """
-    match private_key:
-        case pathlib.Path():
-            key_bytes = private_key.read_bytes()
-        case bytes():
-            key_bytes = private_key
-        case _:
-            raise TypeError(
-                f"Expected pathlib.Path or bytes, got {type(private_key)}"
-            )
-
+    key_bytes = signing.read_bytes_input(private_key)
     loaded_key = serialization.load_pem_private_key(key_bytes, password)
     if not isinstance(loaded_key, ec.EllipticCurvePrivateKey):
         raise ValueError("Only elliptic curve private keys are supported")
@@ -116,64 +120,49 @@ def _load_private_key(
 
 
 def _load_public_key(
-    public_key: pathlib.Path | bytes,
+    public_key: signing.KeyInput,
 ) -> ec.EllipticCurvePublicKey:
-    """Load a public key from a path, bytes (PEM), or compressed format.
+    """Load a public key from a path, bytes (PEM/DER), or compressed format.
 
     Args:
         public_key:
-            - A path to a PEM-encoded public key file
-            - Bytes containing PEM-encoded public key
-            - 33 bytes of compressed public key (for secp256r1)
+            - A path to a PEM or DER-encoded public key file
+            - Bytes containing PEM or DER-encoded public key
+            - Compressed public key bytes (33 for secp256r1, 49 for secp384r1,
+              67 for secp521r1)
 
     Returns:
         The loaded public key.
 
     Raises:
         ValueError: If the key format is invalid or unsupported.
+        TypeError: If the input type is not supported.
     """
-    match public_key:
-        case pathlib.Path():
-            key_bytes = public_key.read_bytes()
-        case bytes():
-            key_bytes = public_key
-        case _:
-            raise TypeError(
-                f"Expected pathlib.Path or bytes, got {type(public_key)}"
-            )
+    key_bytes = signing.read_bytes_input(public_key)
 
-    # 33 bytes for secp256r1, 49 for secp384r1, 67 for secp521r1
-    if len(key_bytes) in [33, 49, 67]:
-        curve_map = {33: ec.SECP256R1(), 49: ec.SECP384R1(), 67: ec.SECP521R1()}
-        curve = curve_map.get(len(key_bytes))
-        if curve is None:
-            raise ValueError(
-                f"Unsupported compressed key length: {len(key_bytes)} bytes. "
-                "Expected 33 (secp256r1), 49 (secp384r1), "
-                "or 67 (secp521r1) bytes."
-            )
+    curve = _COMPRESSED_SIZE_TO_CURVE.get(len(key_bytes))
+    if curve is not None:
         try:
-            loaded_key = ec.EllipticCurvePublicKey.from_encoded_point(
-                curve, key_bytes
-            )
-            return loaded_key
+            return ec.EllipticCurvePublicKey.from_encoded_point(curve, key_bytes)
         except (ValueError, exceptions.UnsupportedAlgorithm) as e:
             raise ValueError(
-                f"Failed to load compressed public key: {e}. "
-                f"Expected {len(key_bytes)} bytes compressed format "
-                f"for {curve.name}."
+                f"Failed to load compressed public key for {curve.name}: {e}"
             ) from e
-    else:
+
+    try:
+        loaded_key = serialization.load_pem_public_key(key_bytes)
+    except ValueError:
         try:
-            loaded_key = serialization.load_pem_public_key(key_bytes)
-        except ValueError:
             loaded_key = serialization.load_der_public_key(key_bytes)
+        except ValueError as e:
+            raise ValueError(
+                "Failed to load public key. Expected PEM, DER, or compressed "
+                "EC point format."
+            ) from e
 
     if not isinstance(loaded_key, ec.EllipticCurvePublicKey):
         raise ValueError("Only elliptic curve public keys are supported")
-    curve = loaded_key.curve.name
-    if curve not in ["secp256r1", "secp384r1", "secp521r1"]:
-        raise ValueError(f"Unsupported key for curve '{curve}'")
+    _check_supported_ec_key(loaded_key)
     return loaded_key
 
 
@@ -181,7 +170,7 @@ class Signer(sigstore_pb.Signer):
     """Signer using an elliptic curve private key."""
 
     def __init__(
-        self, private_key: pathlib.Path | bytes, password: str | None = None
+        self, private_key: signing.KeyInput, password: str | None = None
     ):
         """Initializes the signer with the private key and optional password.
 
@@ -242,14 +231,15 @@ class Signer(sigstore_pb.Signer):
 class Verifier(sigstore_pb.Verifier):
     """Verifier for signatures generated with an elliptic curve private key."""
 
-    def __init__(self, public_key: pathlib.Path | bytes):
+    def __init__(self, public_key: signing.KeyInput):
         """Initializes the verifier with the public key to use.
 
         Args:
             public_key:
-                - A path to a PEM-encoded public key file
-                - Bytes containing PEM-encoded public key
-                - 33 bytes of compressed public key (for secp256r1)
+                - A path to a PEM or DER-encoded public key file
+                - Bytes containing PEM or DER-encoded public key
+                - Compressed public key bytes (33 for secp256r1, 49 for
+                  secp384r1, 67 for secp521r1)
                 This must be paired with the private key used to generate
                 the signature.
         """
