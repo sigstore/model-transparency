@@ -21,7 +21,6 @@ from cryptography import exceptions
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.asymmetric import types as crypto_types
 from google.protobuf import json_format
 from sigstore_models import intoto as intoto_pb
 from sigstore_models.bundle import v1 as bundle_pb
@@ -44,26 +43,20 @@ _COMPRESSED_SIZE_TO_CURVE: dict[int, ec.EllipticCurve] = {
     _compressed_key_size(curve): curve for curve in _SUPPORTED_CURVES
 }
 
+_SUPPORTED_CURVE_NAMES: frozenset[str] = frozenset(
+    c.name for c in _SUPPORTED_CURVES
+)
 
-def _check_supported_ec_key(public_key: crypto_types.PublicKeyTypes):
-    """Checks if the elliptic curve key is supported by our package.
+
+def _check_supported_curve(curve_name: str):
+    """Check if the curve is supported.
 
     We only support a family of curves, trying to match those specified by
     Sigstore's protobuf specs.
     See https://github.com/sigstore/model-transparency/issues/385.
-
-    Args:
-        public_key: The public key to check. Can be obtained from a private key.
-
-    Raises:
-        ValueError: The key is not supported, or is not an elliptic curve one.
     """
-    if not isinstance(public_key, ec.EllipticCurvePublicKey):
-        raise ValueError("Only elliptic curve keys are supported")
-
-    supported_names = {c.name for c in _SUPPORTED_CURVES}
-    if public_key.curve.name not in supported_names:
-        raise ValueError(f"Unsupported key for curve '{public_key.curve.name}'")
+    if curve_name not in _SUPPORTED_CURVE_NAMES:
+        raise ValueError(f"Unsupported curve '{curve_name}'")
 
 
 def get_ec_key_hash(
@@ -114,7 +107,7 @@ def _load_private_key(
     loaded_key = serialization.load_pem_private_key(key_bytes, password)
     if not isinstance(loaded_key, ec.EllipticCurvePrivateKey):
         raise ValueError("Only elliptic curve private keys are supported")
-    _check_supported_ec_key(loaded_key.public_key())
+    _check_supported_curve(loaded_key.curve.name)
     return loaded_key
 
 
@@ -161,7 +154,7 @@ def _load_public_key(public_key: signing.KeyInput) -> ec.EllipticCurvePublicKey:
 
     if not isinstance(loaded_key, ec.EllipticCurvePublicKey):
         raise ValueError("Only elliptic curve public keys are supported")
-    _check_supported_ec_key(loaded_key)
+    _check_supported_curve(loaded_key.curve.name)
     return loaded_key
 
 
