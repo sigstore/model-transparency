@@ -100,3 +100,20 @@ jobs:
         run: hatch fmt --check
         env:
           RUFF_OUTPUT_FORMAT: github
+
+  cli-flag-lint:
+    runs-on: ubuntu-latest
+    name: CLI Lint
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+      - name: Check for CLI flags with underscores
+        run: |
+          if grep --recursive --line-number --extended-regexp --include="*.py" '"--[a-zA-Z0-9-]+_[a-zA-Z0-9-]+' src; then
+             echo "::error::Found CLI flags with underscores. Please use dashes."
+             exit 1
+          fi
