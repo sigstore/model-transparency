@@ -158,6 +158,9 @@ markers = [
   "integration: mark a test as an integration test.",
 ]
 pythonpath = "src"
+filterwarnings = [
+  "ignore:builtin type Swig.*has no __module__ attribute:DeprecationWarning",
+]
 
 [tool.ruff]
 line-length = 80

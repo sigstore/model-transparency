@@ -55,8 +55,19 @@ class Signature(signing.Signature):
 
     @classmethod
     @override
-    def read(cls, path: pathlib.Path) -> Self:
-        content = path.read_text(encoding="utf-8")
+    def read(cls, path_or_content: signing.SignatureInput) -> Self:
+        """Read a signature from a file path, JSON string, or bytes.
+
+        Args:
+            path_or_content:
+                - A path to a JSON signature file
+                - A JSON string containing the signature
+                - Bytes containing the JSON signature (UTF-8 encoded)
+
+        Returns:
+            The loaded signature.
+        """
+        content = signing.read_text_input(path_or_content)
         return cls(sigstore_models.Bundle.from_json(content))
 
 

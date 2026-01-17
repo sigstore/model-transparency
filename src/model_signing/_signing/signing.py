@@ -40,7 +40,7 @@ import abc
 import json
 import pathlib
 import sys
-from typing import Any
+from typing import Any, TypeAlias
 
 from in_toto_attestation.v1 import statement
 
@@ -53,6 +53,39 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
+
+
+KeyInput: TypeAlias = pathlib.Path | bytes
+SignatureInput: TypeAlias = pathlib.Path | str | bytes
+
+
+def read_text_input(path_or_content: SignatureInput) -> str:
+    """Read text content from a file path, string, or bytes."""
+    match path_or_content:
+        case pathlib.Path():
+            return path_or_content.read_text(encoding="utf-8")
+        case bytes():
+            return path_or_content.decode("utf-8")
+        case str():
+            return path_or_content
+        case _:
+            raise TypeError(
+                "Expected pathlib.Path, str, or bytes, "
+                f"got {type(path_or_content)}"
+            )
+
+
+def read_bytes_input(path_or_bytes: KeyInput) -> bytes:
+    """Read bytes from a file path or raw bytes."""
+    match path_or_bytes:
+        case pathlib.Path():
+            return path_or_bytes.read_bytes()
+        case bytes():
+            return path_or_bytes
+        case _:
+            raise TypeError(
+                f"Expected pathlib.Path or bytes, got {type(path_or_bytes)}"
+            )
 
 
 # The expected in-toto payload type for the signature.
@@ -306,14 +339,17 @@ class Signature(metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractmethod
-    def read(cls, path: pathlib.Path) -> Self:
-        """Reads the signature from disk.
+    def read(cls, path_or_content: SignatureInput) -> Self:
+        """Reads a signature from a file path, JSON string, or bytes.
 
         Does not perform any signature verification, except what is needed to
-        parse the signature file.
+        parse the signature.
 
         Args:
-            path: The path to read the signature from.
+            path_or_content:
+                - A path to a JSON signature file
+                - A JSON string containing the signature
+                - Bytes containing the JSON signature (UTF-8 encoded)
 
         Returns:
             An instance of the class which can be passed to a `Verifier` for

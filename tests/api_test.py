@@ -287,6 +287,91 @@ class TestKeySigning:
         )
         assert get_model_name(signature) == os.path.basename(model_path)
 
+    def test_sign_and_verify_with_bytes_keys(self, base_path, populate_tmpdir):
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        ignore_paths = []
+        ignore_git_paths = False
+        signature = Path(model_path / "model.sig")
+        private_key_path = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key_path = Path(
+            TESTDATA / "keys/certificate/signing-key-pub.pem"
+        )
+
+        private_key_bytes = private_key_path.read_bytes()
+        public_key_bytes = public_key_path.read_bytes()
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key_bytes, password=None
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).sign(model_path, signature)
+
+        verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key_bytes
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).verify(model_path, signature)
+
+        signature_bytes = signature.read_bytes()
+        verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key_bytes
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).verify(model_path, signature_bytes)
+
+    def test_verify_with_compressed_public_key(
+        self, base_path, populate_tmpdir
+    ):
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        ignore_paths = []
+        ignore_git_paths = False
+        signature = Path(model_path / "model.sig")
+        private_key_path = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key_path = Path(
+            TESTDATA / "keys/certificate/signing-key-pub.pem"
+        )
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key_path, password=None
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).sign(model_path, signature)
+
+        from cryptography.hazmat.primitives import serialization
+
+        public_key_pem = public_key_path.read_bytes()
+        public_key = serialization.load_pem_public_key(public_key_pem)
+
+        compressed_key = public_key.public_bytes(
+            encoding=serialization.Encoding.X962,
+            format=serialization.PublicFormat.CompressedPoint,
+        )
+
+        verifying.Config().use_elliptic_key_verifier(
+            public_key=compressed_key
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=list(ignore_paths) + [signature],
+                ignore_git_paths=ignore_git_paths,
+            )
+        ).verify(model_path, signature)
+
 
 class TestCertificateSigning:
     def test_sign_and_verify(self, base_path, populate_tmpdir):

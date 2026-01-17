@@ -187,7 +187,10 @@ class Config:
         return self
 
     def use_elliptic_key_signer(
-        self, *, private_key: hashing.PathLike, password: str | None = None
+        self,
+        *,
+        private_key: hashing.PathLike | bytes,
+        password: str | None = None,
     ) -> Self:
         """Configures the signing to be performed using elliptic curve keys.
 
@@ -195,13 +198,19 @@ class Config:
         using a private key based on elliptic curve cryptography.
 
         Args:
-            private_key: The path to the private key to use for signing.
+            private_key: Either a path to a PEM-encoded private key file,
+                or bytes containing the PEM-encoded private key.
             password: An optional password for the key, if encrypted.
 
         Return:
             The new signing configuration.
         """
-        self._signer = ec_key.Signer(pathlib.Path(private_key), password)
+        match private_key:
+            case bytes():
+                self._signer = ec_key.Signer(private_key, password)
+            case _:
+                key_path = pathlib.Path(private_key)
+                self._signer = ec_key.Signer(key_path, password)
         return self
 
     def use_certificate_signer(
