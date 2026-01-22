@@ -38,5 +38,5 @@ jobs:
         # TODO: this should use hatch
         python -m venv venv
         . venv/bin/activate
-        pip install -e .[pkcs11]
+        pip install -e .[pkcs11,pqc]
         ./scripts/tests/testrunner
