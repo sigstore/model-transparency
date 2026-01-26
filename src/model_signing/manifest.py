@@ -319,6 +319,7 @@ class _FileSerialization(SerializationType):
         Args:
             hash_type: A string representation of the hash algorithm.
             allow_symlinks: Controls whether symbolic links are included.
+            ignore_paths: Paths of files to ignore.
         """
         self._hash_type = hash_type
         self._allow_symlinks = allow_symlinks
@@ -361,7 +362,7 @@ class _ShardSerialization(SerializationType):
         allow_symlinks: bool = False,
         ignore_paths: Iterable[pathlib.Path] = frozenset(),
     ):
-        """Records the manifest serialization type for serialization by files.
+        """Records the manifest serialization type for serialization by shards.
 
         We need to record the hashing engine used and whether symlinks are
         hashed or ignored, just like for file serialization. We also need to
@@ -370,6 +371,7 @@ class _ShardSerialization(SerializationType):
 
         Args:
             hash_type: A string representation of the hash algorithm.
+            shard_size: The size of each file shard.
             allow_symlinks: Controls whether symbolic links are included.
             ignore_paths: Paths of files to ignore.
         """
@@ -434,12 +436,14 @@ class Manifest:
               is the final component of the model path, and is only informative.
               See `model_name` property.
             items: An iterable sequence of objects and their hashes.
+            serialization_type: The serialization method used to create items.
         """
         self._name = model_name
         self._item_to_digest = {item.key: item.digest for item in items}
         self._serialization_type = serialization_type
 
     def __eq__(self, other: Self):
+        """Check equality based on item digests, ignoring model name."""
         return self._item_to_digest == other._item_to_digest
 
     def resource_descriptors(self) -> Iterator[_ResourceDescriptor]:

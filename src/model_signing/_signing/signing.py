@@ -78,7 +78,7 @@ def dsse_payload_to_manifest(dsse_payload: dict[str, Any]) -> manifest.Manifest:
     DSSE envelope contained in the Sigstore bundle.
 
     Args:
-        payload: The in-toto DSSE envelope to convert to manifest.
+        dsse_payload: The in-toto DSSE envelope to convert to manifest.
 
     Returns:
         A manifest representing the signed model.
@@ -137,7 +137,7 @@ def dsse_payload_to_manifest_compat(
     forward compatible format defined by v1.0.
 
     Args:
-        payload: The in-toto DSSE envelope to convert to manifest.
+        dsse_payload: The in-toto DSSE envelope to convert to manifest.
 
     Returns:
         A manifest representing the signed model.

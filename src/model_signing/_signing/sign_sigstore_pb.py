@@ -54,7 +54,7 @@ def pae(raw_payload: bytes) -> bytes:
     for details.
 
     Args:
-        payload: The raw payload to encode.
+        raw_payload: The raw payload to encode.
 
     Returns:
         The encoded statement from the payload.
@@ -76,7 +76,7 @@ def pae_compat(raw_payload: bytes) -> bytes:
     encoded back as bytes, so we get additional escape characters included.
 
     Args:
-        payload: The raw payload to encode.
+        raw_payload: The raw payload to encode.
 
     Returns:
         The encoded statement from the payload.
