@@ -151,6 +151,17 @@ format-fix = "ruff format src/"
 lint-check = "ruff check src/"
 lint-fix = "ruff check --fix src/"
 
+[tool.hatch.envs.cli]
+description = """Custom environment for CLI tests.
+Use `hatch run cli:test` to run CLI tests.
+"""
+features = [
+    "pkcs11",
+]
+
+[tool.hatch.envs.cli.scripts]
+test = "bash ./scripts/tests/testrunner"
+
 [tool.coverage.report]
 exclude_also = [
   "pass",
