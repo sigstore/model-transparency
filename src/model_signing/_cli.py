@@ -664,7 +664,7 @@ def _verify() -> None:
     Given a model and a cryptographic signature (in the form of a Sigstore
     bundle) for the model, this call checks that the model matches the
     signature, that the model has not been tampered with. We support any model
-    format, either as a signle file or as a directory.
+    format, either as a single file or as a directory.
 
     We support multiple PKI methods, specified as subcommands. By default, the
     signature is assumed to be generated via Sigstore (as if invoking `sigstore`

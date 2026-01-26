@@ -303,6 +303,7 @@ class Config:
             allow_symlinks: Controls whether symbolic links are included. If a
               symlink is present but the flag is `False` (default) the
               serialization would raise an error.
+            ignore_paths: Paths of files to ignore during serialization.
 
         Returns:
             The new hashing configuration with the new serialization method.

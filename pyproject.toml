@@ -142,6 +142,15 @@ python = "3.12"
 [tool.hatch.envs.type.scripts]
 check = "pytype -k -j auto src tests benchmarks"
 
+[tool.hatch.envs.hatch-static-analysis]
+config-path = "none"
+
+[tool.hatch.envs.hatch-static-analysis.scripts]
+format-check = "ruff format --check src/"
+format-fix = "ruff format src/"
+lint-check = "ruff check src/"
+lint-fix = "ruff check --fix src/"
+
 [tool.coverage.report]
 exclude_also = [
   "pass",
@@ -173,11 +182,7 @@ skip-magic-trailing-comma = true
 [tool.ruff.lint]
 select = ["B", "D", "E", "F", "I", "N", "PLC", "PLE", "PT", "SIM", "UP", "W"]
 ignore = [
-  # TODO: selectively enable back most of these in subsequent PRs
-  "B024", "D100", "D101", "D102", "D103", "D104", "D105", "D107", "D417",
-  # Unnecessary arguments can help with clarity
-  "UP012", "UP015",
-  "PLC0415", # Lazy imports
+  "PLC0415",  # Intentional lazy imports for optional dependencies
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]

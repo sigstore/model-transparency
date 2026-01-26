@@ -231,7 +231,7 @@ class Verifier(sigstore_pb.Verifier):
             if usage.value.digital_signature:
                 can_use_for_signing = True
         except x509.ExtensionNotFound:
-            logger.warn("Certificate does not specify 'KeyUsage'.")
+            logger.warning("Certificate does not specify 'KeyUsage'.")
 
         if not can_use_for_signing:
             try:
@@ -241,7 +241,9 @@ class Verifier(sigstore_pb.Verifier):
                 if oid.ExtendedKeyUsageOID.CODE_SIGNING in usage.value:
                     can_use_for_signing = True
             except x509.ExtensionNotFound:
-                logger.warn("Certificate does not specify 'ExtendedKeyUsage'.")
+                logger.warning(
+                    "Certificate does not specify 'ExtendedKeyUsage'."
+                )
 
         if not can_use_for_signing:
             raise ValueError("Signing certificate cannot be used for signing")

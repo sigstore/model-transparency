@@ -225,6 +225,7 @@ class CertSigner(Signer):
             signing_certificate_path: The path to the signing certificate.
             certificate_chain_paths: Paths to other certificates used to
               establish chain of trust.
+            module_paths: Paths to PKCS #11 modules to load.
 
         Raises:
             ValueError: Signing certificate's public key does not match the

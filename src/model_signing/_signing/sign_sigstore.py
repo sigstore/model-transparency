@@ -97,7 +97,7 @@ class Signer(signing.Signer):
               opened automatically if possible.
             identity_token: An explicit identity token to use when signing,
               taking precedence over any ambient credential or OAuth workflow.
-             client_id: An optional client ID to use when performing OIDC-based
+            client_id: An optional client ID to use when performing OIDC-based
               authentication. This is typically used to identify the
               application making the request to the OIDC provider. If not
               provided, the default client ID configured by Sigstore will be
