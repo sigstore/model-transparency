@@ -75,7 +75,7 @@ jobs:
       - name: Set up Hatch
         uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc # install
       - name: store beacon token into oidc-token.txt
-        uses: sigstore-conformance/extremely-dangerous-public-oidc-beacon@8c13517721d6ae11cac357e58b9c81e988dc86e4 # main
+        uses: sigstore-conformance/extremely-dangerous-public-oidc-beacon@72d9d63b71e66f36b3e008b8be44ffce84cd2b63 # main
       - name: Sign the model
         run: hatch run python -m model_signing sign sigstore model_root/ --use_staging --signature model.sig --identity_token $(cat oidc-token.txt)
       - name: upload model signature
