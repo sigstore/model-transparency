@@ -72,8 +72,11 @@ class Signer(ec_key.Signer):
                 "the public key paired with the private key"
             )
 
-        self._trust_chain = x509.load_pem_x509_certificates(
-            b"".join([path.read_bytes() for path in certificate_chain_paths])
+        chain_bytes = b"".join(
+            [path.read_bytes() for path in certificate_chain_paths]
+        )
+        self._trust_chain = (
+            x509.load_pem_x509_certificates(chain_bytes) if chain_bytes else []
         )
 
     @override
