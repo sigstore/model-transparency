@@ -36,7 +36,7 @@ jobs:
       uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc # install
     - name: Build artifacts
       run: hatch build
-    - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+    - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         path: dist/
         name: dist.zip
@@ -54,7 +54,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      - uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: dist.zip
           path: dist/
@@ -118,7 +118,7 @@ jobs:
           registry: ghcr.io
 
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-name: ghcr.io/sigstore/model-transparency-cli
           subject-digest: ${{ steps.push_minimal.outputs.digest }}
@@ -153,7 +153,7 @@ jobs:
           registry: ghcr.io
 
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-name: ghcr.io/sigstore/model-transparency-cli
           subject-digest: ${{ steps.push_full.outputs.digest }}
