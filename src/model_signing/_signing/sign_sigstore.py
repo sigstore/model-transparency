@@ -38,6 +38,40 @@ _DEFAULT_CLIENT_ID = "sigstore"
 _DEFAULT_CLIENT_SECRET = ""
 
 
+def _resolve_trust_config(
+    *,
+    use_staging: bool = False,
+    trust_config: pathlib.Path | None = None,
+    instance: str | None = None,
+) -> sigstore_models.ClientTrustConfig:
+    """Resolve trust configuration from the provided options.
+
+    Precedence: trust_config file > instance URL > staging > production.
+    """
+    if trust_config:
+        return sigstore_models.ClientTrustConfig.from_json(
+            trust_config.read_text()
+        )
+    if instance:
+        return sigstore_models.ClientTrustConfig.from_tuf(instance)
+    if use_staging:
+        return sigstore_models.ClientTrustConfig.staging()
+    return sigstore_models.ClientTrustConfig.production()
+
+
+def bootstrap_instance(instance: str, root: pathlib.Path) -> None:
+    """Bootstrap trust for a Sigstore instance.
+
+    Seeds the local TUF cache with the provided root metadata so that
+    subsequent signing/verification can use ``--instance`` with just the URL.
+
+    Args:
+        instance: The TUF repository URL of the Sigstore instance.
+        root: Path to the initial TUF ``root.json`` for the instance.
+    """
+    sigstore_models.ClientTrustConfig.from_tuf(instance, bootstrap_root=root)
+
+
 class Signature(signing.Signature):
     """Sigstore signature support, wrapping around `sigstore_models.Bundle`."""
 
@@ -74,6 +108,7 @@ class Signer(signing.Signer):
         client_id: str | None = None,
         client_secret: str | None = None,
         trust_config: pathlib.Path | None = None,
+        instance: str | None = None,
     ):
         """Initializes Sigstore signers.
 
@@ -113,15 +148,16 @@ class Signer(signing.Signer):
               supplied PKI and trust configurations, instead of the default
               Sigstore setup. If not specified, the default Sigstore
               configuration is used.
+            instance: A Sigstore TUF repository URL. When provided, trust
+              configuration is fetched via TUF from this URL instead of using
+              the default production instance or a manual config file. Must
+              have been bootstrapped first via `bootstrap_instance()`.
         """
-        if use_staging:
-            trust_config = sigstore_models.ClientTrustConfig.staging()
-        elif trust_config:
-            trust_config = sigstore_models.ClientTrustConfig.from_json(
-                trust_config.read_text()
-            )
-        else:
-            trust_config = sigstore_models.ClientTrustConfig.production()
+        trust_config = _resolve_trust_config(
+            use_staging=use_staging,
+            trust_config=trust_config,
+            instance=instance,
+        )
 
         if not oidc_issuer:
             oidc_issuer = trust_config.signing_config.get_oidc_url()
@@ -190,6 +226,7 @@ class Verifier(signing.Verifier):
         oidc_issuer: str,
         use_staging: bool = False,
         trust_config: pathlib.Path | None = None,
+        instance: str | None = None,
     ):
         """Initializes Sigstore verifiers.
 
@@ -208,15 +245,16 @@ class Verifier(signing.Verifier):
               PKI and trust configurations, instead of the default Sigstore
               setup. If not specified, the default Sigstore configuration
               is used.
+            instance: A Sigstore TUF repository URL. When provided, trust
+              configuration is fetched via TUF from this URL instead of using
+              the default production instance or a manual config file. Must
+              have been bootstrapped first via `bootstrap_instance()`.
         """
-        if trust_config:
-            trust_config = sigstore_models.ClientTrustConfig.from_json(
-                trust_config.read_text()
-            )
-        elif use_staging:
-            trust_config = sigstore_models.ClientTrustConfig.staging()
-        else:
-            trust_config = sigstore_models.ClientTrustConfig.production()
+        trust_config = _resolve_trust_config(
+            use_staging=use_staging,
+            trust_config=trust_config,
+            instance=instance,
+        )
 
         self._verifier = sigstore_verifier.Verifier(
             trusted_root=trust_config.trusted_root
