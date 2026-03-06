@@ -155,6 +155,14 @@ _allow_symlinks_option = click.option(
     help="Whether to allow following symlinks when signing or verifying files.",
 )
 
+# Decorator for the commonly used option to set a TSA URL for PKI signing
+_tsa_url_option = click.option(
+    "--tsa-url",
+    type=str,
+    metavar="TSA_URL",
+    help="URL of an RFC 3161 Timestamp Authority for trusted timestamps.",
+)
+
 
 def _resolve_ignore_paths(
     model_path: pathlib.Path, paths: Iterable[pathlib.Path]
@@ -454,6 +462,7 @@ def _sign_sigstore(
 @_allow_symlinks_option
 @_write_signature_option
 @_private_key_option
+@_tsa_url_option
 @click.option(
     "--password",
     type=str,
@@ -468,6 +477,7 @@ def _sign_private_key(
     signature: pathlib.Path,
     private_key: pathlib.Path,
     password: str | None = None,
+    tsa_url: str | None = None,
 ) -> None:
     """Sign using a private key (paired with a public one).
 
@@ -487,7 +497,7 @@ def _sign_private_key(
             model_path, list(ignore_paths) + [signature]
         )
         model_signing.signing.Config().use_elliptic_key_signer(
-            private_key=private_key, password=password
+            private_key=private_key, password=password, tsa_url=tsa_url
         ).set_hashing_config(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
@@ -507,6 +517,7 @@ def _sign_private_key(
 @_allow_symlinks_option
 @_write_signature_option
 @_pkcs11_uri_option
+@_tsa_url_option
 def _sign_pkcs11_key(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
@@ -514,6 +525,7 @@ def _sign_pkcs11_key(
     allow_symlinks: bool,
     signature: pathlib.Path,
     pkcs11_uri: str,
+    tsa_url: str | None = None,
 ) -> None:
     """Sign using a private key using a PKCS #11 URI.
 
@@ -533,7 +545,7 @@ def _sign_pkcs11_key(
             model_path, list(ignore_paths) + [signature]
         )
         model_signing.signing.Config().use_pkcs11_signer(
-            pkcs11_uri=pkcs11_uri
+            pkcs11_uri=pkcs11_uri, tsa_url=tsa_url
         ).set_hashing_config(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
@@ -555,6 +567,7 @@ def _sign_pkcs11_key(
 @_private_key_option
 @_signing_certificate_option
 @_certificate_root_of_trust_option
+@_tsa_url_option
 def _sign_certificate(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
@@ -564,6 +577,7 @@ def _sign_certificate(
     private_key: pathlib.Path,
     signing_certificate: pathlib.Path,
     certificate_chain: Iterable[pathlib.Path],
+    tsa_url: str | None = None,
 ) -> None:
     """Sign using a certificate.
 
@@ -589,6 +603,7 @@ def _sign_certificate(
             private_key=private_key,
             signing_certificate=signing_certificate,
             certificate_chain=certificate_chain,
+            tsa_url=tsa_url,
         ).set_hashing_config(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
@@ -610,6 +625,7 @@ def _sign_certificate(
 @_pkcs11_uri_option
 @_signing_certificate_option
 @_certificate_root_of_trust_option
+@_tsa_url_option
 def _sign_pkcs11_certificate(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
@@ -619,6 +635,7 @@ def _sign_pkcs11_certificate(
     pkcs11_uri: str,
     signing_certificate: pathlib.Path,
     certificate_chain: Iterable[pathlib.Path],
+    tsa_url: str | None = None,
 ) -> None:
     """Sign using a certificate.
 
@@ -645,6 +662,7 @@ def _sign_pkcs11_certificate(
             pkcs11_uri=pkcs11_uri,
             signing_certificate=signing_certificate,
             certificate_chain=certificate_chain,
+            tsa_url=tsa_url,
         ).set_hashing_config(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
