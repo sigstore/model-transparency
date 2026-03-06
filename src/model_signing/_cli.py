@@ -72,7 +72,7 @@ _trust_config_option = click.option(
     "--trust-config",
     type=pathlib.Path,
     metavar="TRUST_CONFIG_PATH",
-    help="The client trust configuration to use",
+    help="The Sigstore trust configuration to use.",
 )
 
 # Decorator for the commonly used option to ignore certain paths
@@ -162,6 +162,20 @@ _allow_symlinks_option = click.option(
     "--allow-symlinks",
     is_flag=True,
     help="Whether to allow following symlinks when signing or verifying files.",
+)
+
+# Decorator for the commonly used option to set a TSA URL for PKI signing
+_tsa_url_option = click.option(
+    "--tsa-url",
+    type=str,
+    metavar="TSA_URL",
+    help="URL of an RFC 3161 Timestamp Authority for trusted timestamps.",
+)
+
+_require_timestamp_option = click.option(
+    "--require-timestamp",
+    is_flag=True,
+    help="Reject signatures that do not contain a verified RFC 3161 timestamp.",
 )
 
 
@@ -463,6 +477,7 @@ def _sign_sigstore(
 @_allow_symlinks_option
 @_write_signature_option
 @_private_key_option
+@_tsa_url_option
 @click.option(
     "--password",
     type=str,
@@ -477,6 +492,7 @@ def _sign_private_key(
     signature: pathlib.Path,
     private_key: pathlib.Path,
     password: str | None = None,
+    tsa_url: str | None = None,
 ) -> None:
     """Sign using a private key (paired with a public one).
 
@@ -496,7 +512,7 @@ def _sign_private_key(
             model_path, list(ignore_paths) + [signature]
         )
         model_signing.signing.Config().use_elliptic_key_signer(
-            private_key=private_key, password=password
+            private_key=private_key, password=password, tsa_url=tsa_url
         ).set_hashing_config(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
@@ -517,6 +533,7 @@ def _sign_private_key(
 @_write_signature_option
 @_pkcs11_uri_option
 @_module_paths_option
+@_tsa_url_option
 def _sign_pkcs11_key(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
@@ -525,6 +542,7 @@ def _sign_pkcs11_key(
     signature: pathlib.Path,
     pkcs11_uri: str,
     module_paths: Iterable[str],
+    tsa_url: str | None = None,
 ) -> None:
     """Sign using a private key using a PKCS #11 URI.
 
@@ -547,7 +565,7 @@ def _sign_pkcs11_key(
             model_path, list(ignore_paths) + [signature]
         )
         model_signing.signing.Config().use_pkcs11_signer(
-            pkcs11_uri=pkcs11_uri, module_paths=module_paths
+            pkcs11_uri=pkcs11_uri, module_paths=module_paths, tsa_url=tsa_url
         ).set_hashing_config(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
@@ -569,6 +587,7 @@ def _sign_pkcs11_key(
 @_private_key_option
 @_signing_certificate_option
 @_certificate_root_of_trust_option
+@_tsa_url_option
 def _sign_certificate(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
@@ -578,6 +597,7 @@ def _sign_certificate(
     private_key: pathlib.Path,
     signing_certificate: pathlib.Path,
     certificate_chain: Iterable[pathlib.Path],
+    tsa_url: str | None = None,
 ) -> None:
     """Sign using a certificate.
 
@@ -603,6 +623,7 @@ def _sign_certificate(
             private_key=private_key,
             signing_certificate=signing_certificate,
             certificate_chain=certificate_chain,
+            tsa_url=tsa_url,
         ).set_hashing_config(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
@@ -625,6 +646,7 @@ def _sign_certificate(
 @_signing_certificate_option
 @_certificate_root_of_trust_option
 @_module_paths_option
+@_tsa_url_option
 def _sign_pkcs11_certificate(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
@@ -635,6 +657,7 @@ def _sign_pkcs11_certificate(
     signing_certificate: pathlib.Path,
     certificate_chain: Iterable[pathlib.Path],
     module_paths: Iterable[str],
+    tsa_url: str | None = None,
 ) -> None:
     """Sign using a certificate.
 
@@ -665,6 +688,7 @@ def _sign_pkcs11_certificate(
             signing_certificate=signing_certificate,
             certificate_chain=certificate_chain,
             module_paths=module_paths,
+            tsa_url=tsa_url,
         ).set_hashing_config(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
@@ -783,6 +807,8 @@ def _verify_sigstore(
 @_ignore_paths_option
 @_ignore_git_paths_option
 @_allow_symlinks_option
+@_trust_config_option
+@_require_timestamp_option
 @click.option(
     "--public-key",
     type=pathlib.Path,
@@ -799,14 +825,16 @@ def _verify_private_key(
     allow_symlinks: bool,
     public_key: pathlib.Path,
     ignore_unsigned_files: bool,
+    trust_config: pathlib.Path | None,
+    require_timestamp: bool,
 ) -> None:
-    """Verity using a public key (paired with a private one).
+    """Verify using a public key (paired with a private one).
 
     Verifies the integrity of model at MODEL_PATH, according to signature from
     SIGNATURE_PATH (given via `--signature` option). Files in IGNORE_PATHS are
     ignored.
 
-    The public key provided via `--public_key` must have been paired with the
+    The public key provided via `--public-key` must have been paired with the
     private key used when generating the signature.
 
     Note that this method does not provide a way to tie to the identity of the
@@ -818,7 +846,9 @@ def _verify_private_key(
             model_path, list(ignore_paths) + [signature]
         )
         model_signing.verifying.Config().use_elliptic_key_verifier(
-            public_key=public_key
+            public_key=public_key,
+            trust_config=trust_config,
+            require_timestamp=require_timestamp,
         ).set_hashing_config(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
@@ -840,6 +870,8 @@ def _verify_private_key(
 @_ignore_git_paths_option
 @_allow_symlinks_option
 @_certificate_root_of_trust_option
+@_trust_config_option
+@_require_timestamp_option
 @click.option(
     "--log-fingerprints",
     type=bool,
@@ -874,6 +906,8 @@ def _verify_certificate(
     log_fingerprints: bool,
     san_uris: tuple[str, ...],
     ignore_unsigned_files: bool,
+    trust_config: pathlib.Path | None,
+    require_timestamp: bool,
 ) -> None:
     """Verify using a certificate.
 
@@ -883,7 +917,7 @@ def _verify_certificate(
 
     The signing certificate is encoded in the signature, as part of the Sigstore
     bundle. To verify the root of trust, pass additional certificates in the
-    certificate chain, using `--certificate_chain` (this option can be repeated
+    certificate chain, using `--certificate-chain` (this option can be repeated
     as needed, or all certificates could be placed in a single file).
 
     To bind the signature to a specific signer identity (and not merely to
@@ -906,6 +940,8 @@ def _verify_certificate(
             certificate_chain=certificate_chain,
             log_fingerprints=log_fingerprints,
             expected_san_uris=san_uris,
+            trust_config=trust_config,
+            require_timestamp=require_timestamp,
         ).set_hashing_config(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)

@@ -33,6 +33,7 @@ dependencies = [
   "cryptography",
   "in-toto-attestation",
   "pyOpenSSL",
+  "rfc3161-client>=1.0.6,<1.1.0",
   "sigstore>=4.0",
   "sigstore-models>=0.0.5",
   "typing_extensions",

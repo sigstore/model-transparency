@@ -22,14 +22,62 @@ validation does not allow those.
 """
 
 import abc
+import base64
+from collections.abc import Callable
+from datetime import datetime
+from functools import cached_property
 import json
 import pathlib
 from typing import Self, cast
+import urllib.error
+import urllib.request
 
+import rfc3161_client
+from sigstore import models as sigstore_models
 from sigstore_models.bundle import v1 as bundle_pb
 from typing_extensions import override
 
 from model_signing._signing import signing
+
+
+_TSA_CLIENT_TIMEOUT: int = 5
+_USER_AGENT: str = "model-signing"
+
+
+def _request_timestamp(
+    url: str, signature: bytes
+) -> rfc3161_client.TimeStampResponse:
+    """Request a timestamp from a TSA for the given signature."""
+    try:
+        timestamp_request = (
+            rfc3161_client.TimestampRequestBuilder()
+            .hash_algorithm(rfc3161_client.HashAlgorithm.SHA256)
+            .data(signature)
+            .nonce(nonce=True)
+            .build()
+        )
+    except ValueError as error:
+        raise ValueError(f"invalid TSA request: {error}") from error
+
+    req = urllib.request.Request(
+        url,
+        data=timestamp_request.as_bytes(),
+        headers={
+            "Content-Type": "application/timestamp-query",
+            "User-Agent": _USER_AGENT,
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=_TSA_CLIENT_TIMEOUT) as resp:
+            response_bytes = resp.read()
+    except urllib.error.URLError as error:
+        raise ValueError(f"TSA request failed: {error}") from error
+
+    try:
+        return rfc3161_client.decode_timestamp_response(response_bytes)
+    except ValueError as error:
+        raise ValueError(f"invalid TSA response: {error}") from error
 
 
 # The media type to use when creating the protobuf based Sigstore bundle
@@ -136,6 +184,26 @@ class Verifier(signing.Verifier):
     This is subclassed for each traditional signing method we support.
     """
 
+    def __init__(
+        self,
+        trust_config: pathlib.Path | None = None,
+        require_timestamp: bool = False,
+    ) -> None:
+        """Initializes optional timestamp verification trust material.
+
+        Args:
+            trust_config: A Sigstore client trust configuration or trusted root.
+              When omitted, the Sigstore production trusted root is used for
+              timestamp verification.
+            require_timestamp: Reject bundles without an RFC 3161 timestamp.
+        """
+        self._trust_config = trust_config
+        self._require_timestamp = require_timestamp
+
+    @cached_property
+    def _trusted_root(self) -> sigstore_models.TrustedRoot:
+        return _load_trusted_root(self._trust_config)
+
     @override
     def _verify_signed_content(
         self, signature: signing.Signature
@@ -151,12 +219,137 @@ class Verifier(signing.Verifier):
                 f"but expected {_BUNDLE_MEDIA_TYPE}"
             )
 
-        return self._verify_bundle(bundle)
+        envelope = bundle.dsse_envelope
+        verification_time = verify_timestamp(
+            bundle.verification_material,
+            envelope.signatures[0].sig,
+            self._trust_config,
+            require_timestamp=self._require_timestamp,
+            trusted_root_loader=lambda: self._trusted_root,
+        )
+        return self._verify_bundle(bundle, verification_time)
 
     @abc.abstractmethod
-    def _verify_bundle(self, bundle: bundle_pb.Bundle) -> tuple[str, bytes]:
+    def _verify_bundle(
+        self, bundle: bundle_pb.Bundle, verification_time: datetime | None
+    ) -> tuple[str, bytes]:
         """Verifies the bundle to extract the payload type and payload.
 
         Since the bundle is generated via proto, we need to do more checks to
         replace what `verify_dsse` from `sigstore_python` does.
         """
+
+
+def request_timestamp(
+    signature_bytes: bytes, tsa_url: str
+) -> bundle_pb.TimestampVerificationData:
+    """Requests a timestamp from a TSA and returns verification data.
+
+    Args:
+        signature_bytes: The signature bytes to timestamp.
+        tsa_url: The URL of the RFC 3161 Timestamp Authority.
+
+    Returns:
+        TimestampVerificationData to include in the bundle.
+    """
+    response = _request_timestamp(tsa_url, signature_bytes)
+
+    return bundle_pb.TimestampVerificationData(
+        rfc3161_timestamps=[
+            bundle_pb.RFC3161SignedTimestamp(
+                # sigstore-models constructors expect bytes in base64 form.
+                signed_timestamp=base64.b64encode(response.as_bytes())
+            )
+        ]
+    )
+
+
+def verify_timestamp(
+    verification_material: bundle_pb.VerificationMaterial,
+    signature_bytes: bytes,
+    trust_config: pathlib.Path | None = None,
+    *,
+    require_timestamp: bool = False,
+    trusted_root_loader: (
+        Callable[[], sigstore_models.TrustedRoot] | None
+    ) = None,
+) -> datetime | None:
+    """Verifies and extracts an RFC 3161 timestamp from a bundle.
+
+    Args:
+        verification_material: The bundle's verification material.
+        signature_bytes: The signature bytes covered by the timestamp.
+        trust_config: A Sigstore client trust configuration or trusted root.
+          When omitted, the Sigstore production trusted root is used.
+        require_timestamp: Reject verification material without a timestamp.
+        trusted_root_loader: Optional lazy source of cached timestamp trust.
+
+    Returns:
+        The verified timestamp, or None if the bundle has no timestamp.
+
+    Raises:
+        ValueError: The timestamp is malformed, untrusted, or does not cover
+          the supplied signature.
+    """
+    ts_data = verification_material.timestamp_verification_data
+    if not ts_data or not ts_data.rfc3161_timestamps:
+        if require_timestamp:
+            raise ValueError("An RFC 3161 timestamp is required")
+        return None
+
+    if len(ts_data.rfc3161_timestamps) != 1:
+        raise ValueError("Expected exactly one RFC 3161 timestamp")
+    try:
+        response = rfc3161_client.decode_timestamp_response(
+            ts_data.rfc3161_timestamps[0].signed_timestamp
+        )
+    except ValueError as error:
+        raise ValueError(f"Invalid RFC 3161 timestamp: {error}") from error
+
+    trusted_root = (
+        trusted_root_loader()
+        if trusted_root_loader
+        else _load_trusted_root(trust_config)
+    )
+    authorities = trusted_root.get_timestamp_authorities()
+    if not authorities:
+        raise ValueError("No timestamp authorities found in the trusted root")
+
+    for authority in authorities:
+        certificates = authority.certificates(allow_expired=True)
+        if len(certificates) < 2:
+            continue
+
+        try:
+            verifier = rfc3161_client.VerifierBuilder(
+                tsa_certificate=certificates[0],
+                intermediates=certificates[1:-1],
+                roots=[certificates[-1]],
+            ).build()
+            verifier.verify_message(response, signature_bytes)
+        except (ValueError, rfc3161_client.VerificationError):
+            continue
+
+        timestamp = response.tst_info.gen_time
+        if authority.validity_period_start <= timestamp and (
+            authority.validity_period_end is None
+            or timestamp < authority.validity_period_end
+        ):
+            return timestamp
+
+    raise ValueError("Invalid RFC 3161 timestamp or untrusted authority")
+
+
+def _load_trusted_root(
+    trust_config: pathlib.Path | None,
+) -> sigstore_models.TrustedRoot:
+    """Loads timestamp trust from a client config or standalone trusted root."""
+    if trust_config is None:
+        return sigstore_models.ClientTrustConfig.production().trusted_root
+
+    contents = trust_config.read_text()
+    document = json.loads(contents)
+    if "trustedRoot" in document:
+        config = sigstore_models.ClientTrustConfig.from_json(contents)
+        return config.trusted_root
+    return sigstore_models.TrustedRoot.from_file(str(trust_config))

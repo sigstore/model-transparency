@@ -165,6 +165,32 @@ And then we use the private key to sign.
 [...]$ model_signing sign key bert-base-uncased --private-key key.priv
 ```
 
+#### Timestamp Authority Support
+
+PKI signing methods support RFC 3161 timestamps via `--tsa-url`:
+
+```bash
+[...]$ model_signing sign key bert-base-uncased --private-key key.priv \
+       --tsa-url https://timestamp.sigstore.dev/api/v1/timestamp
+```
+
+The public Sigstore TSA is trusted by default:
+
+```bash
+[...]$ model_signing verify key bert-base-uncased --signature model.sig \
+       --public-key key.pub \
+       --require-timestamp
+```
+
+For a private TSA, pass a Sigstore client trust configuration or standalone
+trusted root with `--trust-config`. See the
+[Timestamp Authority guide](docs/timestamp_authorities.md) for custom trust-root
+configuration, certificate-based signing, and offline verification.
+
+Use `--require-timestamp` when verification policy requires one. Without it,
+signatures containing no timestamp remain backward compatible; an invalid or
+untrusted timestamp is always rejected.
+
 All signing methods support changing the signature name and location via the
 `--signature` flag:
 

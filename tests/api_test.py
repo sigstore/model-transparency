@@ -27,10 +27,12 @@ import time
 import urllib.request
 
 import pytest
+import rfc3161_client
 
 from model_signing import hashing
 from model_signing import signing
 from model_signing import verifying
+from model_signing._signing import sign_sigstore_pb
 
 
 # Directory with testdata for this test
@@ -686,3 +688,30 @@ class TestVerifierHonoursRecordedSymlinkPolicy:
 
         with pytest.raises(ValueError, match="because it is a symlink"):
             config.verify(model_path, signature)
+
+
+class TestTSASigning:
+    @pytest.mark.integration
+    def test_sign_with_tsa(self, base_path, populate_tmpdir):
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key,
+            tsa_url="https://timestamp.sigstore.dev/api/v1/timestamp",
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=[signature], ignore_git_paths=False
+            )
+        ).sign(model_path, signature)
+
+        bundle = sign_sigstore_pb.Signature.read(signature).bundle
+        timestamps = (
+            bundle.verification_material.timestamp_verification_data
+            .rfc3161_timestamps
+        )
+        assert len(timestamps) == 1
+        rfc3161_client.decode_timestamp_response(timestamps[0].signed_timestamp)

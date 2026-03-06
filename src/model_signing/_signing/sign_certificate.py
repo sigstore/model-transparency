@@ -47,6 +47,7 @@ class Signer(ec_key.Signer):
         private_key_path: pathlib.Path,
         signing_certificate_path: pathlib.Path,
         certificate_chain_paths: Iterable[pathlib.Path],
+        tsa_url: str | None = None,
     ):
         """Initializes the signer with the key, certificate and trust chain.
 
@@ -55,12 +56,13 @@ class Signer(ec_key.Signer):
             signing_certificate_path: The path to the signing certificate.
             certificate_chain_paths: Paths to other certificates used to
               establish chain of trust.
+            tsa_url: Optional URL of an RFC 3161 Timestamp Authority.
 
         Raises:
             ValueError: Signing certificate's public key does not match the
               private key's public pair.
         """
-        super().__init__(private_key_path)
+        super().__init__(private_key_path, tsa_url=tsa_url)
         self._signing_certificate = x509.load_pem_x509_certificate(
             signing_certificate_path.read_bytes()
         )
@@ -144,6 +146,8 @@ class Verifier(sigstore_pb.Verifier):
         certificate_chain_paths: Iterable[pathlib.Path] = frozenset(),
         log_fingerprints: bool = False,
         expected_san_uris: Iterable[str] = frozenset(),
+        trust_config: pathlib.Path | None = None,
+        require_timestamp: bool = False,
     ):
         """Initializes the verifier with the list of certificates to use.
 
@@ -159,7 +163,10 @@ class Verifier(sigstore_pb.Verifier):
               identity (e.g. a SPIFFE ID, which per RFC-compliant SVIDs is
               always carried in the URI SAN) rather than trusting any
               certificate issued under the CA.
+            trust_config: A Sigstore client trust configuration or trusted root.
+            require_timestamp: Reject bundles without an RFC 3161 timestamp.
         """
+        super().__init__(trust_config, require_timestamp=require_timestamp)
         self._log_fingerprints = log_fingerprints
         self._expected_san_uris = frozenset(expected_san_uris)
 
@@ -170,17 +177,22 @@ class Verifier(sigstore_pb.Verifier):
             b"".join([path.read_bytes() for path in certificate_chain_paths])
         )
 
-        self._store = crypto.X509Store()
-        for certificate in certificates:
+        self._trusted_certificates = certificates
+        for certificate in self._trusted_certificates:
             if self._log_fingerprints:
                 _log_certificate_fingerprint(
                     "init", certificate, hashes.SHA256()
                 )
-            self._store.add_cert(crypto.X509.from_cryptography(certificate))
 
     @override
-    def _verify_bundle(self, bundle: bundle_pb.Bundle) -> tuple[str, bytes]:
-        public_key = self._verify_certificates(bundle.verification_material)
+    def _verify_bundle(
+        self,
+        bundle: bundle_pb.Bundle,
+        verification_time: datetime.datetime | None,
+    ) -> tuple[str, bytes]:
+        public_key = self._verify_certificates(
+            bundle.verification_material, verification_time
+        )
         envelope = bundle.dsse_envelope
         try:
             public_key.verify(
@@ -210,6 +222,7 @@ class Verifier(sigstore_pb.Verifier):
     def _verify_certificates(
         self,
         verification_material: bundle_pb.VerificationMaterial,
+        verification_time: datetime.datetime | None = None,
         log_fingerprints: bool = False,
     ) -> ec.EllipticCurvePublicKey:
         """Verifies the certificate chain and returns the public key.
@@ -217,6 +230,10 @@ class Verifier(sigstore_pb.Verifier):
         The public key is extracted from the signing certificate from the chain
         of trust, after the chain is validated. It must match the public key
         from the key used during signing.
+
+        If a TSA timestamp is present in the verification material, it will be
+        used as the verification time, allowing verification of signatures made
+        with certificates that have since expired.
         """
 
         def _to_openssl_certificate(certificate_bytes, log_fingerprints):
@@ -230,6 +247,12 @@ class Verifier(sigstore_pb.Verifier):
             signing_chain.certificates[0].raw_bytes
         )
 
+        store = crypto.X509Store()
+        for certificate in self._trusted_certificates:
+            store.add_cert(crypto.X509.from_cryptography(certificate))
+        if verification_time is not None:
+            store.set_time(verification_time)
+
         trust_chain_ssl = [
             _to_openssl_certificate(
                 certificate.raw_bytes, self._log_fingerprints
@@ -241,7 +264,7 @@ class Verifier(sigstore_pb.Verifier):
         )
 
         store_context = crypto.X509StoreContext(
-            self._store, signing_certificate_ssl, trust_chain_ssl
+            store, signing_certificate_ssl, trust_chain_ssl
         )
         store_context.verify_certificate()
 
