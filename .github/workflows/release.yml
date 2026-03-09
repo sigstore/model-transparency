@@ -76,7 +76,7 @@ jobs:
           persist-credentials: false
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         id: registry_login
         with:
           registry: ghcr.io
@@ -104,7 +104,7 @@ jobs:
             APP_VERSION=${{ env.APP_VERSION }}
 
       - id: docker_meta_minimal
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
           images: ${{ steps.build_minimal_image.outputs.image }}
           tags: type=sha,format=long,type=ref,event=branch
@@ -139,7 +139,7 @@ jobs:
             APP_VERSION=${{ env.APP_VERSION }}
 
       - id: docker_meta_full
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
           images: ${{ steps.build_full_image.outputs.image }}
           tags: type=sha,format=long,type=ref,event=branch
