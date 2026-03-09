@@ -46,6 +46,7 @@ class Signer(ec_key.Signer):
         private_key_path: pathlib.Path,
         signing_certificate_path: pathlib.Path,
         certificate_chain_paths: Iterable[pathlib.Path],
+        tsa_url: str | None = None,
     ):
         """Initializes the signer with the key, certificate and trust chain.
 
@@ -54,12 +55,13 @@ class Signer(ec_key.Signer):
             signing_certificate_path: The path to the signing certificate.
             certificate_chain_paths: Paths to other certificates used to
               establish chain of trust.
+            tsa_url: Optional URL of an RFC 3161 Timestamp Authority.
 
         Raises:
             ValueError: Signing certificate's public key does not match the
               private key's public pair.
         """
-        super().__init__(private_key_path)
+        super().__init__(private_key_path, tsa_url=tsa_url)
         self._signing_certificate = x509.load_pem_x509_certificate(
             signing_certificate_path.read_bytes()
         )
@@ -196,6 +198,10 @@ class Verifier(sigstore_pb.Verifier):
         The public key is extracted from the signing certificate from the chain
         of trust, after the chain is validated. It must match the public key
         from the key used during signing.
+
+        If a TSA timestamp is present in the verification material, it will be
+        used as the verification time, allowing verification of signatures made
+        with certificates that have since expired.
         """
 
         def _to_openssl_certificate(certificate_bytes, log_fingerprints):
@@ -209,8 +215,15 @@ class Verifier(sigstore_pb.Verifier):
             signing_chain.certificates[0].raw_bytes
         )
 
-        max_signing_time = signing_certificate.not_valid_before_utc
-        self._store.set_time(max_signing_time)
+        tsa_timestamp = sigstore_pb.get_timestamp_from_bundle(
+            verification_material
+        )
+        if tsa_timestamp is not None:
+            verification_time = tsa_timestamp
+        else:
+            verification_time = signing_certificate.not_valid_before_utc
+
+        self._store.set_time(verification_time)
 
         trust_chain_ssl = [
             _to_openssl_certificate(

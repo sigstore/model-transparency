@@ -429,3 +429,31 @@ class TestCertificateSigning:
             signature, ignore_git_paths, ["model.sig", "ignored"]
         )
         assert get_model_name(signature) == os.path.basename(model_path)
+
+
+class TestTSASigning:
+    @pytest.mark.integration
+    def test_sign_and_verify_with_tsa(self, base_path, populate_tmpdir):
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key,
+            tsa_url="https://timestamp.sigstore.dev/api/v1/timestamp",
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=[signature], ignore_git_paths=False
+            )
+        ).sign(model_path, signature)
+
+        verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=[signature], ignore_git_paths=False
+            )
+        ).verify(model_path, signature)
