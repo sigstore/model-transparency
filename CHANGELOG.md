@@ -10,7 +10,8 @@ All versions prior to 1.0.0 are untracked.
 ## [Unreleased]
 
 ### Added
--Added the `digest` subcommand to compute and print a model's digest. This enables other tools to easily pair the attestations with a model directory.
+- Added the `digest` subcommand to compute and print a model's digest. This enables other tools to easily pair the attestations with a model directory.
+- Added `--oci-manifest` flag to sign and verify OCI image manifests directly (e.g., from `skopeo inspect --raw`), without requiring model files on disk.
 
 ### Changed
 - Standardized CLI flags to use hyphens (e.g., `--trust-config` instead of `--trust_config`). Underscore variants are still accepted for backwards compatibility via token normalization.
