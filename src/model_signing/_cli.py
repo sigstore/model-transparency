@@ -16,6 +16,7 @@
 
 from collections.abc import Iterable, Sequence
 import contextlib
+import json
 import logging
 import pathlib
 import sys
@@ -42,9 +43,43 @@ class NoOpTracer:
 tracer = None
 
 
+def _load_oci_manifest(path: pathlib.Path) -> dict:
+    """Load an OCI manifest JSON file.
+
+    Args:
+        path: Path to the OCI manifest JSON file.
+
+    Returns:
+        The parsed OCI manifest as a dictionary.
+
+    Raises:
+        click.ClickException: If the file cannot be read or parsed.
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict) or "layers" not in data:
+            raise click.ClickException(
+                f"Invalid OCI manifest: {path} missing 'layers' field"
+            )
+        return data
+    except json.JSONDecodeError as e:
+        raise click.ClickException(f"Invalid JSON in {path}: {e}") from e
+    except OSError as e:
+        raise click.ClickException(f"Cannot read {path}: {e}") from e
+
+
 # Decorator for the commonly used argument for the model path.
 _model_path_argument = click.argument(
     "model_path", type=pathlib.Path, metavar="MODEL_PATH"
+)
+
+# Decorator for the OCI manifest flag
+_oci_manifest_option = click.option(
+    "--oci-manifest",
+    is_flag=True,
+    default=False,
+    help="Treat MODEL_PATH as an OCI image manifest JSON file.",
 )
 
 
@@ -332,6 +367,7 @@ def _sign() -> None:
 @_ignore_git_paths_option
 @_allow_symlinks_option
 @_write_signature_option
+@_oci_manifest_option
 @_sigstore_staging_option
 @_trust_config_option
 @click.option(
@@ -376,6 +412,7 @@ def _sign_sigstore(
     ignore_git_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
+    oci_manifest: bool,
     use_ambient_credentials: bool,
     use_staging: bool,
     oauth_force_oob: bool,
@@ -422,10 +459,7 @@ def _sign_sigstore(
         )
         span.set_attribute("sigstore.use_staging", use_staging)
         try:
-            ignored = _resolve_ignore_paths(
-                model_path, list(ignore_paths) + [signature]
-            )
-            model_signing.signing.Config().use_sigstore_signer(
+            signing_config = model_signing.signing.Config().use_sigstore_signer(
                 use_ambient_credentials=use_ambient_credentials,
                 use_staging=use_staging,
                 identity_token=identity_token,
@@ -433,13 +467,27 @@ def _sign_sigstore(
                 client_id=client_id,
                 client_secret=client_secret,
                 trust_config=trust_config,
-            ).set_hashing_config(
-                model_signing.hashing.Config()
-                .set_ignored_paths(
-                    paths=ignored, ignore_git_paths=ignore_git_paths
+            )
+
+            if oci_manifest:
+                oci_data = _load_oci_manifest(model_path)
+                manifest = (
+                    model_signing.hashing.create_manifest_from_oci_layers(
+                        oci_data, model_name=model_path.stem
+                    )
                 )
-                .set_allow_symlinks(allow_symlinks)
-            ).sign(model_path, signature)
+                signing_config.sign_manifest(manifest, signature)
+            else:
+                ignored = _resolve_ignore_paths(
+                    model_path, list(ignore_paths) + [signature]
+                )
+                signing_config.set_hashing_config(
+                    model_signing.hashing.Config()
+                    .set_ignored_paths(
+                        paths=ignored, ignore_git_paths=ignore_git_paths
+                    )
+                    .set_allow_symlinks(allow_symlinks)
+                ).sign(model_path, signature)
         except Exception as err:
             click.echo(f"Signing failed with error: {err}", err=True)
             sys.exit(1)
@@ -453,6 +501,7 @@ def _sign_sigstore(
 @_ignore_git_paths_option
 @_allow_symlinks_option
 @_write_signature_option
+@_oci_manifest_option
 @_private_key_option
 @click.option(
     "--password",
@@ -466,6 +515,7 @@ def _sign_private_key(
     ignore_git_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
+    oci_manifest: bool,
     private_key: pathlib.Path,
     password: str | None = None,
 ) -> None:
@@ -483,16 +533,27 @@ def _sign_private_key(
     management protocols.
     """
     try:
-        ignored = _resolve_ignore_paths(
-            model_path, list(ignore_paths) + [signature]
-        )
-        model_signing.signing.Config().use_elliptic_key_signer(
+        signing_config = model_signing.signing.Config().use_elliptic_key_signer(
             private_key=private_key, password=password
-        ).set_hashing_config(
-            model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
-            .set_allow_symlinks(allow_symlinks)
-        ).sign(model_path, signature)
+        )
+
+        if oci_manifest:
+            oci_data = _load_oci_manifest(model_path)
+            manifest = model_signing.hashing.create_manifest_from_oci_layers(
+                oci_data, model_name=model_path.stem
+            )
+            signing_config.sign_manifest(manifest, signature)
+        else:
+            ignored = _resolve_ignore_paths(
+                model_path, list(ignore_paths) + [signature]
+            )
+            signing_config.set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=ignored, ignore_git_paths=ignore_git_paths
+                )
+                .set_allow_symlinks(allow_symlinks)
+            ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
@@ -506,6 +567,7 @@ def _sign_private_key(
 @_ignore_git_paths_option
 @_allow_symlinks_option
 @_write_signature_option
+@_oci_manifest_option
 @_pkcs11_uri_option
 def _sign_pkcs11_key(
     model_path: pathlib.Path,
@@ -513,6 +575,7 @@ def _sign_pkcs11_key(
     ignore_git_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
+    oci_manifest: bool,
     pkcs11_uri: str,
 ) -> None:
     """Sign using a private key using a PKCS #11 URI.
@@ -529,16 +592,27 @@ def _sign_pkcs11_key(
     management protocols.
     """
     try:
-        ignored = _resolve_ignore_paths(
-            model_path, list(ignore_paths) + [signature]
-        )
-        model_signing.signing.Config().use_pkcs11_signer(
+        signing_config = model_signing.signing.Config().use_pkcs11_signer(
             pkcs11_uri=pkcs11_uri
-        ).set_hashing_config(
-            model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
-            .set_allow_symlinks(allow_symlinks)
-        ).sign(model_path, signature)
+        )
+
+        if oci_manifest:
+            oci_data = _load_oci_manifest(model_path)
+            manifest = model_signing.hashing.create_manifest_from_oci_layers(
+                oci_data, model_name=model_path.stem
+            )
+            signing_config.sign_manifest(manifest, signature)
+        else:
+            ignored = _resolve_ignore_paths(
+                model_path, list(ignore_paths) + [signature]
+            )
+            signing_config.set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=ignored, ignore_git_paths=ignore_git_paths
+                )
+                .set_allow_symlinks(allow_symlinks)
+            ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
@@ -552,6 +626,7 @@ def _sign_pkcs11_key(
 @_ignore_git_paths_option
 @_allow_symlinks_option
 @_write_signature_option
+@_oci_manifest_option
 @_private_key_option
 @_signing_certificate_option
 @_certificate_root_of_trust_option
@@ -561,6 +636,7 @@ def _sign_certificate(
     ignore_git_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
+    oci_manifest: bool,
     private_key: pathlib.Path,
     signing_certificate: pathlib.Path,
     certificate_chain: Iterable[pathlib.Path],
@@ -582,18 +658,29 @@ def _sign_certificate(
     Note that we don't offer certificate and key management protocols.
     """
     try:
-        ignored = _resolve_ignore_paths(
-            model_path, list(ignore_paths) + [signature]
-        )
-        model_signing.signing.Config().use_certificate_signer(
+        signing_config = model_signing.signing.Config().use_certificate_signer(
             private_key=private_key,
             signing_certificate=signing_certificate,
             certificate_chain=certificate_chain,
-        ).set_hashing_config(
-            model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
-            .set_allow_symlinks(allow_symlinks)
-        ).sign(model_path, signature)
+        )
+
+        if oci_manifest:
+            oci_data = _load_oci_manifest(model_path)
+            manifest = model_signing.hashing.create_manifest_from_oci_layers(
+                oci_data, model_name=model_path.stem
+            )
+            signing_config.sign_manifest(manifest, signature)
+        else:
+            ignored = _resolve_ignore_paths(
+                model_path, list(ignore_paths) + [signature]
+            )
+            signing_config.set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=ignored, ignore_git_paths=ignore_git_paths
+                )
+                .set_allow_symlinks(allow_symlinks)
+            ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
@@ -607,6 +694,7 @@ def _sign_certificate(
 @_ignore_git_paths_option
 @_allow_symlinks_option
 @_write_signature_option
+@_oci_manifest_option
 @_pkcs11_uri_option
 @_signing_certificate_option
 @_certificate_root_of_trust_option
@@ -616,6 +704,7 @@ def _sign_pkcs11_certificate(
     ignore_git_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
+    oci_manifest: bool,
     pkcs11_uri: str,
     signing_certificate: pathlib.Path,
     certificate_chain: Iterable[pathlib.Path],
@@ -638,18 +727,31 @@ def _sign_pkcs11_certificate(
     Note that we don't offer certificate and key management protocols.
     """
     try:
-        ignored = _resolve_ignore_paths(
-            model_path, list(ignore_paths) + [signature]
+        signing_config = (
+            model_signing.signing.Config().use_pkcs11_certificate_signer(
+                pkcs11_uri=pkcs11_uri,
+                signing_certificate=signing_certificate,
+                certificate_chain=certificate_chain,
+            )
         )
-        model_signing.signing.Config().use_pkcs11_certificate_signer(
-            pkcs11_uri=pkcs11_uri,
-            signing_certificate=signing_certificate,
-            certificate_chain=certificate_chain,
-        ).set_hashing_config(
-            model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
-            .set_allow_symlinks(allow_symlinks)
-        ).sign(model_path, signature)
+
+        if oci_manifest:
+            oci_data = _load_oci_manifest(model_path)
+            manifest = model_signing.hashing.create_manifest_from_oci_layers(
+                oci_data, model_name=model_path.stem
+            )
+            signing_config.sign_manifest(manifest, signature)
+        else:
+            ignored = _resolve_ignore_paths(
+                model_path, list(ignore_paths) + [signature]
+            )
+            signing_config.set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=ignored, ignore_git_paths=ignore_git_paths
+                )
+                .set_allow_symlinks(allow_symlinks)
+            ).sign(model_path, signature)
     except Exception as err:
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
@@ -686,6 +788,7 @@ def _verify() -> None:
 @_ignore_paths_option
 @_ignore_git_paths_option
 @_allow_symlinks_option
+@_oci_manifest_option
 @_sigstore_staging_option
 @_trust_config_option
 @click.option(
@@ -709,6 +812,7 @@ def _verify_sigstore(
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     allow_symlinks: bool,
+    oci_manifest: bool,
     identity: str,
     identity_provider: str,
     use_staging: bool,
@@ -733,23 +837,36 @@ def _verify_sigstore(
         span.set_attribute("sigstore.oidc_issuer", identity_provider)
         span.set_attribute("sigstore.use_staging", use_staging)
         try:
-            ignored = _resolve_ignore_paths(
-                model_path, list(ignore_paths) + [signature]
-            )
-            model_signing.verifying.Config().use_sigstore_verifier(
-                identity=identity,
-                oidc_issuer=identity_provider,
-                use_staging=use_staging,
-                trust_config=trust_config,
-            ).set_hashing_config(
-                model_signing.hashing.Config()
-                .set_ignored_paths(
-                    paths=ignored, ignore_git_paths=ignore_git_paths
+            verifying_config = (
+                model_signing.verifying.Config().use_sigstore_verifier(
+                    identity=identity,
+                    oidc_issuer=identity_provider,
+                    use_staging=use_staging,
+                    trust_config=trust_config,
                 )
-                .set_allow_symlinks(allow_symlinks)
-            ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
-                model_path, signature
             )
+
+            if oci_manifest:
+                oci_data = _load_oci_manifest(model_path)
+                manifest = (
+                    model_signing.hashing.create_manifest_from_oci_layers(
+                        oci_data, model_name=model_path.stem
+                    )
+                )
+                verifying_config.verify_manifest(manifest, signature)
+            else:
+                ignored = _resolve_ignore_paths(
+                    model_path, list(ignore_paths) + [signature]
+                )
+                verifying_config.set_hashing_config(
+                    model_signing.hashing.Config()
+                    .set_ignored_paths(
+                        paths=ignored, ignore_git_paths=ignore_git_paths
+                    )
+                    .set_allow_symlinks(allow_symlinks)
+                ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+                    model_path, signature
+                )
         except Exception as err:
             click.echo(f"Verification failed with error: {err}", err=True)
             sys.exit(1)
@@ -763,6 +880,7 @@ def _verify_sigstore(
 @_ignore_paths_option
 @_ignore_git_paths_option
 @_allow_symlinks_option
+@_oci_manifest_option
 @click.option(
     "--public-key",
     type=pathlib.Path,
@@ -777,6 +895,7 @@ def _verify_private_key(
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     allow_symlinks: bool,
+    oci_manifest: bool,
     public_key: pathlib.Path,
     ignore_unsigned_files: bool,
 ) -> None:
@@ -794,18 +913,31 @@ def _verify_private_key(
     management protocols.
     """
     try:
-        ignored = _resolve_ignore_paths(
-            model_path, list(ignore_paths) + [signature]
+        verifying_config = (
+            model_signing.verifying.Config().use_elliptic_key_verifier(
+                public_key=public_key
+            )
         )
-        model_signing.verifying.Config().use_elliptic_key_verifier(
-            public_key=public_key
-        ).set_hashing_config(
-            model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
-            .set_allow_symlinks(allow_symlinks)
-        ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
-            model_path, signature
-        )
+
+        if oci_manifest:
+            oci_data = _load_oci_manifest(model_path)
+            manifest = model_signing.hashing.create_manifest_from_oci_layers(
+                oci_data, model_name=model_path.stem
+            )
+            verifying_config.verify_manifest(manifest, signature)
+        else:
+            ignored = _resolve_ignore_paths(
+                model_path, list(ignore_paths) + [signature]
+            )
+            verifying_config.set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=ignored, ignore_git_paths=ignore_git_paths
+                )
+                .set_allow_symlinks(allow_symlinks)
+            ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+                model_path, signature
+            )
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
         sys.exit(1)
@@ -819,6 +951,7 @@ def _verify_private_key(
 @_ignore_paths_option
 @_ignore_git_paths_option
 @_allow_symlinks_option
+@_oci_manifest_option
 @_certificate_root_of_trust_option
 @click.option(
     "--log-fingerprints",
@@ -835,6 +968,7 @@ def _verify_certificate(
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
     allow_symlinks: bool,
+    oci_manifest: bool,
     certificate_chain: Iterable[pathlib.Path],
     log_fingerprints: bool,
     ignore_unsigned_files: bool,
@@ -856,19 +990,32 @@ def _verify_certificate(
         logging.basicConfig(format="%(message)s", level=logging.INFO)
 
     try:
-        ignored = _resolve_ignore_paths(
-            model_path, list(ignore_paths) + [signature]
+        verifying_config = (
+            model_signing.verifying.Config().use_certificate_verifier(
+                certificate_chain=certificate_chain,
+                log_fingerprints=log_fingerprints,
+            )
         )
-        model_signing.verifying.Config().use_certificate_verifier(
-            certificate_chain=certificate_chain,
-            log_fingerprints=log_fingerprints,
-        ).set_hashing_config(
-            model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
-            .set_allow_symlinks(allow_symlinks)
-        ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
-            model_path, signature
-        )
+
+        if oci_manifest:
+            oci_data = _load_oci_manifest(model_path)
+            manifest = model_signing.hashing.create_manifest_from_oci_layers(
+                oci_data, model_name=model_path.stem
+            )
+            verifying_config.verify_manifest(manifest, signature)
+        else:
+            ignored = _resolve_ignore_paths(
+                model_path, list(ignore_paths) + [signature]
+            )
+            verifying_config.set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=ignored, ignore_git_paths=ignore_git_paths
+                )
+                .set_allow_symlinks(allow_symlinks)
+            ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+                model_path, signature
+            )
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
         sys.exit(1)

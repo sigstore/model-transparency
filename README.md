@@ -175,6 +175,18 @@ All signing methods support changing the signature name and location via the
 Consult the help for a list of all flags (`model_signing --help`, or directly
 `model_signing` with no arguments)
 
+#### Signing OCI Image Manifests
+
+To sign an OCI image manifest directly (e.g., from `skopeo inspect --raw`),
+use the `--oci-manifest` flag:
+
+```bash
+[...]$ skopeo inspect --raw docker://registry.example.com/model:latest > manifest.json
+[...]$ model_signing sign key manifest.json --oci-manifest --private-key key.priv
+```
+
+This enables signing container images without requiring model files on disk.
+
 On verification we use the `verify` subcommand. To verify a Sigstore signed
 model we use
 
