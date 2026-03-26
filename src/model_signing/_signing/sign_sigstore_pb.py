@@ -22,11 +22,15 @@ validation does not allow those.
 """
 
 import abc
+import base64
+from datetime import datetime
 import json
 import pathlib
 import sys
 from typing import cast
 
+from rfc3161_client import decode_timestamp_response
+from sigstore._internal.timestamp import TimestampAuthorityClient
 from sigstore_models.bundle import v1 as bundle_pb
 from typing_extensions import override
 
@@ -163,3 +167,50 @@ class Verifier(signing.Verifier):
         Since the bundle is generated via proto, we need to do more checks to
         replace what `verify_dsse` from `sigstore_python` does.
         """
+
+
+def request_timestamp(
+    signature_bytes: bytes, tsa_url: str
+) -> bundle_pb.TimestampVerificationData:
+    """Requests a timestamp from a TSA and returns verification data.
+
+    Args:
+        signature_bytes: The signature bytes to timestamp.
+        tsa_url: The URL of the RFC 3161 Timestamp Authority.
+
+    Returns:
+        TimestampVerificationData to include in the bundle.
+    """
+    client = TimestampAuthorityClient(tsa_url)
+    response = client.request_timestamp(signature_bytes)
+
+    return bundle_pb.TimestampVerificationData(
+        rfc3161_timestamps=[
+            bundle_pb.RFC3161SignedTimestamp(
+                signed_timestamp=base64.b64encode(response.as_bytes())
+            )
+        ]
+    )
+
+
+def get_timestamp_from_bundle(
+    verification_material: bundle_pb.VerificationMaterial,
+) -> datetime | None:
+    """Extracts the timestamp from the bundle's verification material.
+
+    Args:
+        verification_material: The bundle's verification material.
+
+    Returns:
+        The timestamp datetime if present and valid, None otherwise.
+    """
+    ts_data = verification_material.timestamp_verification_data
+    if not ts_data or not ts_data.rfc3161_timestamps:
+        return None
+
+    ts = ts_data.rfc3161_timestamps[0]
+    try:
+        response = decode_timestamp_response(ts.signed_timestamp)
+        return response.tst_info.gen_time
+    except Exception:
+        return None
