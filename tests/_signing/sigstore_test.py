@@ -420,3 +420,117 @@ class TestSigning:
         )
         assert "signing_config" in trust_config_content
         assert "trustedRoot" in trust_config_content
+
+    def test_sign_with_instance(
+        self,
+        sample_model_folder,
+        mocked_oidc_provider,
+        mocked_sigstore_signer,
+        mocked_sigstore_models,
+        tmp_path,
+    ):
+        mocked_client_trust_config = mocked_sigstore_models["ClientTrustConfig"]
+        mocked_custom_config = mock.MagicMock()
+        mocked_client_trust_config.from_tuf.return_value = mocked_custom_config
+
+        serializer = file.Serializer(
+            self._file_hasher_factory, allow_symlinks=True
+        )
+        manifest = serializer.serialize(sample_model_folder)
+        signature_path = tmp_path / "model.sig"
+
+        signer = sigstore.Signer(
+            use_staging=False,
+            instance="https://tuf-repo-cdn.sigstore.dev",
+        )
+        payload = signing.Payload(manifest)
+        signature = signer.sign(payload)
+        signature.write(signature_path)
+
+        mocked_client_trust_config.from_tuf.assert_called_once_with(
+            "https://tuf-repo-cdn.sigstore.dev"
+        )
+        assert not mocked_client_trust_config.production.called
+        assert not mocked_client_trust_config.staging.called
+
+    def test_verify_with_instance(
+        self,
+        sample_model_folder,
+        mocked_oidc_provider,
+        mocked_sigstore_signer,
+        mocked_sigstore_models,
+        mocked_sigstore_verifier,
+        tmp_path,
+    ):
+        serializer = file.Serializer(
+            self._file_hasher_factory, allow_symlinks=True
+        )
+        manifest = serializer.serialize(sample_model_folder)
+        signature_path = tmp_path / "model.sig"
+        self._sign_manifest(manifest, signature_path, sigstore.Signer)
+
+        mocked_client_trust_config = mocked_sigstore_models["ClientTrustConfig"]
+        mocked_custom_config = mock.MagicMock()
+        mocked_client_trust_config.from_tuf.return_value = mocked_custom_config
+
+        verifier = sigstore.Verifier(
+            identity="test",
+            oidc_issuer="test",
+            use_staging=False,
+            instance="https://tuf-repo-cdn.sigstore.dev",
+        )
+        signature = sigstore.Signature.read(signature_path)
+        verifier.verify(signature)
+
+        mocked_client_trust_config.from_tuf.assert_called_once_with(
+            "https://tuf-repo-cdn.sigstore.dev"
+        )
+        assert not mocked_client_trust_config.production.called
+
+    def test_trust_config_takes_precedence_over_instance(
+        self,
+        sample_model_folder,
+        mocked_oidc_provider,
+        mocked_sigstore_signer,
+        mocked_sigstore_models,
+        tmp_path,
+    ):
+        trust_config_path = (
+            pathlib.Path(__file__).parent
+            / "testdata"
+            / "custom_trust_config.json"
+        )
+
+        mocked_client_trust_config = mocked_sigstore_models["ClientTrustConfig"]
+        mocked_custom_config = mock.MagicMock()
+        mocked_client_trust_config.from_json.return_value = mocked_custom_config
+
+        signer = sigstore.Signer(
+            use_staging=False,
+            trust_config=trust_config_path,
+            instance="https://tuf-repo-cdn.sigstore.dev",
+        )
+        serializer = file.Serializer(
+            self._file_hasher_factory, allow_symlinks=True
+        )
+        manifest = serializer.serialize(sample_model_folder)
+        payload = signing.Payload(manifest)
+        signer.sign(payload)
+
+        assert mocked_client_trust_config.from_json.called
+        assert not mocked_client_trust_config.from_tuf.called
+
+    def test_bootstrap_instance(self, tmp_path):
+        root_json = tmp_path / "root.json"
+        root_json.write_text("{}")
+
+        with mock.patch.object(
+            sigstore.sigstore_models.ClientTrustConfig,
+            "from_tuf",
+        ) as mocked_from_tuf:
+            sigstore.bootstrap_instance(
+                "https://tuf.example.com", root_json
+            )
+            mocked_from_tuf.assert_called_once_with(
+                "https://tuf.example.com", bootstrap_root=root_json
+            )

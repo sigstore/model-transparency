@@ -217,6 +217,7 @@ class Config:
         oidc_issuer: str,
         use_staging: bool = False,
         trust_config: pathlib.Path | None = None,
+        instance: str | None = None,
     ) -> Self:
         """Configures the verification of signatures produced by Sigstore.
 
@@ -235,6 +236,8 @@ class Config:
               PKI and trust configurations, instead of the default Sigstore
               setup. If not specified, the default Sigstore configuration
               is used.
+            instance: A Sigstore TUF repository URL. Trust configuration is
+              fetched via TUF from this URL. Must have been bootstrapped first.
 
         Return:
             The new verification configuration.
@@ -245,6 +248,7 @@ class Config:
             oidc_issuer=oidc_issuer,
             use_staging=use_staging,
             trust_config=trust_config,
+            instance=instance,
         )
         return self
 
