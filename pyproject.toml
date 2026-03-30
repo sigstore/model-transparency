@@ -33,7 +33,7 @@ dependencies = [
   "click",
   "cryptography",
   "in-toto-attestation",
-  "sigstore>=4.0",
+  "sigstore>=4.2",
   "sigstore-models>=0.0.5",
   "typing_extensions",
 ]
