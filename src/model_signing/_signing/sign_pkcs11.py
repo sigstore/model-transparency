@@ -81,9 +81,13 @@ class Signer(sigstore_pb.Signer):
     """Signer using PKCS #11 URIs with elliptic curves keys."""
 
     def __init__(
-        self, pkcs11_uri: str, module_paths: Iterable[str] = frozenset()
+        self,
+        pkcs11_uri: str,
+        module_paths: Iterable[str] = frozenset(),
+        tsa_url: str | None = None,
     ):
         self.session = None
+        self._tsa_url = tsa_url
 
         self.pkcs11_uri = Pkcs11URI()
         self.pkcs11_uri.parse(pkcs11_uri)
@@ -183,10 +187,17 @@ class Signer(sigstore_pb.Signer):
             signatures=[raw_signature],
         )
 
+        verification_material = self._get_verification_material()
+
+        if self._tsa_url:
+            verification_material.timestamp_verification_data = (
+                sigstore_pb.request_timestamp(sig, self._tsa_url)
+            )
+
         return sigstore_pb.Signature(
             bundle_pb.Bundle(
                 media_type=sigstore_pb._BUNDLE_MEDIA_TYPE,
-                verification_material=self._get_verification_material(),
+                verification_material=verification_material,
                 dsse_envelope=envelope,
             )
         )
@@ -217,6 +228,7 @@ class CertSigner(Signer):
         signing_certificate_path: pathlib.Path,
         certificate_chain_paths: Iterable[pathlib.Path],
         module_paths: Iterable[str] = frozenset(),
+        tsa_url: str | None = None,
     ):
         """Initializes the signer with the key, certificate and trust chain.
 
@@ -226,12 +238,13 @@ class CertSigner(Signer):
             certificate_chain_paths: Paths to other certificates used to
               establish chain of trust.
             module_paths: Paths to PKCS #11 modules to load.
+            tsa_url: Optional URL of an RFC 3161 Timestamp Authority.
 
         Raises:
             ValueError: Signing certificate's public key does not match the
               private key's public pair.
         """
-        super().__init__(pkcs11_uri, module_paths=module_paths)
+        super().__init__(pkcs11_uri, module_paths=module_paths, tsa_url=tsa_url)
         self._signing_certificate = x509.load_pem_x509_certificate(
             signing_certificate_path.read_bytes()
         )

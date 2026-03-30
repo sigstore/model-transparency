@@ -165,6 +165,38 @@ And then we use the private key to sign.
 [...]$ model_signing sign key bert-base-uncased --private-key key.priv
 ```
 
+#### RFC 3161 Timestamp Authority Support
+
+When signing with private keys or certificates (non-Sigstore methods), you can
+include an RFC 3161 timestamp from a trusted Timestamp Authority (TSA). This
+provides cryptographic proof of when the signature was created, which is
+important for:
+
+- **Long-term signature validity**: Signatures remain verifiable even after the
+  signing certificate expires, as long as the signature was created while the
+  certificate was valid.
+- **Audit trails**: Independent proof of signing time from a trusted third party.
+- **Compliance**: Many security policies require trusted timestamps.
+
+To include a TSA timestamp, use the `--tsa-url` flag with any PKI signing method:
+
+```bash
+# Sign with private key + TSA timestamp
+[...]$ model_signing sign key bert-base-uncased \
+       --private-key key.priv \
+       --tsa-url https://timestamp.sigstore.dev/api/v1/timestamp
+
+# Sign with certificate + TSA timestamp
+[...]$ model_signing sign certificate bert-base-uncased \
+       --private-key key.priv \
+       --signing-certificate cert.pem \
+       --tsa-url https://timestamp.sigstore.dev/api/v1/timestamp
+```
+
+The timestamp is embedded in the signature bundle and automatically used during
+verification. Sigstore provides a free public TSA at
+`https://timestamp.sigstore.dev/api/v1/timestamp`.
+
 All signing methods support changing the signature name and location via the
 `--signature` flag:
 
@@ -354,6 +386,19 @@ import model_signing
 
 model_signing.signing.Config().use_elliptic_key_signer(
     private_key="key.priv"
+).sign(
+    "finbert", "finbert.sig"
+)
+```
+
+To include an RFC 3161 timestamp for long-term signature validity:
+
+```python
+import model_signing
+
+model_signing.signing.Config().use_elliptic_key_signer(
+    private_key="key.priv",
+    tsa_url="https://timestamp.sigstore.dev/api/v1/timestamp"
 ).sign(
     "finbert", "finbert.sig"
 )
