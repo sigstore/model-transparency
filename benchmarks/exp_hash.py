@@ -16,7 +16,12 @@
 """Script for running a benchmark to pick a hashing algorithm."""
 
 import argparse
+import csv
+import dataclasses
+import statistics
+import sys
 import timeit
+from pathlib import Path
 from typing import Final
 
 import numpy as np
@@ -28,6 +33,37 @@ from model_signing._hashing import memory
 KB: Final[int] = 1024
 MB: Final[int] = 1024 * KB
 GB: Final[int] = 1024 * MB
+
+
+@dataclasses.dataclass
+class BenchmarkResult:
+    """Stores timing results for a single algorithm/size combination."""
+
+    algorithm: str
+    size: int
+    times: list[float]
+
+    @property
+    def min_time(self) -> float:
+        """Returns the minimum (best) observed time in seconds."""
+        return min(self.times)
+
+    @property
+    def mean_time(self) -> float:
+        """Returns the mean observed time in seconds."""
+        return statistics.mean(self.times)
+
+    @property
+    def stdev_time(self) -> float:
+        """Returns the standard deviation of observed times in seconds."""
+        return statistics.stdev(self.times) if len(self.times) > 1 else 0.0
+
+    @property
+    def throughput_mb_s(self) -> float:
+        """Returns throughput in MB/s based on the minimum (best) time."""
+        if self.min_time <= 0:
+            return 0.0
+        return (self.size / MB) / self.min_time
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -44,6 +80,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--warmup",
+        help="number of warmup runs before timing (default: 1)",
+        type=int,
+        default=1,
+    )
+
+    parser.add_argument(
         "--methods",
         help="hash methods to benchmark",
         nargs="+",
@@ -52,7 +95,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--data-sizes", help="hash methods to benchmark", nargs="+", type=int
+        "--data-sizes", help="data sizes to benchmark in bytes", nargs="+", type=int
+    )
+
+    parser.add_argument(
+        "--output",
+        help="path to write CSV results (e.g. results.csv)",
+        type=Path,
+        default=None,
+    )
+
+    parser.add_argument(
+        "--stats",
+        help="show mean and stdev alongside min time",
+        action="store_true",
+        default=False,
     )
 
     return parser
@@ -107,24 +164,108 @@ def _get_padding(methods: list[str], sizes: list[int]) -> int:
     return len(f"{max(methods, key=len)}/{max(sizes)}: ")
 
 
+def _run_benchmark(
+    algorithm: str,
+    data: bytes,
+    size: int,
+    repeat: int,
+    warmup: int,
+) -> BenchmarkResult:
+    """Runs timing for a single algorithm and data size.
+
+    Performs warmup runs first (discarded), then measures repeat timed runs.
+    Returns a BenchmarkResult with all observed times.
+    """
+    hasher = _get_hasher(algorithm)
+
+    def hash_once(
+        hasher: hashing.StreamingHashEngine = hasher, data: bytes = data
+    ) -> hashing.Digest:
+        hasher.update(data)
+        return hasher.compute()
+
+    for _ in range(warmup):
+        hash_once()
+
+    # Grab min time as suggested by the timeit docs:
+    # https://docs.python.org/3/library/timeit.html#timeit.Timer.repeat
+    times = timeit.repeat(lambda: hash_once(), number=1, repeat=repeat)
+    return BenchmarkResult(algorithm=algorithm, size=size, times=times)
+
+
+def _write_csv(results: list[BenchmarkResult], output_path: Path) -> None:
+    """Writes benchmark results to a CSV file.
+
+    Columns: algorithm, size_bytes, min_s, mean_s, stdev_s, throughput_mb_s.
+    """
+    with open(output_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(
+            ["algorithm", "size_bytes", "min_s", "mean_s", "stdev_s", "throughput_mb_s"]
+        )
+        for r in results:
+            writer.writerow([
+                r.algorithm,
+                r.size,
+                f"{r.min_time:.6f}",
+                f"{r.mean_time:.6f}",
+                f"{r.stdev_time:.6f}",
+                f"{r.throughput_mb_s:.2f}",
+            ])
+
+
+def _print_summary(results: list[BenchmarkResult], methods: list[str]) -> None:
+    """Prints a peak throughput (MB/s) summary table grouped by data size."""
+    print("\nSummary: peak throughput (MB/s)")
+    col_width = max(len(m) for m in methods) + 2
+    header = "".join(f"{m:>{col_width}}" for m in methods)
+    print(f"{'':>12}{header}")
+
+    sizes = sorted(set(r.size for r in results))
+    by_key = {(r.algorithm, r.size): r for r in results}
+    for size in sizes:
+        row = f"{_human_size(size):>12}"
+        for method in methods:
+            result = by_key.get((method, size))
+            if result:
+                row += f"{result.throughput_mb_s:>{col_width}.1f}"
+            else:
+                row += f"{'N/A':>{col_width}}"
+        print(row)
+
+
 if __name__ == "__main__":
     np.random.seed(42)
     args = build_parser().parse_args()
     sizes = args.data_sizes or _default_sizes()
     padding = _get_padding(args.methods, sizes)
 
+    all_results: list[BenchmarkResult] = []
+
+    if args.stats:
+        print(f"{'key':<{padding}} {'min (s)':>10} {'mean (s)':>10} {'stdev (s)':>10} {'MB/s':>10}")
+    else:
+        print(f"{'key':<{padding}} {'min (s)':>10} {'MB/s':>10}")
+
     for size in sizes:
         data = _generate_data(size)
         for algorithm in args.methods:
-            hasher = _get_hasher(algorithm)
+            result = _run_benchmark(algorithm, data, size, args.repeat, args.warmup)
+            all_results.append(result)
 
-            def hash(hasher=hasher, data=data):
-                hasher.update(data)
-                return hasher.compute()
+            key = f"{algorithm}/{size}: "
+            if args.stats:
+                print(
+                    f"{key:<{padding}} {result.min_time:10.4f}"
+                    f" {result.mean_time:10.4f}"
+                    f" {result.stdev_time:10.4f}"
+                    f" {result.throughput_mb_s:10.1f}"
+                )
+            else:
+                print(f"{key:<{padding}} {result.min_time:10.4f} {result.throughput_mb_s:10.1f}")
 
-            times = timeit.repeat(lambda: hash(), number=1, repeat=args.repeat)
+    _print_summary(all_results, args.methods)
 
-            # Grab the min time, as suggested by the docs
-            # https://docs.python.org/3/library/timeit.html#timeit.Timer.repeat
-            measurement = min(times)
-            print(f"{f'{algorithm}/{size}: ':<{padding}}{measurement:10.4f}")
+    if args.output:
+        _write_csv(all_results, args.output)
+        print(f"\nResults written to {args.output}", file=sys.stderr)
