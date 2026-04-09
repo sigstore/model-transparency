@@ -52,6 +52,17 @@ digest) pairs a predicate type set to `https://model_signing/signature/v1.0` and
 a dictionary of predicates. The idea is to use the predicates to store (and
 therefor sign) model card information in the future.
 
+The default signature filename is `claims.jsonl`, which uses JSONL format (one
+sigstore bundle per line). Signing **appends** a new attestation to this file
+rather than overwriting it, allowing attestations to accumulate as models move
+through their lifecycle (training, registry, security review, production).
+
+During verification, all claims in the file are checked from newest to oldest,
+and verification succeeds if any claim matches.
+
+The legacy `model.sig` format (single JSON blob) is still supported but
+deprecated. Using `.sig` files will emit deprecation warnings.
+
 The verification part reads the sigstore bundle file and firstly verifies that the
 signature is valid and secondly compute the model's file hashes again to compare
 against the signed ones.

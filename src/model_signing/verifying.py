@@ -80,21 +80,58 @@ class Config:
     ):
         """Verifies that a model conforms to a signature.
 
+        For JSONL signature files containing multiple claims, iterates
+        through claims from newest to oldest and returns success on the
+        first claim that verifies successfully.
+
         Args:
             model_path: The path to the model to verify.
             signature_path: The path to the signature file.
 
         Raises:
-            ValueError: No verifier has been configured.
+            ValueError: No verifier has been configured, or no claims verify.
         """
         if self._verifier is None:
             raise ValueError("Attempting to verify with no configured verifier")
 
         if self._uses_sigstore:
-            signature = sigstore.Signature.read(pathlib.Path(signature_path))
+            signatures = sigstore.Signature.read_all(
+                pathlib.Path(signature_path)
+            )
         else:
-            signature = sigstore_pb.Signature.read(pathlib.Path(signature_path))
+            signatures = sigstore_pb.Signature.read_all(
+                pathlib.Path(signature_path)
+            )
 
+        if not signatures:
+            raise ValueError(
+                f"No claims found in signature file {signature_path}"
+            )
+
+        errors = []
+        for signature in signatures:
+            try:
+                self._verify_single(model_path, signature)
+                return
+            except ValueError as e:
+                errors.append(str(e))
+
+        # All claims failed
+        raise ValueError(
+            f"None of {len(signatures)} claim(s) verified successfully. "
+            f"Errors: {errors}"
+        )
+
+    def _verify_single(self, model_path: hashing.PathLike, signature):
+        """Verifies a model against a single signature/claim.
+
+        Args:
+            model_path: The path to the model to verify.
+            signature: A single signature instance.
+
+        Raises:
+            ValueError: Verification fails.
+        """
         expected_manifest = self._verifier.verify(signature)
 
         if self._hashing_config is None:
