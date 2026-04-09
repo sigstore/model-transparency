@@ -77,7 +77,7 @@ class Config:
 
     def verify(
         self, model_path: hashing.PathLike, signature_path: hashing.PathLike
-    ):
+    ) -> tuple[int, int]:
         """Verifies that a model conforms to a signature.
 
         For JSONL signature files containing multiple claims, iterates
@@ -87,6 +87,12 @@ class Config:
         Args:
             model_path: The path to the model to verify.
             signature_path: The path to the signature file.
+
+        Returns:
+            A tuple of (matched_line, total_lines) where matched_line is
+            the 1-indexed line number of the claim that verified
+            successfully and total_lines is the total number of claims
+            in the file.
 
         Raises:
             ValueError: No verifier has been configured, or no claims verify.
@@ -108,11 +114,16 @@ class Config:
                 f"No claims found in signature file {signature_path}"
             )
 
+        # signatures are ordered newest-first (last line first), so
+        # index 0 corresponds to the last line of the file.
+        total = len(signatures)
         errors = []
-        for signature in signatures:
+        for i, signature in enumerate(signatures):
             try:
                 self._verify_single(model_path, signature)
-                return
+                # Convert from newest-first index to 1-indexed line number
+                matched_line = total - i
+                return matched_line, total
             except ValueError as e:
                 errors.append(str(e))
 
