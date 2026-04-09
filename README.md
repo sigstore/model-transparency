@@ -137,9 +137,9 @@ For verification:
 
 ```bash
 [...]$ model_signing verify bert-base-uncased \
-      --signature model.sig \
-      --trust-config client_trust_config.json
-      --identity "$identity"
+      --signature claims.jsonl \
+      --trust-config client_trust_config.json \
+      --identity "$identity" \
       --identity-provider "$oidc_provider"
 ```
 
@@ -169,7 +169,7 @@ All signing methods support changing the signature name and location via the
 `--signature` flag:
 
 ```bash
-[...]$ model_signing sign bert-base-uncased --signature model.sig
+[...]$ model_signing sign bert-base-uncased --signature claims.jsonl
 ```
 
 Consult the help for a list of all flags (`model_signing --help`, or directly
@@ -180,7 +180,7 @@ model we use
 
 ```bash
 [...]$ model_signing verify bert-base-uncased \
-      --signature model.sig \
+      --signature claims.jsonl \
       --identity "$identity" \
       --identity-provider "$oidc_provider"
 ```
@@ -210,7 +210,7 @@ Similarly, for key verification, we can use
 
 ```bash
 [...]$ model_signing verify key bert-base-uncased \
-       --signature resnet.sig --public-key key.pub
+       --signature claims.jsonl --public-key key.pub
 ```
 
 #### Signing with PKCS #11 URIs
@@ -243,7 +243,7 @@ With a PKCS #11 URI describing the private key, we can use the following
 for signing:
 
 ```bash
-[...]$ model_signing sign pkcs11-key --signature model.sig \
+[...]$ model_signing sign pkcs11-key --signature claims.jsonl \
        --pkcs11_uri "pkcs11:..." /path/to/your/model
 ```
 
@@ -251,7 +251,7 @@ For signature verification it is necessary to retrieve the public key from
 the PKCS #11 device and store it in a file in PEM format. With can then use:
 
 ```bash
-[...]$ model_signing verify key --signature model.sig\
+[...]$ model_signing verify key --signature claims.jsonl \
        --public-key key.pub  /path/to/your/model
 ```
 
@@ -342,7 +342,7 @@ The simplest way to generate a signature using Sigstore is:
 ```python
 import model_signing
 
-model_signing.signing.sign("bert-base-uncased", "model.sig")
+model_signing.signing.sign("bert-base-uncased", "claims.jsonl")
 ```
 
 This will run the same OIDC flow as when signing with Sigstore from the CLI.

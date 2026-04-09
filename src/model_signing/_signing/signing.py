@@ -216,7 +216,7 @@ class Payload:
           "hash_type": "sha256",
           "allow_symlinks": true
           "ignore_paths": [
-            "model.sig",
+            "claims.jsonl",
             ".git",
             ".gitattributes",
             ".github",

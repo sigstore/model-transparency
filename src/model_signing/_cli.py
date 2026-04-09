@@ -53,8 +53,11 @@ _write_signature_option = click.option(
     "--signature",
     type=pathlib.Path,
     metavar="SIGNATURE_PATH",
-    default=pathlib.Path("model.sig"),
-    help="Location of the signature file to generate. Defaults to `model.sig`.",
+    default=pathlib.Path("claims.jsonl"),
+    help=(
+        "Location of the signature file to generate. "
+        "Defaults to `claims.jsonl`."
+    ),
 )
 
 

@@ -17,14 +17,14 @@
 The module allows signing a model with a default configuration:
 
 ```python
-model_signing.signing.sign("finbert", "finbert.sig")
+model_signing.signing.sign("finbert", "finbert.jsonl")
 ```
 
 The module allows customizing the signing configuration before signing:
 
 ```python
 model_signing.signing.Config().use_elliptic_key_signer(private_key="key").sign(
-    "finbert", "finbert.sig"
+    "finbert", "finbert.jsonl"
 )
 ```
 
@@ -36,7 +36,7 @@ signing_config = model_signing.signing.Config().use_elliptic_key_signer(
 )
 
 for model in all_models:
-    signing_config.sign(model, f"{model}_sharded.sig")
+    signing_config.sign(model, f"{model}_sharded.jsonl")
 ```
 
 The API defined here is stable and backwards compatible.

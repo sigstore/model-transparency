@@ -20,7 +20,7 @@ before performing the verification.
 ```python
 model_signing.verifying.Config().use_sigstore_verifier(
     identity=identity, oidc_issuer=oidc_provider
-).verify("finbert", "finbert.sig")
+).verify("finbert", "finbert.jsonl")
 ```
 
 The same verification configuration can be used to verify multiple models:
@@ -31,7 +31,7 @@ verifying_config = model_signing.signing.Config().use_elliptic_key_verifier(
 )
 
 for model in all_models:
-    verifying_config.verify(model, f"{model}_sharded.sig")
+    verifying_config.verify(model, f"{model}_sharded.jsonl")
 ```
 
 The API defined here is stable and backwards compatible.
