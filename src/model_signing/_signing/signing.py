@@ -37,6 +37,7 @@ https://docs.sigstore.dev/about/bundle/.
 """
 
 import abc
+import enum
 import json
 import pathlib
 import sys
@@ -69,6 +70,50 @@ _PREDICATE_TYPE: str = "https://model_signing/signature/v1.0"
 
 # The expected model signature predicate type for v0.2 (compat)
 _PREDICATE_TYPE_COMPAT: str = "https://model_signing/Digests/v0.1"
+
+
+_DEPRECATION_WARNING = (
+    "The .sig format (single JSON) is deprecated. "
+    "Please use claims.jsonl format. "
+    "Future versions will only support claims.jsonl."
+)
+
+
+class SignatureFormat(enum.Enum):
+    """Format of a signature file."""
+
+    LEGACY_SINGLE_JSON = "legacy"  # Old model.sig format
+    JSONL = "jsonl"  # New claims.jsonl format
+
+
+def detect_signature_format(file_path: pathlib.Path) -> SignatureFormat:
+    """Detect whether a signature file is legacy single JSON or JSONL format.
+
+    Uses the file extension: `.sig` is legacy, everything else is JSONL.
+
+    Args:
+        file_path: The path to the signature file.
+
+    Returns:
+        The detected format.
+    """
+    if file_path.suffix == ".sig":
+        return SignatureFormat.LEGACY_SINGLE_JSON
+    return SignatureFormat.JSONL
+
+
+def detect_output_format(signature_path: pathlib.Path) -> SignatureFormat:
+    """Determine what format to write based on filename.
+
+    Args:
+        signature_path: The path where the signature will be written.
+
+    Returns:
+        The format to use for writing.
+    """
+    if signature_path.suffix == ".sig":
+        return SignatureFormat.LEGACY_SINGLE_JSON
+    return SignatureFormat.JSONL
 
 
 def dsse_payload_to_manifest(dsse_payload: dict[str, Any]) -> manifest.Manifest:
@@ -216,7 +261,7 @@ class Payload:
           "hash_type": "sha256",
           "allow_symlinks": true
           "ignore_paths": [
-            "model.sig",
+            "claims.jsonl",
             ".git",
             ".gitattributes",
             ".github",
@@ -300,6 +345,10 @@ class Signature(metaclass=abc.ABCMeta):
     def write(self, path: pathlib.Path) -> None:
         """Writes the signature to disk, to the given path.
 
+        For JSONL format (default, non-.sig files), appends the signature as a
+        new line. For legacy .sig format, overwrites the file and emits a
+        deprecation warning.
+
         Args:
             path: The path to write the signature to.
         """
@@ -307,7 +356,10 @@ class Signature(metaclass=abc.ABCMeta):
     @classmethod
     @abc.abstractmethod
     def read(cls, path: pathlib.Path) -> Self:
-        """Reads the signature from disk.
+        """Reads a single signature from disk.
+
+        For JSONL files, reads the last line (most recent claim).
+        For legacy .sig files, reads the single JSON blob.
 
         Does not perform any signature verification, except what is needed to
         parse the signature file.
@@ -318,6 +370,22 @@ class Signature(metaclass=abc.ABCMeta):
         Returns:
             An instance of the class which can be passed to a `Verifier` for
             signature and integrity verification.
+        """
+
+    @classmethod
+    @abc.abstractmethod
+    def read_all(cls, path: pathlib.Path) -> list[Self]:
+        """Reads all signatures from disk.
+
+        For JSONL files, returns all claims (one per line), ordered from
+        newest (last line) to oldest (first line).
+        For legacy .sig files, returns a single-element list.
+
+        Args:
+            path: The path to read the signatures from.
+
+        Returns:
+            A list of signature instances, newest first.
         """
 
 

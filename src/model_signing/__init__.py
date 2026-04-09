@@ -40,7 +40,7 @@ there are no sensible defaults that can be used.
 Signing can be done using the default configuration:
 
 ```python
-model_signing.signing.sign("finbert", "finbert.sig")
+model_signing.signing.sign("finbert", "finbert.jsonl")
 ```
 
 This example generates the signature using Sigstore.
@@ -55,7 +55,7 @@ model_signing.signing.Config().use_elliptic_key_signer(
     model_signing.hashing.Config().set_ignored_paths(
         paths=["README.md"], ignore_git_paths=True
     )
-).sign("finbert", "finbert.sig")
+).sign("finbert", "finbert.jsonl")
 ```
 
 This example generates a signature using a private key based on elliptic curve
@@ -72,7 +72,7 @@ For the Sigstore example, the simplest verification example would be:
 ```python
 model_signing.verifying.Config().use_sigstore_verifier(
     identity=identity, oidc_issuer=oidc_provider
-).verify("finbert", "finbert.sig")
+).verify("finbert", "finbert.jsonl")
 ```
 
 Where `identity` and `oidc_provider` are the parameters obtained after the OIDC
@@ -86,7 +86,7 @@ model_signing.verifying.Config().use_elliptic_key_verifier(
 ).set_hashing_config(
     model_signing.hashing.Config().use_shard_serialization()
     )
-).verify("finbert", "finbert.sig")
+).verify("finbert", "finbert.jsonl")
 ```
 
 Alternatively, we also support automatic detection of the hashing configuration
@@ -95,7 +95,7 @@ during the verification process. So, the following should also work:
 ```python
 model_signing.verifying.Config().use_elliptic_key_verifier(
     public_key="key.pub"
-).verify("finbert", "finbert.sig")
+).verify("finbert", "finbert.jsonl")
 ```
 
 A reminder that we still need to set the verification configuration. This sets
