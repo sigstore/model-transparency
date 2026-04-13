@@ -36,7 +36,7 @@ jobs:
       uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc # install
     - name: Build artifacts
       run: hatch build
-    - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         path: dist/
         name: dist.zip
@@ -58,7 +58,7 @@ jobs:
         with:
           name: dist.zip
           path: dist/
-      - uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+      - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
 
   build_and_push_container:
     name: Build and Push Docker Image
@@ -76,7 +76,7 @@ jobs:
           persist-credentials: false
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         id: registry_login
         with:
           registry: ghcr.io
