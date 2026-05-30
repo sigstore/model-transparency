@@ -75,7 +75,7 @@ PyPI = "https://pypi.org/project/model-signing/"
 [tool.hatch.version]
 path = "src/model_signing/__init__.py"
 
-[tool.hatch.build]
+[tool.hatch.build.targets.wheel]
 packages = ["src/model_signing"]
 
 [tool.hatch.envs.hatch-test]
