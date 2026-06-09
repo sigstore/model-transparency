@@ -104,6 +104,123 @@ def hash(model_path: PathLike) -> manifest.Manifest:
     return Config().hash(model_path)
 
 
+def parse_digest_string(digest_str: str) -> hashing.Digest:
+    """Parses a digest string in OCI format into a Digest object.
+
+    Supports both OCI-style digest strings (e.g., "sha256:abc123...") and
+    bare hex strings (assumes sha256).
+
+    Args:
+        digest_str: The digest string to parse.
+
+    Returns:
+        A Digest object with the algorithm and digest value.
+
+    Raises:
+        ValueError: If the hex digest value is invalid.
+    """
+    if ":" in digest_str:
+        algorithm, hex_value = digest_str.split(":", 1)
+        algorithm = algorithm.lower()
+    else:
+        algorithm = "sha256"
+        hex_value = digest_str
+
+    try:
+        digest_value = bytes.fromhex(hex_value)
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid hex digest value in '{digest_str}': {e}"
+        ) from e
+
+    return hashing.Digest(algorithm, digest_value)
+
+
+def create_manifest_from_oci_layers(
+    oci_manifest: dict,
+    model_name: str | None = None,
+    include_config: bool = True,
+) -> manifest.Manifest:
+    """Create a model signing manifest from an OCI image manifest.
+
+    This function extracts layer digests from an OCI image manifest (as returned
+    by `skopeo inspect --raw`) and creates a model signing manifest. Each layer
+    is treated as a file entry in the manifest.
+
+    This enables signing OCI images without requiring the actual model files
+    on disk - useful for CI/CD pipelines where the image exists in a registry.
+
+    Args:
+        oci_manifest: The OCI image manifest as a dictionary (from JSON).
+          Expected to have "layers" array with "digest" fields, and optionally
+          a "config" field with a "digest".
+        model_name: Optional name for the model. If not provided, will attempt
+          to extract from annotations or use "oci-image".
+        include_config: Whether to include the config blob digest as a file
+          entry. Default is True.
+
+    Returns:
+        A Manifest object ready for signing.
+
+    Raises:
+        ValueError: If the OCI manifest structure is invalid or missing required
+          fields.
+    """
+    if "layers" not in oci_manifest:
+        raise ValueError("OCI manifest missing 'layers' field")
+
+    manifest_items = []
+
+    if include_config and "config" in oci_manifest:
+        config = oci_manifest["config"]
+        if "digest" in config:
+            config_digest = parse_digest_string(config["digest"])
+            config_path = pathlib.PurePosixPath("config.json")
+            manifest_items.append(
+                manifest.FileManifestItem(
+                    path=config_path, digest=config_digest
+                )
+            )
+
+    for i, layer in enumerate(oci_manifest["layers"]):
+        if "digest" not in layer:
+            continue
+
+        layer_digest = parse_digest_string(layer["digest"])
+
+        layer_path = None
+        if "annotations" in layer:
+            annotations = layer["annotations"]
+            if "org.opencontainers.image.title" in annotations:
+                title = annotations["org.opencontainers.image.title"]
+                layer_path = pathlib.PurePosixPath(title)
+
+        if layer_path is None:
+            layer_path = pathlib.PurePosixPath(f"layer_{i:03d}.tar.gz")
+
+        manifest_items.append(
+            manifest.FileManifestItem(path=layer_path, digest=layer_digest)
+        )
+
+    if not manifest_items:
+        raise ValueError("No digests found in OCI manifest")
+
+    if model_name is None:
+        annotations = oci_manifest.get("annotations", {})
+        if "org.opencontainers.image.name" in annotations:
+            model_name = annotations["org.opencontainers.image.name"]
+        elif "org.opencontainers.image.base.name" in annotations:
+            model_name = annotations["org.opencontainers.image.base.name"]
+        else:
+            model_name = "oci-image"
+
+    serialization_type = manifest._FileSerialization(
+        hash_type="sha256", allow_symlinks=False, ignore_paths=frozenset()
+    )
+
+    return manifest.Manifest(model_name, manifest_items, serialization_type)
+
+
 class Config:
     """Configuration to use when hashing models.
 

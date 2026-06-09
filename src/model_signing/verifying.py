@@ -123,6 +123,40 @@ class Config:
             )
             raise ValueError(f"Signature mismatch: {diff_message}")
 
+    def verify_manifest(
+        self,
+        actual_manifest: manifest.Manifest,
+        signature_path: hashing.PathLike,
+    ):
+        """Verifies that a pre-built manifest matches a signature.
+
+        This method bypasses hashing and verifies a manifest directly. This is
+        useful for verifying OCI image manifests where the digests are already
+        available without needing the actual files on disk.
+
+        Args:
+            actual_manifest: The manifest to verify against the signature.
+            signature_path: The path to the signature file.
+
+        Raises:
+            ValueError: No verifier has been configured or signature mismatch.
+        """
+        if self._verifier is None:
+            raise ValueError("Attempting to verify with no configured verifier")
+
+        if self._uses_sigstore:
+            signature = sigstore.Signature.read(pathlib.Path(signature_path))
+        else:
+            signature = sigstore_pb.Signature.read(pathlib.Path(signature_path))
+
+        expected_manifest = self._verifier.verify(signature)
+
+        if actual_manifest != expected_manifest:
+            diff_message = self._get_manifest_diff(
+                actual_manifest, expected_manifest
+            )
+            raise ValueError(f"Signature mismatch: {diff_message}")
+
     def _get_manifest_diff(self, actual, expected) -> list[str]:
         diffs = []
 

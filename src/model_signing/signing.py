@@ -47,6 +47,7 @@ import pathlib
 import sys
 
 from model_signing import hashing
+from model_signing import manifest as manifest_module
 from model_signing._signing import sign_certificate as certificate
 from model_signing._signing import sign_ec_key as ec_key
 from model_signing._signing import sign_sigstore as sigstore
@@ -104,6 +105,27 @@ class Config:
         if self._signer is None:
             self.use_sigstore_signer()
         manifest = self._hashing_config.hash(model_path)
+        payload = signing.Payload(manifest)
+        signature = self._signer.sign(payload)
+        signature.write(pathlib.Path(signature_path))
+
+    def sign_manifest(
+        self,
+        manifest: manifest_module.Manifest,
+        signature_path: hashing.PathLike,
+    ):
+        """Signs a pre-built manifest using the current configuration.
+
+        This method bypasses hashing and signs a manifest directly. This is
+        useful for signing OCI image manifests where the digests are already
+        available without needing the actual files on disk.
+
+        Args:
+            manifest: The manifest to sign.
+            signature_path: The path of the resulting signature.
+        """
+        if self._signer is None:
+            self.use_sigstore_signer()
         payload = signing.Payload(manifest)
         signature = self._signer.sign(payload)
         signature.write(pathlib.Path(signature_path))
