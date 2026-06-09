@@ -24,6 +24,7 @@ from pathlib import Path
 import subprocess
 from tempfile import TemporaryDirectory
 import time
+import urllib.request
 
 import pytest
 
@@ -104,22 +105,9 @@ class DangerousPublicOIDCBeacon:
         self._token = ""
 
     def _fetch(self) -> None:
-        # the git approach is apparently fresher than https://raw.githubusercontent.com
-        # https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon/issues/17
-        git_url = "https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon.git"
-        with TemporaryDirectory() as tmpdir:
-            base_cmd = [
-                "git",
-                "clone",
-                "--quiet",
-                "--single-branch",
-                "--branch=current-token",
-                "--depth=1",
-            ]
-            subprocess.run(base_cmd + [git_url, tmpdir], check=True)
-            token_path = os.path.join(tmpdir, "oidc-token.txt")
-            with open(token_path) as f:
-                self._token = f.read().rstrip()
+        url = "https://storage.googleapis.com/sigstore-conformance-testing-token/untrusted-testing-token.txt"
+        with urllib.request.urlopen(url) as response:
+            self._token = response.read().decode("utf-8").rstrip()
 
     def _expiration(self) -> datetime:
         payload = self._token.split(".")[1]
@@ -157,8 +145,8 @@ class TestSigstoreSigning:
         signature_path = tmp_path / "model.sig"
         sc.sign(sample_model_folder, signature_path)
 
-        expected_identity = "https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon/.github/workflows/extremely-dangerous-oidc-beacon.yml@refs/heads/main"
-        expected_oidc_issuer = "https://token.actions.githubusercontent.com"
+        expected_identity = "untrusted-sa@sigstore-conformance.iam.gserviceaccount.com"
+        expected_oidc_issuer = "https://accounts.google.com"
         verifying.Config().use_sigstore_verifier(
             identity=expected_identity,
             oidc_issuer=expected_oidc_issuer,
@@ -202,8 +190,8 @@ class TestSigstoreSigning:
         signature_path = tmp_path / "model.sig"
         sc.sign(sample_model_folder, signature_path)
 
-        expected_identity = "https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon/.github/workflows/extremely-dangerous-oidc-beacon.yml@refs/heads/main"
-        expected_oidc_issuer = "https://token.actions.githubusercontent.com"
+        expected_identity = "untrusted-sa@sigstore-conformance.iam.gserviceaccount.com"
+        expected_oidc_issuer = "https://accounts.google.com"
         verifying.Config().use_sigstore_verifier(
             identity=expected_identity,
             oidc_issuer=expected_oidc_issuer,
