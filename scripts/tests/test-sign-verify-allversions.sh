@@ -22,10 +22,6 @@ sigfile_key="${TMPDIR}/model.sig-key"
 sigfile_certificate="${TMPDIR}/model.sig-certificate"
 sigfile_sigstore="${TMPDIR}/model.sig-sigstore"
 
-TOKENPROJ="${TMPDIR}/tokenproj"
-mkdir -p "${TOKENPROJ}" || exit 1
-token_file="${TOKENPROJ}/oidc-token.txt"
-
 VENV="${TMPDIR}/venv"
 
 
@@ -68,15 +64,7 @@ if ! python -m model_signing \
 fi
 
 echo "Getting OIDC test-token for sigstore signing"
-if ! out=$(git clone \
-	--single-branch \
-	--branch current-token \
-	--depth 1 \
-	https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon \
-	"${TOKENPROJ}" 2>&1);
-then
-	echo "git clone failed"
-	echo "${out}"
+if ! id_token=$(curl -sSfL https://storage.googleapis.com/sigstore-conformance-testing-token/untrusted-testing-token.txt); then
 	exit 1
 fi
 
@@ -84,7 +72,7 @@ echo "Signing with 'sigstore' method"
 if ! python -m model_signing \
 	sign sigstore \
 	--signature "${sigfile_sigstore}" \
-	--identity_token "$(cat "${token_file}")" \
+	--identity_token "${id_token}" \
 	--ignore-paths "${ignorefile}" \
 	"${MODELDIR}" || \
   test ! -f ${sigfile_sigstore}; then
@@ -169,8 +157,8 @@ for version in v1.0.1 v1.0.0 v0.3.1 v0.3.0; do
 	if ! out=$(python -m model_signing \
 		verify sigstore \
 		--signature "${sigfile_sigstore}" \
-		--identity https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon/.github/workflows/extremely-dangerous-oidc-beacon.yml@refs/heads/main \
-		--identity_provider https://token.actions.githubusercontent.com \
+		--identity untrusted-sa@sigstore-conformance.iam.gserviceaccount.com \
+		--identity_provider https://accounts.google.com \
 		--ignore-paths "${ignorefile}" \
 		"${MODELDIR}" 2>&1); then
 		echo "Error: 'verify sigstore' failed with ${version}"

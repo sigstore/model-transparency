@@ -74,10 +74,12 @@ jobs:
           path: model_root/
       - name: Set up Hatch
         uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc # install
-      - name: store beacon token into oidc-token.txt
-        uses: sigstore-conformance/extremely-dangerous-public-oidc-beacon@977e8d08554ca9bda279c96e91be2119fb67c730 # main
+      - name: Fetch OIDC token
+        run: |
+          SIGSTORE_ID_TOKEN=$(curl -sSfL https://storage.googleapis.com/sigstore-conformance-testing-token/untrusted-testing-token.txt)
+          echo "SIGSTORE_ID_TOKEN=$SIGSTORE_ID_TOKEN" >> "$GITHUB_ENV"
       - name: Sign the model
-        run: hatch run python -m model_signing sign sigstore model_root/ --use_staging --signature model.sig --identity_token $(cat oidc-token.txt)
+        run: hatch run python -m model_signing sign sigstore model_root/ --use_staging --signature model.sig --identity_token "${SIGSTORE_ID_TOKEN}"
       - name: upload model signature
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -113,5 +115,5 @@ jobs:
       - name: Verify the model
         run: |
           hatch run python -m model_signing verify sigstore model_root/ --use_staging --signature model.sig \
-            --identity "https://github.com/sigstore-conformance/extremely-dangerous-public-oidc-beacon/.github/workflows/extremely-dangerous-oidc-beacon.yml@refs/heads/main" \
-            --identity_provider "https://token.actions.githubusercontent.com"
+            --identity "untrusted-sa@sigstore-conformance.iam.gserviceaccount.com" \
+            --identity_provider "https://accounts.google.com"
