@@ -274,7 +274,7 @@ class TestPkcs11SoftHSMSigning:
     def run_softhsm_setup(self, cmd: str) -> tuple[bytes | None, int]:
         curr_dir = os.path.dirname(os.path.realpath(__file__))
         softhsm_setup = os.path.join(
-            curr_dir, "../../scripts/pkcs11-tests/softhsm_setup"
+            curr_dir, "../../scripts/tests/softhsm_setup"
         )
         result = subprocess.run([softhsm_setup, cmd], stdout=subprocess.PIPE)
         return result.stdout, result.returncode
