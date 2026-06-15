@@ -21,6 +21,11 @@ model_sig=${TMPDIR}/model.sig
 pub_key=${TMPDIR}/pubkey.pem
 model_path=${TMPDIR}
 
+# The SoftHSM PKCS #11 module is in a special path on Ubuntu
+for p in "/usr/lib/pkcs11" "/usr/lib64/pkcs11" "/usr/lib/softhsm"; do
+	add_options+=" --module-paths ${p}"
+done
+
 if ! softhsm_setup getpubkey &>"${pub_key}"; then
 	echo -e "Could not get public key:\n${msg}"
 	echo "${pub_key}"
@@ -30,6 +35,7 @@ fi
 if ! python -m model_signing sign pkcs11-key \
 	--signature "${model_sig}" \
 	--pkcs11_uri "${pkcs11uri}" \
+	${add_options:+${add_options}} \
 	"${model_path}"; then
 	echo "Could not sign."
 	exit 77
@@ -88,6 +94,7 @@ if type -P openssl >/dev/null; then
 		--pkcs11_uri "${pkcs11uri}" \
 		--signing_certificate "${pub_key_cert}" \
 		--certificate_chain "${pub_key_cert}" \
+		${add_options:+${add_options}} \
 		"${model_path}"; then
 		echo "Could not sign with pkcs11-certificate method."
 		exit 77
