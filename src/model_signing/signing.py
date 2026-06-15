@@ -295,3 +295,31 @@ class Config:
             module_paths=module_paths,
         )
         return self
+
+    def use_kms_signer(self, *, kms_uri: str) -> Self:
+        """Configures the signing to be performed using AWS KMS.
+
+        The signer in this configuration is changed to one that performs signing
+        using a key stored in AWS Key Management Service (KMS).
+
+        The KMS URI format is: kms://aws/<key-id-or-arn>?region=<region>
+
+        For additional KMS providers, please open an issue at:
+        https://github.com/sigstore/model-transparency/issues
+
+        Args:
+            kms_uri: The AWS KMS URI specifying the key.
+
+        Return:
+            The new signing configuration.
+        """
+        try:
+            from model_signing._signing import sign_kms as kms_signer
+        except ImportError as e:
+            raise RuntimeError(
+                "AWS KMS functionality requires boto3. "
+                "Install with 'pip install model-signing[kms]' or "
+                "'pip install boto3'."
+            ) from e
+        self._signer = kms_signer.Signer(kms_uri)
+        return self
