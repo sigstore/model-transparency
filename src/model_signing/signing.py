@@ -187,7 +187,11 @@ class Config:
         return self
 
     def use_elliptic_key_signer(
-        self, *, private_key: hashing.PathLike, password: str | None = None
+        self,
+        *,
+        private_key: hashing.PathLike,
+        password: str | None = None,
+        tsa_url: str | None = None,
     ) -> Self:
         """Configures the signing to be performed using elliptic curve keys.
 
@@ -197,11 +201,15 @@ class Config:
         Args:
             private_key: The path to the private key to use for signing.
             password: An optional password for the key, if encrypted.
+            tsa_url: Optional URL of an RFC 3161 Timestamp Authority. When
+              provided, the signature will include a trusted timestamp.
 
         Return:
             The new signing configuration.
         """
-        self._signer = ec_key.Signer(pathlib.Path(private_key), password)
+        self._signer = ec_key.Signer(
+            pathlib.Path(private_key), password, tsa_url=tsa_url
+        )
         return self
 
     def use_certificate_signer(
@@ -210,6 +218,7 @@ class Config:
         private_key: hashing.PathLike,
         signing_certificate: hashing.PathLike,
         certificate_chain: Iterable[hashing.PathLike],
+        tsa_url: str | None = None,
     ) -> Self:
         """Configures the signing to be performed using signing certificates.
 
@@ -221,6 +230,8 @@ class Config:
             signing_certificate: The path to the signing certificate.
             certificate_chain: Optional paths to other certificates to establish
               a chain of trust.
+            tsa_url: Optional URL of an RFC 3161 Timestamp Authority. When
+              provided, the signature will include a trusted timestamp.
 
         Return:
             The new signing configuration.
@@ -229,11 +240,16 @@ class Config:
             pathlib.Path(private_key),
             pathlib.Path(signing_certificate),
             [pathlib.Path(c) for c in certificate_chain],
+            tsa_url=tsa_url,
         )
         return self
 
     def use_pkcs11_signer(
-        self, *, pkcs11_uri: str, module_paths: Iterable[str] = frozenset()
+        self,
+        *,
+        pkcs11_uri: str,
+        module_paths: Iterable[str] = frozenset(),
+        tsa_url: str | None = None,
     ) -> Self:
         """Configures the signing to be performed using PKCS #11.
 
@@ -243,6 +259,8 @@ class Config:
         Args:
             pkcs11_uri: The PKCS11 URI.
             module_paths: Optional list of paths of PKCS #11 modules.
+            tsa_url: Optional URL of an RFC 3161 Timestamp Authority. When
+              provided, the signature will include a trusted timestamp.
 
         Return:
             The new signing configuration.
@@ -254,7 +272,7 @@ class Config:
                 "PKCS #11 functionality requires the 'pkcs11' extra. "
                 "Install with 'pip install model-signing[pkcs11]'."
             ) from e
-        self._signer = pkcs11.Signer(pkcs11_uri, module_paths)
+        self._signer = pkcs11.Signer(pkcs11_uri, module_paths, tsa_url=tsa_url)
         return self
 
     def use_pkcs11_certificate_signer(
@@ -264,6 +282,7 @@ class Config:
         signing_certificate: pathlib.Path,
         certificate_chain: Iterable[pathlib.Path],
         module_paths: Iterable[str] = frozenset(),
+        tsa_url: str | None = None,
     ) -> Self:
         """Configures the signing to be performed using signing certificates.
 
@@ -276,6 +295,8 @@ class Config:
             certificate_chain: Optional paths to other certificates to establish
               a chain of trust.
             module_paths: Optional list of paths of PKCS #11 modules.
+            tsa_url: Optional URL of an RFC 3161 Timestamp Authority. When
+              provided, the signature will include a trusted timestamp.
 
         Return:
             The new signing configuration.
@@ -293,5 +314,6 @@ class Config:
             signing_certificate,
             certificate_chain,
             module_paths=module_paths,
+            tsa_url=tsa_url,
         )
         return self

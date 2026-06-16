@@ -22,15 +22,64 @@ validation does not allow those.
 """
 
 import abc
+import base64
+from datetime import datetime
 import json
+import logging
 import pathlib
 import sys
 from typing import cast
+import urllib.error
+import urllib.request
 
+import rfc3161_client
 from sigstore_models.bundle import v1 as bundle_pb
 from typing_extensions import override
 
 from model_signing._signing import signing
+
+
+logger = logging.getLogger(__name__)
+
+
+_TSA_CLIENT_TIMEOUT: int = 5
+_USER_AGENT: str = "model-signing"
+
+
+def _request_timestamp(
+    url: str, signature: bytes
+) -> rfc3161_client.TimeStampResponse:
+    """Request a timestamp from a TSA for the given signature."""
+    try:
+        timestamp_request = (
+            rfc3161_client.TimestampRequestBuilder()
+            .hash_algorithm(rfc3161_client.base.HashAlgorithm.SHA256)
+            .data(signature)
+            .nonce(nonce=True)
+            .build()
+        )
+    except ValueError as error:
+        raise ValueError(f"invalid TSA request: {error}") from error
+
+    req = urllib.request.Request(
+        url,
+        data=timestamp_request.as_bytes(),
+        headers={
+            "Content-Type": "application/timestamp-query",
+            "User-Agent": _USER_AGENT,
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=_TSA_CLIENT_TIMEOUT) as resp:
+            response_bytes = resp.read()
+    except urllib.error.URLError as error:
+        raise ValueError(f"TSA request failed: {error}") from error
+
+    try:
+        return rfc3161_client.decode_timestamp_response(response_bytes)
+    except ValueError as error:
+        raise ValueError(f"invalid TSA response: {error}") from error
 
 
 if sys.version_info >= (3, 11):
@@ -163,3 +212,52 @@ class Verifier(signing.Verifier):
         Since the bundle is generated via proto, we need to do more checks to
         replace what `verify_dsse` from `sigstore_python` does.
         """
+
+
+def request_timestamp(
+    signature_bytes: bytes, tsa_url: str
+) -> bundle_pb.TimestampVerificationData:
+    """Requests a timestamp from a TSA and returns verification data.
+
+    Args:
+        signature_bytes: The signature bytes to timestamp.
+        tsa_url: The URL of the RFC 3161 Timestamp Authority.
+
+    Returns:
+        TimestampVerificationData to include in the bundle.
+    """
+    response = _request_timestamp(tsa_url, signature_bytes)
+
+    return bundle_pb.TimestampVerificationData(
+        rfc3161_timestamps=[
+            bundle_pb.RFC3161SignedTimestamp(
+                signed_timestamp=base64.b64encode(response.as_bytes())
+            )
+        ]
+    )
+
+
+def get_timestamp_from_bundle(
+    verification_material: bundle_pb.VerificationMaterial,
+) -> datetime | None:
+    """Extracts the timestamp from the bundle's verification material.
+
+    Args:
+        verification_material: The bundle's verification material.
+
+    Returns:
+        The timestamp datetime if present and valid, None otherwise.
+    """
+    ts_data = verification_material.timestamp_verification_data
+    if not ts_data or not ts_data.rfc3161_timestamps:
+        return None
+
+    ts = ts_data.rfc3161_timestamps[0]
+    try:
+        response = rfc3161_client.decode_timestamp_response(
+            base64.b64decode(ts.signed_timestamp)
+        )
+        return response.tst_info.gen_time
+    except (ValueError, KeyError) as error:
+        logger.warning(f"Failed to decode timestamp from bundle: {error}")
+        return None

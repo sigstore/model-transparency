@@ -165,6 +165,15 @@ And then we use the private key to sign.
 [...]$ model_signing sign key bert-base-uncased --private-key key.priv
 ```
 
+#### Timestamp Authority Support
+
+PKI signing methods support RFC 3161 timestamps via `--tsa-url`:
+
+```bash
+[...]$ model_signing sign key bert-base-uncased --private-key key.priv \
+       --tsa-url https://timestamp.sigstore.dev/api/v1/timestamp
+```
+
 All signing methods support changing the signature name and location via the
 `--signature` flag:
 

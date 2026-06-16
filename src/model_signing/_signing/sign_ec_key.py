@@ -86,18 +86,23 @@ class Signer(sigstore_pb.Signer):
     """Signer using an elliptic curve private key."""
 
     def __init__(
-        self, private_key_path: pathlib.Path, password: str | None = None
+        self,
+        private_key_path: pathlib.Path,
+        password: str | None = None,
+        tsa_url: str | None = None,
     ):
         """Initializes the signer with the private key and optional password.
 
         Args:
             private_key_path: The path to the PEM encoded private key.
             password: Optional password for the private key.
+            tsa_url: Optional URL of an RFC 3161 Timestamp Authority.
         """
         self._private_key = serialization.load_pem_private_key(
             private_key_path.read_bytes(), password
         )
         _check_supported_ec_key(self._private_key.public_key())
+        self._tsa_url = tsa_url
 
     @override
     def sign(self, payload: signing.Payload) -> signing.Signature:
@@ -105,14 +110,13 @@ class Signer(sigstore_pb.Signer):
             "utf-8"
         )
 
+        signature_bytes = self._private_key.sign(
+            sigstore_pb.pae(raw_payload),
+            ec.ECDSA(get_ec_key_hash(self._private_key.public_key())),
+        )
+
         raw_signature = intoto_pb.Signature(
-            sig=base64.b64encode(
-                self._private_key.sign(
-                    sigstore_pb.pae(raw_payload),
-                    ec.ECDSA(get_ec_key_hash(self._private_key.public_key())),
-                )
-            ),
-            keyid="",
+            sig=base64.b64encode(signature_bytes), keyid=""
         )
 
         envelope = intoto_pb.Envelope(
@@ -121,10 +125,17 @@ class Signer(sigstore_pb.Signer):
             signatures=[raw_signature],
         )
 
+        verification_material = self._get_verification_material()
+
+        if self._tsa_url:
+            verification_material.timestamp_verification_data = (
+                sigstore_pb.request_timestamp(signature_bytes, self._tsa_url)
+            )
+
         return sigstore_pb.Signature(
             bundle_pb.Bundle(
                 media_type=sigstore_pb._BUNDLE_MEDIA_TYPE,
-                verification_material=self._get_verification_material(),
+                verification_material=verification_material,
                 dsse_envelope=envelope,
             )
         )
