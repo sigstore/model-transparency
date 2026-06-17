@@ -40,4 +40,7 @@ jobs:
     - name: Set up Hatch
       uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc # install
     - name: Run CLI tests
-      run: hatch run cli:test
+      run: |
+        sudo apt update
+        sudo apt install softhsm2 gnutls-bin
+        hatch run cli:test
