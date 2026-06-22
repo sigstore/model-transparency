@@ -218,6 +218,56 @@ class TestSigstoreSigning:
 
 
 class TestKeySigning:
+    def test_sign_to_bytes(self, base_path, populate_tmpdir):
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+        hashing_config = hashing.Config().set_ignored_paths(
+            paths=[signature], ignore_git_paths=False
+        )
+
+        config = (
+            signing.Config()
+            .use_elliptic_key_signer(private_key=private_key)
+            .set_hashing_config(hashing_config)
+        )
+
+        # In-memory signing returns the Sigstore bundle as bytes, without
+        # writing anything to disk.
+        signature_bytes = config.sign_to_bytes(model_path)
+        assert isinstance(signature_bytes, bytes)
+        assert not signature.exists()
+
+        # The bytes are a valid Sigstore bundle carrying the expected payload.
+        bundle = json.loads(signature_bytes)
+        payload = json.loads(b64decode(bundle["dsseEnvelope"]["payload"]))
+        signed_files = [
+            entry["name"] for entry in payload["predicate"]["resources"]
+        ]
+        assert signed_files == [".gitignore", "signme-1", "signme-2"]
+
+        # The in-memory bundle is not just well-formed, it verifies: persist
+        # the bytes unmodified and run the normal verification path over them.
+        # `verify` raises on any failure, so reaching the next line is the
+        # assertion.
+        signature.write_bytes(signature_bytes)
+        verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key
+        ).set_hashing_config(hashing_config).verify(model_path, signature)
+
+        # The in-memory payload matches what writing to disk produces. The
+        # bundle signature itself is non-deterministic (ECDSA), so we compare
+        # the signed DSSE payload rather than the raw bytes.
+        config.sign(model_path, signature)
+        disk_bundle = json.loads(signature.read_text())
+        disk_payload = json.loads(
+            b64decode(disk_bundle["dsseEnvelope"]["payload"])
+        )
+        assert payload == disk_payload
+
     def test_sign_and_verify(self, base_path, populate_tmpdir):
         os.chdir(base_path)
 

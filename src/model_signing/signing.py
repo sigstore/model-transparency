@@ -74,6 +74,24 @@ def sign(model_path: hashing.PathLike, signature_path: hashing.PathLike):
     Config().sign(model_path, signature_path)
 
 
+def sign_to_bytes(model_path: hashing.PathLike) -> bytes:
+    """Signs a model using the default configuration and returns the signature.
+
+    In this default configuration we sign using Sigstore and the default hashing
+    configuration from `model_signing.hashing`.
+
+    The resulting signature is the Sigstore bundle, returned in memory as UTF-8
+    encoded JSON bytes instead of being written to disk.
+
+    Args:
+        model_path: the path to the model to sign.
+
+    Returns:
+        The signature, as a Sigstore bundle encoded in UTF-8 JSON bytes.
+    """
+    return Config().sign_to_bytes(model_path)
+
+
 class Config:
     """Configuration to use when signing models.
 
@@ -101,12 +119,43 @@ class Config:
             model_path: The path to the model to sign.
             signature_path: The path of the resulting signature.
         """
+        signature = self._sign(model_path)
+        signature.write(pathlib.Path(signature_path))
+
+    def sign_to_bytes(self, model_path: hashing.PathLike) -> bytes:
+        """Signs a model and returns the signature as bytes.
+
+        This mirrors `sign`, but instead of writing the signature to disk it
+        returns the Sigstore bundle in memory. This is useful in serverless or
+        pipeline contexts where writing to the filesystem is undesirable or
+        impossible, and the bundle needs to be streamed, persisted to an object
+        store, or passed directly to another process.
+
+        The returned bytes are the UTF-8 encoded Sigstore bundle, identical to
+        what `sign` would have written to the signature path.
+
+        Args:
+            model_path: The path to the model to sign.
+
+        Returns:
+            The signature, as a Sigstore bundle encoded in UTF-8 JSON bytes.
+        """
+        return self._sign(model_path).to_bytes()
+
+    def _sign(self, model_path: hashing.PathLike) -> signing.Signature:
+        """Hashes and signs a model, returning the in-memory signature.
+
+        Args:
+            model_path: The path to the model to sign.
+
+        Returns:
+            The `Signature` produced by the configured signer.
+        """
         if self._signer is None:
             self.use_sigstore_signer()
         manifest = self._hashing_config.hash(model_path)
         payload = signing.Payload(manifest)
-        signature = self._signer.sign(payload)
-        signature.write(pathlib.Path(signature_path))
+        return self._signer.sign(payload)
 
     def set_hashing_config(self, hashing_config: hashing.Config) -> Self:
         """Sets the new configuration for hashing models.
