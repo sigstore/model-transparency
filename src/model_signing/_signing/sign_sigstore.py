@@ -51,7 +51,11 @@ class Signature(signing.Signature):
 
     @override
     def write(self, path: pathlib.Path) -> None:
-        path.write_text(self.bundle.to_json(), encoding="utf-8")
+        path.write_bytes(self.to_bytes())
+
+    @override
+    def to_bytes(self) -> bytes:
+        return self.bundle.to_json().encode("utf-8")
 
     @classmethod
     @override

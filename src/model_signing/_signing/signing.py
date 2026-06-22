@@ -304,6 +304,19 @@ class Signature(metaclass=abc.ABCMeta):
             path: The path to write the signature to.
         """
 
+    @abc.abstractmethod
+    def to_bytes(self) -> bytes:
+        """Serializes the signature to bytes.
+
+        Returns the same Sigstore bundle content that `write` persists to
+        disk, encoded as UTF-8 JSON. This lets callers in serverless or
+        pipeline contexts obtain the signature in memory without touching the
+        filesystem.
+
+        Returns:
+            The serialized signature, as UTF-8 encoded bytes.
+        """
+
     @classmethod
     @abc.abstractmethod
     def read(cls, path: pathlib.Path) -> Self:
