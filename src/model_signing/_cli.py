@@ -53,8 +53,11 @@ _write_signature_option = click.option(
     "--signature",
     type=pathlib.Path,
     metavar="SIGNATURE_PATH",
-    default=pathlib.Path("model.sig"),
-    help="Location of the signature file to generate. Defaults to `model.sig`.",
+    default=pathlib.Path("claims.jsonl"),
+    help=(
+        "Location of the signature file to generate. "
+        "Defaults to `claims.jsonl`."
+    ),
 )
 
 
@@ -431,6 +434,7 @@ def _sign_sigstore(
         )
         span.set_attribute("sigstore.use_staging", use_staging)
         try:
+            existed = signature.exists()
             ignored = _resolve_ignore_paths(
                 model_path, list(ignore_paths) + [signature]
             )
@@ -453,7 +457,8 @@ def _sign_sigstore(
             click.echo(f"Signing failed with error: {err}", err=True)
             sys.exit(1)
 
-        click.echo("Signing succeeded")
+        action = "Appended to" if existed else "Created"
+        click.echo(f"Signing succeeded. {action} {signature}")
 
 
 @_sign.command(name="key")
@@ -492,6 +497,7 @@ def _sign_private_key(
     management protocols.
     """
     try:
+        existed = signature.exists()
         ignored = _resolve_ignore_paths(
             model_path, list(ignore_paths) + [signature]
         )
@@ -506,7 +512,8 @@ def _sign_private_key(
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
 
-    click.echo("Signing succeeded")
+    action = "Appended to" if existed else "Created"
+    click.echo(f"Signing succeeded. {action} {signature}")
 
 
 @_sign.command(name="pkcs11-key")
@@ -543,6 +550,7 @@ def _sign_pkcs11_key(
     management protocols.
     """
     try:
+        existed = signature.exists()
         ignored = _resolve_ignore_paths(
             model_path, list(ignore_paths) + [signature]
         )
@@ -557,7 +565,8 @@ def _sign_pkcs11_key(
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
 
-    click.echo("Signing succeeded")
+    action = "Appended to" if existed else "Created"
+    click.echo(f"Signing succeeded. {action} {signature}")
 
 
 @_sign.command(name="certificate")
@@ -596,6 +605,7 @@ def _sign_certificate(
     Note that we don't offer certificate and key management protocols.
     """
     try:
+        existed = signature.exists()
         ignored = _resolve_ignore_paths(
             model_path, list(ignore_paths) + [signature]
         )
@@ -612,7 +622,8 @@ def _sign_certificate(
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
 
-    click.echo("Signing succeeded")
+    action = "Appended to" if existed else "Created"
+    click.echo(f"Signing succeeded. {action} {signature}")
 
 
 @_sign.command(name="pkcs11-certificate")
@@ -657,6 +668,7 @@ def _sign_pkcs11_certificate(
     Note that we don't offer certificate and key management protocols.
     """
     try:
+        existed = signature.exists()
         ignored = _resolve_ignore_paths(
             model_path, list(ignore_paths) + [signature]
         )
@@ -674,7 +686,8 @@ def _sign_pkcs11_certificate(
         click.echo(f"Signing failed with error: {err}", err=True)
         sys.exit(1)
 
-    click.echo("Signing succeeded")
+    action = "Appended to" if existed else "Created"
+    click.echo(f"Signing succeeded. {action} {signature}")
 
 
 @main.group(name="verify", subcommand_metavar="PKI_METHOD", cls=_PKICmdGroup)
@@ -756,25 +769,32 @@ def _verify_sigstore(
             ignored = _resolve_ignore_paths(
                 model_path, list(ignore_paths) + [signature]
             )
-            model_signing.verifying.Config().use_sigstore_verifier(
-                identity=identity,
-                oidc_issuer=identity_provider,
-                use_staging=use_staging,
-                trust_config=trust_config,
-            ).set_hashing_config(
-                model_signing.hashing.Config()
-                .set_ignored_paths(
-                    paths=ignored, ignore_git_paths=ignore_git_paths
+            matched_line, total_lines = (
+                model_signing.verifying.Config()
+                .use_sigstore_verifier(
+                    identity=identity,
+                    oidc_issuer=identity_provider,
+                    use_staging=use_staging,
+                    trust_config=trust_config,
                 )
-                .set_allow_symlinks(allow_symlinks)
-            ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
-                model_path, signature
+                .set_hashing_config(
+                    model_signing.hashing.Config()
+                    .set_ignored_paths(
+                        paths=ignored, ignore_git_paths=ignore_git_paths
+                    )
+                    .set_allow_symlinks(allow_symlinks)
+                )
+                .set_ignore_unsigned_files(ignore_unsigned_files)
+                .verify(model_path, signature)
             )
         except Exception as err:
             click.echo(f"Verification failed with error: {err}", err=True)
             sys.exit(1)
 
-        click.echo("Verification succeeded")
+        msg = "Verification succeeded"
+        if total_lines > 1:
+            msg += f" (matched line {matched_line} of {signature})"
+        click.echo(msg)
 
 
 @_verify.command(name="key")
@@ -817,20 +837,27 @@ def _verify_private_key(
         ignored = _resolve_ignore_paths(
             model_path, list(ignore_paths) + [signature]
         )
-        model_signing.verifying.Config().use_elliptic_key_verifier(
-            public_key=public_key
-        ).set_hashing_config(
-            model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
-            .set_allow_symlinks(allow_symlinks)
-        ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
-            model_path, signature
+        matched_line, total_lines = (
+            model_signing.verifying.Config()
+            .use_elliptic_key_verifier(public_key=public_key)
+            .set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=ignored, ignore_git_paths=ignore_git_paths
+                )
+                .set_allow_symlinks(allow_symlinks)
+            )
+            .set_ignore_unsigned_files(ignore_unsigned_files)
+            .verify(model_path, signature)
         )
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
         sys.exit(1)
 
-    click.echo("Verification succeeded")
+    msg = "Verification succeeded"
+    if total_lines > 1:
+        msg += f" (matched line {matched_line} of {signature})"
+    click.echo(msg)
 
 
 @_verify.command(name="certificate")
@@ -879,18 +906,27 @@ def _verify_certificate(
         ignored = _resolve_ignore_paths(
             model_path, list(ignore_paths) + [signature]
         )
-        model_signing.verifying.Config().use_certificate_verifier(
-            certificate_chain=certificate_chain,
-            log_fingerprints=log_fingerprints,
-        ).set_hashing_config(
-            model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
-            .set_allow_symlinks(allow_symlinks)
-        ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
-            model_path, signature
+        matched_line, total_lines = (
+            model_signing.verifying.Config()
+            .use_certificate_verifier(
+                certificate_chain=certificate_chain,
+                log_fingerprints=log_fingerprints,
+            )
+            .set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=ignored, ignore_git_paths=ignore_git_paths
+                )
+                .set_allow_symlinks(allow_symlinks)
+            )
+            .set_ignore_unsigned_files(ignore_unsigned_files)
+            .verify(model_path, signature)
         )
     except Exception as err:
         click.echo(f"Verification failed with error: {err}", err=True)
         sys.exit(1)
 
-    click.echo("Verification succeeded")
+    msg = "Verification succeeded"
+    if total_lines > 1:
+        msg += f" (matched line {matched_line} of {signature})"
+    click.echo(msg)

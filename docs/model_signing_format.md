@@ -71,7 +71,7 @@ transparency log.
 Below is an example of the Sigstore bundle showing each of the layers described above.
 
 ```bash
-$ cat model.sig | jq .
+$ cat claims.jsonl | jq .
 {
   "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
   "verificationMaterial": {
@@ -127,7 +127,7 @@ $ cat model.sig | jq .
   }
 }
 
-$ cat model.sig | jq .dsseEnvelope.payload -r | base64 -d | jq .
+$ cat claims.jsonl | jq .dsseEnvelope.payload -r | base64 -d | jq .
 {
   "_type": "https://in-toto.io/Statement/v1",
   "subject": [

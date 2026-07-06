@@ -26,6 +26,7 @@ import json
 import pathlib
 import sys
 from typing import cast
+import warnings
 
 from sigstore_models.bundle import v1 as bundle_pb
 from typing_extensions import override
@@ -105,12 +106,20 @@ class Signature(signing.Signature):
 
     @override
     def write(self, path: pathlib.Path) -> None:
-        path.write_text(self.bundle.to_json(), encoding="utf-8")
+        fmt = signing.detect_output_format(path)
+        if fmt == signing.SignatureFormat.LEGACY_SINGLE_JSON:
+            warnings.warn(
+                signing._DEPRECATION_WARNING, DeprecationWarning, stacklevel=2
+            )
+            path.write_text(self.bundle.to_json(), encoding="utf-8")
+        else:
+            # JSONL: append as a single compact line
+            with path.open("a", encoding="utf-8") as f:
+                f.write(self.bundle.to_json() + "\n")
 
     @classmethod
-    @override
-    def read(cls, path: pathlib.Path) -> Self:
-        content = path.read_text(encoding="utf-8")
+    def _parse_bundle(cls, content: str) -> Self:
+        """Parse a single JSON string into a Signature instance."""
         parsed_dict = json.loads(content)
 
         # adjust parsed_dict due to previous usage of protobufs
@@ -124,6 +133,38 @@ class Signature(signing.Signature):
                     del parsed_dict["verificationMaterial"]["publicKey"][k]
 
         return cls(bundle_pb.Bundle.from_dict(parsed_dict))
+
+    @classmethod
+    @override
+    def read(cls, path: pathlib.Path) -> Self:
+        fmt = signing.detect_signature_format(path)
+        if fmt == signing.SignatureFormat.LEGACY_SINGLE_JSON:
+            warnings.warn(
+                signing._DEPRECATION_WARNING, DeprecationWarning, stacklevel=2
+            )
+            content = path.read_text(encoding="utf-8")
+            return cls._parse_bundle(content)
+
+        # JSONL: read last line (most recent claim)
+        content = path.read_text(encoding="utf-8")
+        lines = [line for line in content.splitlines() if line.strip()]
+        return cls._parse_bundle(lines[-1])
+
+    @classmethod
+    @override
+    def read_all(cls, path: pathlib.Path) -> list[Self]:
+        fmt = signing.detect_signature_format(path)
+        if fmt == signing.SignatureFormat.LEGACY_SINGLE_JSON:
+            warnings.warn(
+                signing._DEPRECATION_WARNING, DeprecationWarning, stacklevel=2
+            )
+            content = path.read_text(encoding="utf-8")
+            return [cls._parse_bundle(content)]
+
+        # JSONL: return all claims, newest first (last line to first line)
+        content = path.read_text(encoding="utf-8")
+        lines = [line for line in content.splitlines() if line.strip()]
+        return [cls._parse_bundle(line) for line in reversed(lines)]
 
 
 class Signer(signing.Signer):
