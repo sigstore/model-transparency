@@ -29,8 +29,13 @@ import urllib.request
 import pytest
 
 from model_signing import hashing
+from model_signing import manifest
 from model_signing import signing
 from model_signing import verifying
+from model_signing._hashing import hashing as _hashing
+from model_signing._hashing import memory
+from model_signing._signing import sign_ec_key
+from model_signing._signing import signing as _signing
 
 
 # Directory with testdata for this test
@@ -417,3 +422,65 @@ class TestCertificateSigning:
             signature, ignore_git_paths, ["model.sig", "ignored"]
         )
         assert get_model_name(signature) == os.path.basename(model_path)
+
+
+class TestIgnoreUnsignedFilesTraversal:
+    def _sha256(self, path: Path) -> _hashing.Digest:
+        hasher = memory.SHA256()
+        hasher.update(path.read_bytes())
+        digest = hasher.compute()
+        return _hashing.Digest("sha256", digest.digest_value)
+
+    def _sign_manifest(
+        self, mani: manifest.Manifest, private_key: Path, out: Path
+    ) -> None:
+        signer = sign_ec_key.Signer(private_key)
+        signature = signer.sign(_signing.Payload(mani))
+        signature.write(out)
+
+    def test_verify_rejects_path_outside_model(self, tmp_path):
+        model = tmp_path / "model"
+        model.mkdir()
+        (model / "weights.bin").write_bytes(b"legit weights")
+        secret = tmp_path / "secret.txt"
+        secret.write_bytes(b"outside the model root")
+
+        items = [
+            manifest.FileManifestItem(
+                path=Path("weights.bin"),
+                digest=self._sha256(model / "weights.bin"),
+            ),
+            manifest.FileManifestItem(
+                path=Path("../secret.txt"),
+                digest=self._sha256(secret),
+            ),
+        ]
+        serialization = manifest._FileSerialization("sha256")
+        mani = manifest.Manifest("model", items, serialization)
+
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+        signature = tmp_path / "model.sig"
+        self._sign_manifest(mani, private_key, signature)
+
+        with pytest.raises(ValueError, match="outside the model directory"):
+            verifying.Config().use_elliptic_key_verifier(
+                public_key=public_key
+            ).set_ignore_unsigned_files(True).verify(model, signature)
+
+    def test_verify_accepts_in_model_paths(self, tmp_path):
+        model = tmp_path / "model"
+        model.mkdir()
+        (model / "weights.bin").write_bytes(b"legit weights")
+
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+        signature = tmp_path / "model.sig"
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key
+        ).sign(model, signature)
+
+        verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key
+        ).set_ignore_unsigned_files(True).verify(model, signature)
