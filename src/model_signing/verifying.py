@@ -106,10 +106,19 @@ class Config:
             )
 
         if self._ignore_unsigned_files:
-            files_to_hash = [
-                model_path / rd.identifier
-                for rd in expected_manifest.resource_descriptors()
-            ]
+            model_root = pathlib.Path(model_path)
+            resolved_root = model_root.resolve()
+            files_to_hash = []
+            for rd in expected_manifest.resource_descriptors():
+                file_to_hash = model_root / rd.identifier
+                try:
+                    file_to_hash.resolve().relative_to(resolved_root)
+                except ValueError:
+                    raise ValueError(
+                        "Signed manifest references a path outside the model "
+                        f"directory: {rd.identifier}"
+                    ) from None
+                files_to_hash.append(file_to_hash)
         else:
             files_to_hash = None
 
