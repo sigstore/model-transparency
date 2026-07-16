@@ -17,6 +17,7 @@ All versions prior to 1.0.0 are untracked.
 - Standardized CLI flags to use hyphens (e.g., `--trust-config` instead of `--trust_config`). Underscore variants are still accepted for backwards compatibility via token normalization.
 
 ### Fixed
+- Fixed certificate verification accepting a signing certificate whose extended key usage does not permit code signing (for example a TLS `serverAuth` certificate), as long as the digitalSignature key usage bit was set. ([#648](https://github.com/sigstore/model-transparency/pull/648))
 - Fixed a bug where reusing a single `verifying.Config` across models let the ignore paths and guessed hashing configuration from one verification carry over into later ones. A file that a later model's signature never excluded could be silently skipped instead of reported as unsigned. ([#650](https://github.com/sigstore/model-transparency/pull/650))
 - Fixed a bug where installing from the sdist produced an empty wheel with zero Python modules. The hatch `packages` directive was scoped to all build targets instead of the wheel target only, causing the sdist's flattened layout to not match the expected `src/` path. ([#636](https://github.com/sigstore/model-transparency/issues/636))
 - Fixed a bug where ignored symlinks could raise `ValueError`s if allow_symlinks was unset, even though they were skipped during serialization. ([#550](https://github.com/sigstore/model-transparency/pull/550))
