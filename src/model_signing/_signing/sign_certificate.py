@@ -130,6 +130,7 @@ class Verifier(sigstore_pb.Verifier):
         self,
         certificate_chain_paths: Iterable[pathlib.Path] = frozenset(),
         log_fingerprints: bool = False,
+        expected_san_uris: Iterable[str] = frozenset(),
     ):
         """Initializes the verifier with the list of certificates to use.
 
@@ -139,8 +140,15 @@ class Verifier(sigstore_pb.Verifier):
               in which case we would use the root certificates from the
               operating system, as per `certifi.where()`.
             log_fingerprints: Log the fingerprints of certificates
+            expected_san_uris: If non-empty, verification additionally requires
+              that every listed URI appear in the leaf certificate's
+              SubjectAltName URI entries. This binds the signature to a signer
+              identity (e.g. a SPIFFE ID, which per RFC-compliant SVIDs is
+              always carried in the URI SAN) rather than trusting any
+              certificate issued under the CA.
         """
         self._log_fingerprints = log_fingerprints
+        self._expected_san_uris = frozenset(expected_san_uris)
 
         if not certificate_chain_paths:
             certificate_chain_paths = [pathlib.Path(certifi.where())]
@@ -251,4 +259,41 @@ class Verifier(sigstore_pb.Verifier):
         if not can_use_for_signing:
             raise ValueError("Signing certificate cannot be used for signing")
 
+        self._verify_san_identity(signing_certificate)
+
         return signing_certificate.public_key()
+
+    def _verify_san_identity(
+        self, signing_certificate: x509.Certificate
+    ) -> None:
+        """Assert the leaf's SubjectAltName carries every expected URI.
+
+        Chain-of-trust proves the CA vouched for *some* leaf; it does not tell
+        us *which* leaf. If the caller declared expected SAN URIs (e.g. a
+        SPIFFE ID), the signing certificate embedded in the bundle must carry
+        them, otherwise a different (but still CA-issued) key could produce
+        accepted signatures.
+        """
+        if not self._expected_san_uris:
+            return
+
+        try:
+            san = signing_certificate.extensions.get_extension_for_class(
+                x509.SubjectAlternativeName
+            ).value
+        except x509.ExtensionNotFound as err:
+            raise ValueError(
+                "Signing certificate has no SubjectAlternativeName; cannot "
+                "verify expected signer identity."
+            ) from err
+
+        actual_uris = frozenset(
+            san.get_values_for_type(x509.UniformResourceIdentifier)
+        )
+        missing_uris = self._expected_san_uris - actual_uris
+        if missing_uris:
+            raise ValueError(
+                "Signing certificate SubjectAltName is missing expected "
+                f"URI(s): {sorted(missing_uris)} "
+                f"(present: {sorted(actual_uris)})"
+            )
