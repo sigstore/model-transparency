@@ -275,6 +275,52 @@ class TestKeySigning:
         )
         assert get_model_name(signature) == os.path.basename(model_path)
 
+    def test_reused_config_does_not_leak_ignore_paths(
+        self, base_path, tmp_path
+    ):
+        os.chdir(base_path)
+
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        # Model A is signed with its scratch file explicitly ignored.
+        model_a = tmp_path / "model_a"
+        model_a.mkdir()
+        (model_a / "weights").write_text("weights-a")
+        (model_a / "notes").write_text("scratch, excluded from signing")
+        sig_a = tmp_path / "a.sig"
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=[model_a / "notes"], ignore_git_paths=False
+            )
+        ).sign(model_a, sig_a)
+
+        # Model B is signed without ignoring anything.
+        model_b = tmp_path / "model_b"
+        model_b.mkdir()
+        (model_b / "weights").write_text("weights-b")
+        sig_b = tmp_path / "b.sig"
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(paths=[], ignore_git_paths=False)
+        ).sign(model_b, sig_b)
+
+        # An unsigned file is planted in B at the path A happened to ignore.
+        (model_b / "notes").write_text("not covered by B's signature")
+
+        config = verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key
+        )
+        config.verify(model_a, sig_a)
+
+        # B's signature never excluded "notes", so the planted file must be
+        # reported rather than silently skipped using A's ignore paths.
+        with pytest.raises(ValueError, match="Extra files"):
+            config.verify(model_b, sig_b)
+
 
 class TestCertificateSigning:
     def test_sign_and_verify(self, base_path, populate_tmpdir):
