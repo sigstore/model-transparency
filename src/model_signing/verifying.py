@@ -38,6 +38,7 @@ The API defined here is stable and backwards compatible.
 """
 
 from collections.abc import Iterable
+import copy
 import pathlib
 import sys
 
@@ -97,10 +98,15 @@ class Config:
 
         expected_manifest = self._verifier.verify(signature)
 
-        if self._hashing_config is None:
-            self._guess_hashing_config(expected_manifest)
+        if self._hashing_config is not None:
+            # The signed manifest's ignore paths are applied below. Copy the
+            # config so they do not mutate the caller's config or accumulate
+            # into later verify() calls on a reused instance.
+            hashing_config = copy.deepcopy(self._hashing_config)
+        else:
+            hashing_config = self._guess_hashing_config(expected_manifest)
         if "ignore_paths" in expected_manifest.serialization_type:
-            self._hashing_config.add_ignored_paths(
+            hashing_config.add_ignored_paths(
                 model_path=model_path,
                 paths=expected_manifest.serialization_type["ignore_paths"],
             )
@@ -113,7 +119,7 @@ class Config:
         else:
             files_to_hash = None
 
-        actual_manifest = self._hashing_config.hash(
+        actual_manifest = hashing_config.hash(
             model_path, files_to_hash=files_to_hash
         )
 
@@ -189,19 +195,21 @@ class Config:
         self._ignore_unsigned_files = ignore_unsigned_files
         return self
 
-    def _guess_hashing_config(self, source_manifest: manifest.Manifest) -> None:
+    def _guess_hashing_config(
+        self, source_manifest: manifest.Manifest
+    ) -> hashing.Config:
         """Attempts to guess the hashing config from a manifest."""
         args = source_manifest.serialization_type
         method = args["method"]
         match method:
             case "files":
-                self._hashing_config = hashing.Config().use_file_serialization(
+                return hashing.Config().use_file_serialization(
                     hashing_algorithm=args["hash_type"],
                     allow_symlinks=args["allow_symlinks"],
                     ignore_paths=args.get("ignore_paths", frozenset()),
                 )
             case "shards":
-                self._hashing_config = hashing.Config().use_shard_serialization(
+                return hashing.Config().use_shard_serialization(
                     hashing_algorithm=args["hash_type"],
                     shard_size=args["shard_size"],
                     allow_symlinks=args["allow_symlinks"],
