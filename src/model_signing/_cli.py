@@ -848,6 +848,21 @@ def _verify_private_key(
     show_default=True,
     help="Log SHA256 fingerprints of all certificates.",
 )
+@click.option(
+    "--san-uri",
+    "san_uris",
+    type=str,
+    multiple=True,
+    default=(),
+    help=(
+        "Require this URI to appear in the leaf certificate's "
+        "SubjectAlternativeName. Repeat to require multiple. Pins signer "
+        "identity so a different certificate issued by the same CA cannot "
+        "produce accepted signatures. This is the mechanism SPIFFE SVIDs use "
+        "to carry a workload identity (spiffe://...) and is where SPIFFE-aware "
+        "verifiers are required to check."
+    ),
+)
 @_ignore_unsigned_files_option
 def _verify_certificate(
     model_path: pathlib.Path,
@@ -857,6 +872,7 @@ def _verify_certificate(
     allow_symlinks: bool,
     certificate_chain: Iterable[pathlib.Path],
     log_fingerprints: bool,
+    san_uris: tuple[str, ...],
     ignore_unsigned_files: bool,
 ) -> None:
     """Verify using a certificate.
@@ -870,6 +886,13 @@ def _verify_certificate(
     certificate chain, using `--certificate_chain` (this option can be repeated
     as needed, or all certificates could be placed in a single file).
 
+    To bind the signature to a specific signer identity (and not merely to
+    "some certificate issued by this CA"), pass `--san-uri`. The check runs
+    against the leaf certificate embedded in the bundle, after chain
+    verification succeeds. SPIFFE SVIDs carry the SPIFFE ID in the URI SAN;
+    passing the expected `spiffe://` URI is the SPIFFE-mandated verification
+    step.
+
     Note that we don't offer certificate and key management protocols.
     """
     if log_fingerprints:
@@ -882,6 +905,7 @@ def _verify_certificate(
         model_signing.verifying.Config().use_certificate_verifier(
             certificate_chain=certificate_chain,
             log_fingerprints=log_fingerprints,
+            expected_san_uris=san_uris,
         ).set_hashing_config(
             model_signing.hashing.Config()
             .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
