@@ -15,6 +15,7 @@
 """Helpers and constants used in fixtures and tests. Not in the public API."""
 
 import itertools
+import os
 import pathlib
 
 from model_signing import manifest
@@ -113,3 +114,20 @@ def count_files(path: pathlib.Path) -> int:
         if child_path.is_file():
             count += 1
     return count
+
+
+def make_unlistable(path: pathlib.Path) -> bool:
+    """Drops read permission on a directory, keeping it searchable.
+
+    Returns whether the directory actually became unlistable. Windows does not
+    map this onto file modes, and a user with CAP_DAC_READ_SEARCH (such as
+    root) bypasses the check, so callers must skip when this returns False.
+    """
+    path.chmod(0o111)
+    try:
+        with os.scandir(path):
+            pass
+    except OSError:
+        return True
+    path.chmod(0o755)
+    return False

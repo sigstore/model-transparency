@@ -326,6 +326,20 @@ class TestSerializer:
             symlink_model_folder, ignore_paths=[symlink_model_folder]
         )
 
+    def test_unlistable_directory_raises(self, sample_model_folder):
+        hidden_dir = sample_model_folder / "hidden"
+        hidden_dir.mkdir()
+        (hidden_dir / "extra_file").write_bytes(b"not in the manifest")
+        if not test_support.make_unlistable(hidden_dir):
+            return  # trivially pass where permissions cannot restrict listing
+
+        serializer = file.Serializer(self._hasher_factory)
+        try:
+            with pytest.raises(ValueError, match="Cannot list the contents of"):
+                _ = serializer.serialize(sample_model_folder)
+        finally:
+            hidden_dir.chmod(0o755)
+
 
 class TestUtilities:
     def test_check_file_or_directory_raises_on_pipes(self, sample_model_file):
@@ -341,3 +355,17 @@ class TestUtilities:
             ValueError, match="Cannot use .* as file or directory"
         ):
             serialization.check_file_or_directory(pipe)
+
+    def test_check_file_or_directory_raises_on_unlistable_directory(
+        self, sample_model_folder
+    ):
+        directory = sample_model_folder / "unlistable"
+        directory.mkdir()
+        if not test_support.make_unlistable(directory):
+            return  # trivially pass where permissions cannot restrict listing
+
+        try:
+            with pytest.raises(ValueError, match="Cannot list the contents of"):
+                serialization.check_file_or_directory(directory)
+        finally:
+            directory.chmod(0o755)
