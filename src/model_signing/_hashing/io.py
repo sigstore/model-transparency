@@ -219,9 +219,10 @@ class ShardedFileHasher(SimpleFileHasher):
               digest of the file shard.
             start: The file offset to start reading from. Must be valid. Reset
               with `set_shard`.
-            end: The file offset to stop reading at. Must be stricly greater
-              than start. The entire shard length must be less than the
-              configured `shard_size`. Reset with `set_shard`.
+            end: The file offset to stop reading at. Must not be lower than
+              start; equal to start means an empty shard, as used for an empty
+              file. The entire shard length must be less than the configured
+              `shard_size`. Reset with `set_shard`.
             chunk_size: The amount of file to read at once. Default is 1MB. A
               special value of 0 signals to attempt to read everything in a
               single call.
@@ -249,18 +250,19 @@ class ShardedFileHasher(SimpleFileHasher):
 
         Args:
             start: The file offset to start reading from. Must be valid.
-            end: The file offset to stop reading at. Must be stricly greater
-              than start. The entire shard length must be less than the
-              configured `shard_size`.
+            end: The file offset to stop reading at. Must not be lower than
+              start; equal to start means an empty shard, as used for an empty
+              file. The entire shard length must be less than the configured
+              `shard_size`.
         """
         if start < 0:
             raise ValueError(
                 f"File start offset must be non-negative, got {start}."
             )
-        if end <= start:
+        if end < start:
             raise ValueError(
-                "File end offset must be stricly higher that file start offset,"
-                f" got {start=}, {end=}."
+                "File end offset must not be lower than file start offset, got"
+                f" {start=}, {end=}."
             )
         read_length = end - start
         if read_length > self.shard_size:

@@ -197,7 +197,7 @@ class TestSerializer:
 
         assert manifest == new_manifest
 
-    def test_folder_model_empty_file_not_included(self, sample_model_folder):
+    def test_folder_model_empty_file_gets_included(self, sample_model_folder):
         serializer = file_shard.Serializer(self._hasher_factory)
         manifest = serializer.serialize(sample_model_folder)
 
@@ -206,7 +206,13 @@ class TestSerializer:
         new_empty_file.write_text("")
         new_manifest = serializer.serialize(sample_model_folder)
 
-        assert manifest == new_manifest
+        assert manifest != new_manifest
+        assert (
+            len(new_manifest._item_to_digest)
+            == len(manifest._item_to_digest) + 1
+        )
+        for shard, digest in manifest._item_to_digest.items():
+            assert new_manifest._item_to_digest[shard] == digest
 
     def _check_manifests_match_except_on_renamed_file(
         self,
