@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for SubjectAltName identity pinning in the certificate verifier."""
+"""Tests for the certificate verifier."""
 
+import base64
 import datetime
 import pathlib
 
@@ -23,10 +24,13 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509 import oid
 import pytest
+from sigstore_models.bundle import v1 as bundle_pb
+from sigstore_models.common import v1 as common_pb
 
 from model_signing import hashing
 from model_signing import signing
 from model_signing import verifying
+from model_signing._signing import sign_certificate as certificate
 
 
 _SAN_URI = "spiffe://demo.example.com/signer/demo"
@@ -199,3 +203,107 @@ class TestVerifyCertificateSanIdentity:
             ).set_hashing_config(
                 hashing.Config().set_ignored_paths(paths=[sig])
             ).verify(model, sig)
+
+
+def _name(common_name):
+    return x509.Name([x509.NameAttribute(oid.NameOID.COMMON_NAME, common_name)])
+
+
+def _mint(extended_key_usages):
+    """Mints a private root and a leaf carrying the given extended key usages.
+
+    The leaf always sets the digitalSignature key usage bit. Passing `None` for
+    the extended key usages omits the ExtendedKeyUsage extension entirely.
+
+    Returns:
+        A tuple of the root certificate and the leaf certificate.
+    """
+    now = datetime.datetime.now(datetime.timezone.utc)
+    root_key = ec.generate_private_key(ec.SECP256R1())
+    root = (
+        x509.CertificateBuilder()
+        .subject_name(_name("test-root"))
+        .issuer_name(_name("test-root"))
+        .public_key(root_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - datetime.timedelta(days=1))
+        .not_valid_after(now + datetime.timedelta(days=3650))
+        .add_extension(
+            x509.BasicConstraints(ca=True, path_length=None), critical=True
+        )
+        .sign(root_key, hashes.SHA256())
+    )
+
+    leaf_key = ec.generate_private_key(ec.SECP256R1())
+    builder = (
+        x509.CertificateBuilder()
+        .subject_name(_name("test-leaf"))
+        .issuer_name(root.subject)
+        .public_key(leaf_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - datetime.timedelta(days=1))
+        .not_valid_after(now + datetime.timedelta(days=365))
+        .add_extension(
+            x509.BasicConstraints(ca=False, path_length=None), critical=True
+        )
+        .add_extension(
+            x509.KeyUsage(
+                digital_signature=True,
+                content_commitment=False,
+                key_encipherment=False,
+                data_encipherment=False,
+                key_agreement=False,
+                key_cert_sign=False,
+                crl_sign=False,
+                encipher_only=False,
+                decipher_only=False,
+            ),
+            critical=True,
+        )
+    )
+    if extended_key_usages is not None:
+        builder = builder.add_extension(
+            x509.ExtendedKeyUsage(extended_key_usages), critical=False
+        )
+    leaf = builder.sign(root_key, hashes.SHA256())
+    return root, leaf
+
+
+def _material(leaf):
+    der = leaf.public_bytes(serialization.Encoding.DER)
+    return bundle_pb.VerificationMaterial(
+        x509_certificate_chain=common_pb.X509CertificateChain(
+            certificates=[
+                common_pb.X509Certificate(raw_bytes=base64.b64encode(der))
+            ]
+        ),
+        tlog_entries=[],
+    )
+
+
+def _verifier(root, tmp_path):
+    root_pem = tmp_path / "root.pem"
+    root_pem.write_bytes(root.public_bytes(serialization.Encoding.PEM))
+    return certificate.Verifier(certificate_chain_paths=[root_pem])
+
+
+class TestCertificateExtendedKeyUsage:
+    def test_rejects_non_code_signing_eku(self, tmp_path):
+        # A TLS (serverAuth) certificate must not be usable for model signing,
+        # even though it carries the digitalSignature key usage bit.
+        root, leaf = _mint([oid.ExtendedKeyUsageOID.SERVER_AUTH])
+        verifier = _verifier(root, tmp_path)
+        with pytest.raises(ValueError, match="cannot be used for signing"):
+            verifier._verify_certificates(_material(leaf))
+
+    def test_accepts_code_signing_eku(self, tmp_path):
+        root, leaf = _mint([oid.ExtendedKeyUsageOID.CODE_SIGNING])
+        verifier = _verifier(root, tmp_path)
+        public_key = verifier._verify_certificates(_material(leaf))
+        assert isinstance(public_key, ec.EllipticCurvePublicKey)
+
+    def test_accepts_missing_eku(self, tmp_path):
+        root, leaf = _mint(None)
+        verifier = _verifier(root, tmp_path)
+        public_key = verifier._verify_certificates(_material(leaf))
+        assert isinstance(public_key, ec.EllipticCurvePublicKey)

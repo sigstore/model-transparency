@@ -256,6 +256,23 @@ class Verifier(sigstore_pb.Verifier):
                     "Certificate does not specify 'ExtendedKeyUsage'."
                 )
 
+        # An extended key usage, when present, restricts the certificate to the
+        # listed purposes (RFC 5280 4.2.1.12). A certificate not marked for code
+        # signing must be rejected even when the digitalSignature key usage bit
+        # is set, otherwise a TLS (serverAuth) certificate chaining to a trusted
+        # root would be accepted for model signing.
+        try:
+            eku = extensions.get_extension_for_class(
+                x509.ExtendedKeyUsage
+            ).value
+            if (
+                oid.ExtendedKeyUsageOID.CODE_SIGNING not in eku
+                and oid.ExtendedKeyUsageOID.ANY_EXTENDED_KEY_USAGE not in eku
+            ):
+                can_use_for_signing = False
+        except x509.ExtensionNotFound:
+            pass
+
         if not can_use_for_signing:
             raise ValueError("Signing certificate cannot be used for signing")
 
