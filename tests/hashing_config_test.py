@@ -107,3 +107,159 @@ def test_blake3_file_serialization_with_max_workers(tmp_path):
     # All manifests should be equal
     assert manifest1 == manifest2
     assert manifest1 == manifest3
+
+
+def test_signature_files_always_excluded(tmp_path):
+    """Test that signature files are always excluded from hashing."""
+    model = tmp_path / "model"
+    model.mkdir()
+    (model / "model.txt").write_text("model content")
+    (model / "model.sig").write_text("signature")
+    (model / "backup.sig").write_text("old signature")
+
+    cfg = hashing.Config()
+    manifest = cfg.hash(model)
+    identifiers = {rd.identifier for rd in manifest.resource_descriptors()}
+
+    # Model file should be included
+    assert "model.txt" in identifiers
+    # Signature files should be excluded
+    assert "model.sig" not in identifiers
+    assert "backup.sig" not in identifiers
+
+
+def test_attestation_files_always_excluded(tmp_path):
+    """Test that attestation files are always excluded from hashing."""
+    model = tmp_path / "model"
+    model.mkdir()
+    (model / "model.txt").write_text("model content")
+    (model / "model.slsa.sigstore.json").write_text("SLSA provenance")
+    (model / "model.spdx.sigstore.json").write_text("SBOM")
+    (model / "claims.jsonl").write_text("bundled attestations")
+
+    cfg = hashing.Config()
+    manifest = cfg.hash(model)
+    identifiers = {rd.identifier for rd in manifest.resource_descriptors()}
+
+    # Model file should be included
+    assert "model.txt" in identifiers
+    # Attestation files should be excluded
+    assert "model.slsa.sigstore.json" not in identifiers
+    assert "model.spdx.sigstore.json" not in identifiers
+    assert "claims.jsonl" not in identifiers
+
+
+def test_attestation_exclusion_independent_of_ignore_git_paths(tmp_path):
+    """Test attestations excluded by default regardless of ignore_git_paths.
+
+    Verifies that ignore_git_paths setting doesn't affect attestation
+    exclusion.
+    """
+    model = tmp_path / "model"
+    model.mkdir()
+    (model / "model.txt").write_text("model content")
+    (model / "model.sig").write_text("signature")
+    (model / ".gitignore").write_text("*.pyc")
+
+    # Test with ignore_git_paths=False (but ignore_att_paths defaults to True)
+    cfg_no_git = hashing.Config().set_ignored_paths(
+        paths=[], ignore_git_paths=False
+    )
+    manifest_no_git = cfg_no_git.hash(model)
+    identifiers_no_git = {
+        rd.identifier for rd in manifest_no_git.resource_descriptors()
+    }
+
+    # .gitignore should be included when ignore_git_paths=False
+    assert ".gitignore" in identifiers_no_git
+    # But signature files should still be excluded
+    # (ignore_att_paths defaults to True)
+    assert "model.sig" not in identifiers_no_git
+
+    # Test with ignore_git_paths=True (and ignore_att_paths defaults to True)
+    cfg_with_git = hashing.Config().set_ignored_paths(
+        paths=[], ignore_git_paths=True
+    )
+    manifest_with_git = cfg_with_git.hash(model)
+    identifiers_with_git = {
+        rd.identifier for rd in manifest_with_git.resource_descriptors()
+    }
+
+    # .gitignore should be excluded when ignore_git_paths=True
+    assert ".gitignore" not in identifiers_with_git
+    # Signature files should still be excluded
+    assert "model.sig" not in identifiers_with_git
+
+
+def test_ignore_att_paths_can_be_disabled(tmp_path):
+    """Test that attestation exclusion can be disabled.
+
+    Verifies that setting ignore_att_paths=False includes attestation files
+    in the signature.
+    """
+    model = tmp_path / "model"
+    model.mkdir()
+    (model / "model.txt").write_text("model content")
+    (model / "model.sig").write_text("signature")
+    (model / "model.slsa.sigstore.json").write_text("SLSA provenance")
+
+    # Test with ignore_att_paths=False (include attestations)
+    cfg = hashing.Config().set_ignored_paths(paths=[], ignore_att_paths=False)
+    manifest = cfg.hash(model)
+    identifiers = {rd.identifier for rd in manifest.resource_descriptors()}
+
+    # Model file should be included
+    assert "model.txt" in identifiers
+    # Attestation files should now be included
+    assert "model.sig" in identifiers
+    assert "model.slsa.sigstore.json" in identifiers
+
+
+def test_glob_patterns_are_expanded(tmp_path):
+    """Regression test: glob patterns must be expanded, not treated literally.
+
+    This test validates that glob patterns like "*.sig" are properly expanded
+    to match actual files, rather than being treated as literal path components.
+
+    Without proper glob expansion, patterns would be interpreted as literal
+    paths (e.g., looking for a file literally named "*.sig") and would not
+    match any files, causing attestation files to be incorrectly included in
+    signatures.
+    """
+    model = tmp_path / "model"
+    model.mkdir()
+
+    # Create model file
+    (model / "model.txt").write_text("model content")
+
+    # Create multiple files matching glob patterns
+    (model / "model.sig").write_text("signature 1")
+    (model / "backup.sig").write_text("signature 2")
+    (model / "another.sig").write_text("signature 3")
+    (model / "model.slsa.sigstore.json").write_text("SLSA provenance")
+    (model / "scan.sbom.sigstore.json").write_text("SBOM")
+    (model / "claims.jsonl").write_text("bundled claims")
+
+    # Create a file that should NOT match any patterns
+    (model / "data.json").write_text("data")
+
+    # Hash with default configuration (ignore_att_paths=True)
+    cfg = hashing.Config()
+    manifest = cfg.hash(model)
+    identifiers = {rd.identifier for rd in manifest.resource_descriptors()}
+
+    # Model and data files should be included
+    assert "model.txt" in identifiers
+    assert "data.json" in identifiers
+
+    # ALL files matching *.sig should be excluded
+    assert "model.sig" not in identifiers
+    assert "backup.sig" not in identifiers
+    assert "another.sig" not in identifiers
+
+    # ALL files matching *.sigstore.json should be excluded
+    assert "model.slsa.sigstore.json" not in identifiers
+    assert "scan.sbom.sigstore.json" not in identifiers
+
+    # claims.jsonl (literal path) should be excluded
+    assert "claims.jsonl" not in identifiers
