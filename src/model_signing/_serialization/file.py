@@ -16,12 +16,12 @@
 
 from collections.abc import Callable, Iterable
 import concurrent.futures
-import itertools
 import os
 import pathlib
 
 from typing_extensions import override
 
+from model_signing import _filesystem
 from model_signing import manifest
 from model_signing._hashing import io
 from model_signing._serialization import serialization
@@ -36,7 +36,7 @@ class Serializer(serialization.Serializer):
 
     def __init__(
         self,
-        file_hasher_factory: Callable[[pathlib.Path], io.FileHasher],
+        file_hasher_factory: Callable[[_filesystem.Path], io.FileHasher],
         *,
         max_workers: int | None = None,
         allow_symlinks: bool = False,
@@ -78,10 +78,10 @@ class Serializer(serialization.Serializer):
     @override
     def serialize(
         self,
-        model_path: pathlib.Path,
+        model_path: _filesystem.Path,
         *,
-        ignore_paths: Iterable[pathlib.Path] = frozenset(),
-        files_to_hash: Iterable[pathlib.Path] | None = None,
+        ignore_paths: Iterable[_filesystem.Path] = frozenset(),
+        files_to_hash: Iterable[_filesystem.Path] | None = None,
     ) -> manifest.Manifest:
         """Serializes the model given by the `model_path` argument.
 
@@ -101,14 +101,8 @@ class Serializer(serialization.Serializer):
               was not initialized with `allow_symlinks=True`.
         """
         paths = []
-        # TODO: github.com/sigstore/model-transparency/issues/200 - When
-        # Python3.12 is the minimum supported version, the glob can be replaced
-        # with `pathlib.Path.walk` for a clearer interface, and some speed
-        # improvement.
         if files_to_hash is None:
-            files_to_hash = itertools.chain(
-                (model_path,), model_path.glob("**/*")
-            )
+            files_to_hash = _filesystem.walk_paths(model_path)
         for path in files_to_hash:
             if serialization.should_ignore(path, ignore_paths):
                 continue
@@ -134,10 +128,12 @@ class Serializer(serialization.Serializer):
         if ignore_paths:
             rel_ignore_paths = []
             for p in ignore_paths:
-                rp = os.path.relpath(p, model_path)
-                # rp may start with "../" if it is not relative to model_path
-                if not rp.startswith("../"):
-                    rel_ignore_paths.append(pathlib.Path(rp))
+                try:
+                    rel_ignore_paths.append(
+                        pathlib.PurePosixPath(p.relative_to(model_path))
+                    )
+                except ValueError:
+                    continue
 
             hasher = self._hasher_factory(pathlib.Path())
             self._serialization_description = manifest._FileSerialization(
@@ -155,7 +151,7 @@ class Serializer(serialization.Serializer):
         )
 
     def _compute_hash(
-        self, model_path: pathlib.Path, path: pathlib.Path
+        self, model_path: _filesystem.Path, path: _filesystem.Path
     ) -> manifest.FileManifestItem:
         """Produces the manifest item of the file given by `path`.
 
