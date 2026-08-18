@@ -39,9 +39,11 @@ The API defined here is stable and backwards compatible.
 
 from collections.abc import Iterable
 import copy
+import os
 import pathlib
 import sys
 
+from model_signing import _filesystem
 from model_signing import hashing
 from model_signing import manifest
 from model_signing._signing import sign_certificate as certificate
@@ -118,15 +120,35 @@ class Config:
             hashing_config.set_allow_symlinks(recorded_allow_symlinks)
 
         if "ignore_paths" in expected_manifest.serialization_type:
+            model_root = _filesystem.as_path(model_path)
+            ignore_paths = [
+                pathlib.PurePosixPath(
+                    *_filesystem.relative_path_parts(
+                        path,
+                        windows_compatible=isinstance(model_root, pathlib.Path)
+                        and os.name == "nt",
+                    )
+                )
+                for path in expected_manifest.serialization_type["ignore_paths"]
+            ]
             hashing_config.add_ignored_paths(
-                model_path=model_path,
-                paths=expected_manifest.serialization_type["ignore_paths"],
+                model_path=model_path, paths=ignore_paths
             )
 
         if self._ignore_unsigned_files:
+            model_root = _filesystem.as_path(model_path)
+            serialization_method = expected_manifest.serialization_type[
+                "method"
+            ]
+            identifiers = set()
+            for descriptor in expected_manifest.resource_descriptors():
+                identifier = descriptor.identifier
+                if serialization_method == "shards":
+                    identifier = identifier.rsplit(":", maxsplit=2)[0]
+                identifiers.add(identifier)
             files_to_hash = [
-                model_path / rd.identifier
-                for rd in expected_manifest.resource_descriptors()
+                _filesystem.join_relative_path(model_root, identifier)
+                for identifier in identifiers
             ]
         else:
             files_to_hash = None

@@ -35,11 +35,10 @@ Example usage for `ShardedFileHasher`, reading only the second part of a file:
 ```
 """
 
-import pathlib
-
 import blake3
 from typing_extensions import override
 
+from model_signing import _filesystem
 from model_signing._hashing import hashing
 
 
@@ -65,7 +64,7 @@ class SimpleFileHasher(FileHasher):
 
     def __init__(
         self,
-        file: pathlib.Path,
+        file: _filesystem.Path,
         content_hasher: hashing.StreamingHashEngine,
         *,
         chunk_size: int = 1_048_576,
@@ -93,7 +92,7 @@ class SimpleFileHasher(FileHasher):
         self._chunk_size = chunk_size
         self._digest_name_override = digest_name_override
 
-    def set_file(self, file: pathlib.Path) -> None:
+    def set_file(self, file: _filesystem.Path) -> None:
         """Redefines the file to be hashed in `compute`.
 
         Args:
@@ -116,10 +115,10 @@ class SimpleFileHasher(FileHasher):
         self._content_hasher.reset()
 
         if self._chunk_size == 0:
-            with open(self._file, "rb") as f:
+            with self._file.open("rb") as f:
                 self._content_hasher.update(f.read())
         else:
-            with open(self._file, "rb") as f:
+            with self._file.open("rb") as f:
                 while True:
                     data = f.read(self._chunk_size)
                     if not data:
@@ -145,7 +144,7 @@ class Blake3FileHasher(FileHasher):
 
     def __init__(
         self,
-        file: pathlib.Path,
+        file: _filesystem.Path,
         *,
         max_threads: int = blake3.blake3.AUTO,
         digest_name_override: str | None = None,
@@ -163,7 +162,7 @@ class Blake3FileHasher(FileHasher):
         self._digest_name_override = digest_name_override
         self._blake3 = blake3.blake3(max_threads=max_threads)
 
-    def set_file(self, file: pathlib.Path) -> None:
+    def set_file(self, file: _filesystem.Path) -> None:
         """Redefines the file to be hashed in `compute`.
 
         Args:
@@ -181,7 +180,12 @@ class Blake3FileHasher(FileHasher):
     @override
     def compute(self) -> hashing.Digest:
         self._blake3.reset()
-        self._blake3.update_mmap(self._file)
+        if _filesystem.is_remote(self._file):
+            with self._file.open("rb") as f:
+                while data := f.read(1_048_576):
+                    self._blake3.update(data)
+        else:
+            self._blake3.update_mmap(self._file)
         return hashing.Digest(self.digest_name, self._blake3.digest())
 
     @property
@@ -202,7 +206,7 @@ class ShardedFileHasher(SimpleFileHasher):
 
     def __init__(
         self,
-        file: pathlib.Path,
+        file: _filesystem.Path,
         content_hasher: hashing.StreamingHashEngine,
         *,
         start: int,
@@ -276,7 +280,7 @@ class ShardedFileHasher(SimpleFileHasher):
     def compute(self) -> hashing.Digest:
         self._content_hasher.reset()
 
-        with open(self._file, "rb") as f:
+        with self._file.open("rb") as f:
             f.seek(self._start)
             to_read = self._end - self._start
             if self._chunk_size == 0 or self._chunk_size >= to_read:
