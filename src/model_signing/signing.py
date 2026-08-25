@@ -131,6 +131,7 @@ class Config:
         client_id: str | None = None,
         client_secret: str | None = None,
         trust_config: pathlib.Path | None = None,
+        instance: str | None = None,
     ) -> Self:
         """Configures the signing to be performed with Sigstore.
 
@@ -170,6 +171,8 @@ class Config:
               PKI and trust configurations, instead of the default Sigstore
               setup. If not specified, the default Sigstore configuration
               is used.
+            instance: A Sigstore TUF repository URL. Trust configuration is
+              fetched via TUF from this URL. Must have been bootstrapped first.
 
         Return:
             The new signing configuration.
@@ -183,6 +186,7 @@ class Config:
             client_id=client_id,
             client_secret=client_secret,
             trust_config=trust_config,
+            instance=instance,
         )
         return self
 
