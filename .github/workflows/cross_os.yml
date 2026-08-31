@@ -73,7 +73,7 @@ jobs:
           name: model.zip
           path: model_root/
       - name: Set up Hatch
-        uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc # install
+        uses: pypa/hatch@f647ed70d49adb885f53a27d1c7f5bdaeacf2c60 # install
       - name: Fetch OIDC token
         run: |
           SIGSTORE_ID_TOKEN=$(curl -sSfL https://storage.googleapis.com/sigstore-conformance-testing-token/untrusted-testing-token.txt)
@@ -111,7 +111,7 @@ jobs:
         with:
           name: ${{ matrix.signed-with-os }}-model.sig
       - name: Set up Hatch
-        uses: pypa/hatch@257e27e51a6a5616ed08a39a408a21c35c9931bc # install
+        uses: pypa/hatch@f647ed70d49adb885f53a27d1c7f5bdaeacf2c60 # install
       - name: Verify the model
         run: |
           hatch run python -m model_signing verify sigstore model_root/ --use_staging --signature model.sig \
