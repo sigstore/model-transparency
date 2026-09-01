@@ -125,6 +125,38 @@ subcommand, pointing it to the model directory:
 
 The digest subcommand follows the same ignore rules used when signing.
 
+### Cloud-backed models
+
+Model paths can be GCS or S3 URIs. Install the extra for the provider that
+stores the model:
+
+```bash
+pip install "model-signing[gcs]"  # gs://
+pip install "model-signing[s3]"   # s3://
+```
+
+The model URI can then be used anywhere a local model path is accepted:
+
+```bash
+model_signing digest gs://my-bucket/models/bert
+model_signing sign key gs://my-bucket/models/bert \
+    --private-key key.priv --signature model.sig
+model_signing verify key gs://my-bucket/models/bert \
+    --public-key key.pub --signature model.sig
+```
+
+Model files are opened through the cloud filesystem backend and read in
+bounded chunks. Shard serialization uses seek/range reads, so
+`model-signing` does not stage the complete model on local disk. Any caching
+performed by the installed provider is controlled by that provider. In this
+scope, signature bundles, keys, certificates, and trust configuration files
+remain local paths.
+
+Provider credentials use the standard `gcsfs` or `s3fs` configuration. The
+test suite validates the URI, traversal, streaming, signing, and verification
+paths with an in-memory `fsspec` backend; it does not exercise live cloud
+credentials.
+
 ## Using Private Sigstore Instances
 
 To use a private Sigstore setup (e.g. custom Rekor/Fulcio), use the `--trust-config` flag:

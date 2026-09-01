@@ -42,6 +42,7 @@ import copy
 import pathlib
 import sys
 
+from model_signing import _filesystem
 from model_signing import hashing
 from model_signing import manifest
 from model_signing._signing import sign_certificate as certificate
@@ -112,8 +113,9 @@ class Config:
             )
 
         if self._ignore_unsigned_files:
+            model_root = _filesystem.as_path(model_path)
             files_to_hash = [
-                model_path / rd.identifier
+                model_root / rd.identifier
                 for rd in expected_manifest.resource_descriptors()
             ]
         else:
