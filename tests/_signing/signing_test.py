@@ -75,7 +75,9 @@ class TestPayload:
 
             assert payload.statement.pb == expected_proto
 
-    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
+    @pytest.mark.parametrize(
+        "model_fixture_name", test_support.all_non_empty_test_models
+    )
     def test_known_models_file(self, request, model_fixture_name):
         self._run_test(
             request.path.parent / "testdata",
@@ -85,7 +87,9 @@ class TestPayload:
             file.Serializer(self._file_hasher_factory, allow_symlinks=True),
         )
 
-    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
+    @pytest.mark.parametrize(
+        "model_fixture_name", test_support.all_shardable_test_models
+    )
     def test_known_models_shard(self, request, model_fixture_name):
         self._run_test(
             request.path.parent / "testdata",
@@ -97,7 +101,9 @@ class TestPayload:
             ),
         )
 
-    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
+    @pytest.mark.parametrize(
+        "model_fixture_name", test_support.all_shardable_test_models
+    )
     def test_known_models_small_shards(self, request, model_fixture_name):
         self._run_test(
             request.path.parent / "testdata",
@@ -109,7 +115,9 @@ class TestPayload:
             ),
         )
 
-    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
+    @pytest.mark.parametrize(
+        "model_fixture_name", test_support.all_non_empty_test_models
+    )
     def test_restore_manifest_file(self, request, model_fixture_name):
         model = request.getfixturevalue(model_fixture_name)
         serializer = file.Serializer(
@@ -126,7 +134,9 @@ class TestPayload:
         assert restored.model_name == manifest.model_name
         assert restored.serialization_type == manifest.serialization_type
 
-    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
+    @pytest.mark.parametrize(
+        "model_fixture_name", test_support.all_shardable_test_models
+    )
     def test_restore_manifest_shard(self, request, model_fixture_name):
         model = request.getfixturevalue(model_fixture_name)
         serializer = file_shard.Serializer(

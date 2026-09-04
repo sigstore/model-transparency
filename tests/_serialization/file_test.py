@@ -38,7 +38,14 @@ class TestSerializer:
     def _hasher_factory(self, path: pathlib.Path) -> io.FileHasher:
         return io.SimpleFileHasher(path, memory.SHA256())
 
-    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
+    def test_empty_model_folder_rejected(self, empty_model_folder):
+        serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
+        with pytest.raises(ValueError, match="no regular files"):
+            serializer.serialize(empty_model_folder)
+
+    @pytest.mark.parametrize(
+        "model_fixture_name", test_support.all_non_empty_test_models
+    )
     def test_known_models(self, request, model_fixture_name):
         # Set up variables (arrange)
         testdata_path = request.path.parent / "testdata"
@@ -320,11 +327,13 @@ class TestSerializer:
         diff = len(manifest1._item_to_digest) - len(manifest2._item_to_digest)
         assert diff == ignored_file_count
 
-    def test_ignored_symlinks_dont_raise_error(self, symlink_model_folder):
+    def test_ignored_symlinks_rejects_empty_model(self, symlink_model_folder):
+        symlink_path = symlink_model_folder / "symlink_file"
         serializer = file.Serializer(self._hasher_factory)
-        _ = serializer.serialize(
-            symlink_model_folder, ignore_paths=[symlink_model_folder]
-        )
+        with pytest.raises(ValueError, match="no regular files"):
+            serializer.serialize(
+                symlink_model_folder, ignore_paths=[symlink_path]
+            )
 
 
 class TestUtilities:

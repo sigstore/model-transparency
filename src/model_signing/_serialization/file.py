@@ -118,6 +118,11 @@ class Serializer(serialization.Serializer):
             if path.is_file():
                 paths.append(path)
 
+        if not paths:
+            raise ValueError(
+                "Model contains no regular files after applying exclusions"
+            )
+
         manifest_items = []
         with concurrent.futures.ThreadPoolExecutor(
             # blake3 parallelizes internally

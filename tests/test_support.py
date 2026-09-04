@@ -53,6 +53,27 @@ all_non_empty_directory_test_models = [
     "symlink_model_folder",
 ]
 
+# Models with at least one regular file. Excludes empty directories
+# which are rejected per spec §6.1.
+all_non_empty_test_models = [
+    "sample_model_file",
+    "sample_model_folder",
+    "deep_model_folder",
+    "empty_model_file",
+    "model_folder_with_empty_file",
+    "symlink_model_folder",
+]
+
+# Models that produce at least one shard under shard serialization.
+# Excludes empty directories and models with only zero-byte files
+# (which produce no shards per spec §6.3.2).
+all_shardable_test_models = [
+    "sample_model_file",
+    "sample_model_folder",
+    "deep_model_folder",
+    "symlink_model_folder",
+]
+
 
 # All files models to use in testing, where only file models are supported.
 all_file_test_models = [

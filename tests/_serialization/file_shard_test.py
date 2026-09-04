@@ -74,7 +74,16 @@ class TestSerializer:
             path, memory.SHA256(), start=start, end=end, shard_size=8
         )
 
-    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
+    def test_empty_model_folder_rejected(self, empty_model_folder):
+        serializer = file_shard.Serializer(
+            self._hasher_factory, allow_symlinks=True
+        )
+        with pytest.raises(ValueError, match="no regular files"):
+            serializer.serialize(empty_model_folder)
+
+    @pytest.mark.parametrize(
+        "model_fixture_name", test_support.all_shardable_test_models
+    )
     def test_known_models(self, request, model_fixture_name):
         # Set up variables (arrange)
         testdata_path = request.path.parent / "testdata"
@@ -105,7 +114,9 @@ class TestSerializer:
 
             assert items == found_items
 
-    @pytest.mark.parametrize("model_fixture_name", test_support.all_test_models)
+    @pytest.mark.parametrize(
+        "model_fixture_name", test_support.all_shardable_test_models
+    )
     def test_known_models_small_shards(self, request, model_fixture_name):
         # Set up variables (arrange)
         testdata_path = request.path.parent / "testdata"
@@ -388,8 +399,10 @@ class TestSerializer:
         assert manifest1 != manifest2
         assert len(manifest1._item_to_digest) > len(manifest2._item_to_digest)
 
-    def test_ignored_symlinks_dont_raise_error(self, symlink_model_folder):
+    def test_ignored_symlinks_rejects_empty_model(self, symlink_model_folder):
+        symlink_path = symlink_model_folder / "symlink_file"
         serializer = file_shard.Serializer(self._hasher_factory)
-        _ = serializer.serialize(
-            symlink_model_folder, ignore_paths=[symlink_model_folder]
-        )
+        with pytest.raises(ValueError, match="no regular files"):
+            serializer.serialize(
+                symlink_model_folder, ignore_paths=[symlink_path]
+            )
