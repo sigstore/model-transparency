@@ -61,6 +61,7 @@ from model_signing._hashing import io
 from model_signing._hashing import memory
 from model_signing._serialization import file
 from model_signing._serialization import file_shard
+from model_signing._serialization import incremental
 
 
 if sys.version_info >= (3, 11):
@@ -369,6 +370,119 @@ class Config:
             self._build_sharded_file_hasher_factory(
                 hashing_algorithm, chunk_size, shard_size
             ),
+            max_workers=max_workers,
+            allow_symlinks=allow_symlinks,
+            ignore_paths=ignore_paths,
+        )
+        return self
+
+    def use_incremental_serialization(
+        self,
+        existing_manifest: manifest.Manifest,
+        *,
+        hashing_algorithm: Literal["sha256", "blake2", "blake3"] | None = None,
+        chunk_size: int = 1048576,
+        max_workers: int | None = None,
+        allow_symlinks: bool | None = None,
+        ignore_paths: Iterable[pathlib.Path] | None = None,
+    ) -> Self:
+        """Configures incremental serialization for selective file re-hashing.
+
+        This serialization method compares the current model state against an
+        existing manifest (from a previous signature) and only re-hashes files
+        that changed. This provides significant performance improvements for
+        large models where only a small subset of files change.
+
+        The serialization method in this configuration is changed to one where:
+        - Files that exist in the existing manifest have their digests reused
+        - New files (not in existing manifest) are hashed
+        - Modified files (specified via files_to_hash in hash()) are re-hashed
+        - Deleted files are automatically omitted from the new manifest
+
+        By default, serialization parameters (hash algorithm, allow_symlinks,
+        ignore_paths) are automatically extracted from the existing manifest.
+        You can override any of these by passing explicit values.
+
+        Usage example:
+            from model_signing._signing import signing
+
+            # Extract and verify manifest from previous signature
+            old_manifest = signing.manifest_from_signature(
+                pathlib.Path("model.sig.old"),
+                identity="user@example.com",
+                oidc_issuer="https://github.com/login/oauth",
+            )
+
+            # Configure incremental hashing (auto-detects parameters)
+            config = hashing.Config().use_incremental_serialization(
+                old_manifest
+            )
+
+            # Get changed files (e.g., from git)
+            changed_files = [model_path / "README.md"]
+
+            # Hash only changed files
+            new_manifest = config.hash(model_path, files_to_hash=changed_files)
+
+        Args:
+            existing_manifest: The manifest from a previous signature. Digests
+              from this manifest will be reused for unchanged files.
+            hashing_algorithm: The hashing algorithm to use for new/changed
+              files. If None (default), uses the algorithm from
+              existing_manifest.
+            chunk_size: The amount of file to read at once. Default is 1MB. A
+              special value of 0 signals to attempt to read everything in a
+              single call. Ignored for BLAKE3.
+            max_workers: Maximum number of workers to use in parallel. Default
+              is to defer to the `concurrent.futures` library to select the best
+              value for the current machine, or the number of logical cores
+              when doing BLAKE3 hashing.
+            allow_symlinks: Controls whether symbolic links are included. If
+              None (default), uses the value from existing_manifest.
+            ignore_paths: Paths of files to ignore. If None (default), uses
+              the paths from existing_manifest.
+
+        Returns:
+            The new hashing configuration with incremental serialization.
+        """
+        # Extract parameters from existing manifest if not explicitly provided
+        serialization_type = existing_manifest._serialization_type
+
+        # Extract hash algorithm
+        if hashing_algorithm is None:
+            if isinstance(serialization_type, manifest._FileSerialization):
+                hash_type = serialization_type._hash_type
+                # Map digest names to API parameter names
+                # (blake2b -> blake2, others remain the same)
+                if hash_type == "blake2b":
+                    hashing_algorithm = "blake2"
+                else:
+                    hashing_algorithm = hash_type
+            else:
+                # Shard-based manifest - use default sha256
+                hashing_algorithm = "sha256"
+
+        # Extract allow_symlinks
+        if allow_symlinks is None:
+            if isinstance(serialization_type, manifest._FileSerialization):
+                allow_symlinks = serialization_type._allow_symlinks
+            else:
+                allow_symlinks = False
+
+        # Extract ignore_paths
+        if ignore_paths is None:
+            if isinstance(serialization_type, manifest._FileSerialization):
+                ignore_paths = [
+                    pathlib.Path(p) for p in serialization_type._ignore_paths
+                ]
+            else:
+                ignore_paths = frozenset()
+
+        self._serializer = incremental.IncrementalSerializer(
+            self._build_file_hasher_factory(
+                hashing_algorithm, chunk_size, max_workers
+            ),
+            existing_manifest,
             max_workers=max_workers,
             allow_symlinks=allow_symlinks,
             ignore_paths=ignore_paths,
