@@ -103,12 +103,16 @@ def dsse_payload_to_manifest(dsse_payload: dict[str, Any]) -> manifest.Manifest:
     expected_digest = subjects[0]["digest"]["sha256"]
 
     predicate = dsse_payload["predicate"]
+    resources = predicate["resources"]
+    if not resources:
+        raise ValueError("Bundle contains no resources")
+
     serialization_args = predicate["serialization"]
     serialization = manifest.SerializationType.from_args(serialization_args)
 
     hasher = memory.SHA256()
     items = []
-    for resource in predicate["resources"]:
+    for resource in resources:
         name = resource["name"]
         algorithm = resource["algorithm"]
         digest_value = resource["digest"]

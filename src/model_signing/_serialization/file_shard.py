@@ -135,6 +135,7 @@ class Serializer(serialization.Serializer):
               was not initialized with `allow_symlinks=True`.
         """
         shards = []
+        file_count = 0
         # TODO: github.com/sigstore/model-transparency/issues/200 - When
         # Python3.12 is the minimum supported version, the glob can be replaced
         # with `pathlib.Path.walk` for a clearer interface, and some speed
@@ -150,7 +151,18 @@ class Serializer(serialization.Serializer):
                 path, allow_symlinks=self._allow_symlinks
             )
             if path.is_file():
+                file_count += 1
                 shards.extend(self._get_shards(path))
+
+        if file_count == 0:
+            raise ValueError(
+                "Model contains no regular files after applying exclusions"
+            )
+
+        if not shards:
+            raise ValueError(
+                "Model contains only empty files which produce no shards"
+            )
 
         manifest_items = []
         with concurrent.futures.ThreadPoolExecutor(
