@@ -307,3 +307,344 @@ class TestCertificateExtendedKeyUsage:
         verifier = _verifier(root, tmp_path)
         public_key = verifier._verify_certificates(_material(leaf))
         assert isinstance(public_key, ec.EllipticCurvePublicKey)
+
+
+def _mint_with_validity(
+    root_not_before,
+    root_not_after,
+    leaf_not_before,
+    leaf_not_after,
+    inter_not_before=None,
+    inter_not_after=None,
+):
+    """Mint a cert chain with explicit validity periods.
+
+    Returns (root_cert, leaf_cert, leaf_key, [intermediate_cert]) or
+    (root_cert, leaf_cert, leaf_key, []) if no intermediate is requested.
+    """
+    root_key = ec.generate_private_key(ec.SECP256R1())
+    root = (
+        x509.CertificateBuilder()
+        .subject_name(_name("test-root"))
+        .issuer_name(_name("test-root"))
+        .public_key(root_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(root_not_before)
+        .not_valid_after(root_not_after)
+        .add_extension(
+            x509.BasicConstraints(ca=True, path_length=None), critical=True
+        )
+        .sign(root_key, hashes.SHA256())
+    )
+
+    issuer_key = root_key
+    issuer_name = root.subject
+    intermediates = []
+
+    if inter_not_before is not None and inter_not_after is not None:
+        inter_key = ec.generate_private_key(ec.SECP256R1())
+        inter = (
+            x509.CertificateBuilder()
+            .subject_name(_name("test-intermediate"))
+            .issuer_name(root.subject)
+            .public_key(inter_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(inter_not_before)
+            .not_valid_after(inter_not_after)
+            .add_extension(
+                x509.BasicConstraints(ca=True, path_length=0), critical=True
+            )
+            .sign(root_key, hashes.SHA256())
+        )
+        issuer_key = inter_key
+        issuer_name = inter.subject
+        intermediates = [inter]
+
+    leaf_key = ec.generate_private_key(ec.SECP256R1())
+    leaf = (
+        x509.CertificateBuilder()
+        .subject_name(_name("test-leaf"))
+        .issuer_name(issuer_name)
+        .public_key(leaf_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(leaf_not_before)
+        .not_valid_after(leaf_not_after)
+        .add_extension(
+            x509.KeyUsage(
+                digital_signature=True,
+                content_commitment=False,
+                key_encipherment=False,
+                data_encipherment=False,
+                key_agreement=False,
+                key_cert_sign=False,
+                crl_sign=False,
+                encipher_only=False,
+                decipher_only=False,
+            ),
+            critical=True,
+        )
+        .add_extension(
+            x509.ExtendedKeyUsage([oid.ExtendedKeyUsageOID.CODE_SIGNING]),
+            critical=False,
+        )
+        .sign(issuer_key, hashes.SHA256())
+    )
+    return root, leaf, leaf_key, intermediates
+
+
+def _write_pem(path, cert_or_key, is_key=False):
+    if is_key:
+        path.write_bytes(cert_or_key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        ))
+    else:
+        path.write_bytes(cert_or_key.public_bytes(serialization.Encoding.PEM))
+
+
+class TestCertificateValidity:
+    """Certificate validity period checks for signing and verification."""
+
+    _NOW = datetime.datetime.now(datetime.timezone.utc)
+    _VALID = (_NOW - datetime.timedelta(days=365), _NOW + datetime.timedelta(days=365))
+    _EXPIRED = (_NOW - datetime.timedelta(days=730), _NOW - datetime.timedelta(days=365))
+    _NOT_YET = (_NOW + datetime.timedelta(days=365), _NOW + datetime.timedelta(days=730))
+
+    def _sign_and_verify(self, tmp_path, root, leaf, leaf_key, intermediates):
+        _write_pem(tmp_path / "root.pem", root)
+        _write_pem(tmp_path / "leaf.pem", leaf)
+        _write_pem(tmp_path / "leaf.key", leaf_key, is_key=True)
+        inter_paths = []
+        for i, inter in enumerate(intermediates):
+            p = tmp_path / f"inter{i}.pem"
+            _write_pem(p, inter)
+            inter_paths.append(p)
+
+        model = tmp_path / "model"
+        model.mkdir()
+        (model / "data.txt").write_text("test content")
+        sig = tmp_path / "model.sig"
+
+        signing.Config().use_certificate_signer(
+            private_key=str(tmp_path / "leaf.key"),
+            signing_certificate=str(tmp_path / "leaf.pem"),
+            certificate_chain=[str(p) for p in inter_paths],
+        ).sign(model, sig)
+
+        verifying.Config().use_certificate_verifier(
+            certificate_chain=[str(tmp_path / "root.pem")],
+        ).verify(model, sig)
+
+    def _try_sign(self, tmp_path, root, leaf, leaf_key, intermediates):
+        _write_pem(tmp_path / "root.pem", root)
+        _write_pem(tmp_path / "leaf.pem", leaf)
+        _write_pem(tmp_path / "leaf.key", leaf_key, is_key=True)
+        inter_paths = []
+        for i, inter in enumerate(intermediates):
+            p = tmp_path / f"inter{i}.pem"
+            _write_pem(p, inter)
+            inter_paths.append(p)
+
+        model = tmp_path / "model"
+        model.mkdir()
+        (model / "data.txt").write_text("test content")
+        sig = tmp_path / "model.sig"
+
+        signing.Config().use_certificate_signer(
+            private_key=str(tmp_path / "leaf.key"),
+            signing_certificate=str(tmp_path / "leaf.pem"),
+            certificate_chain=[str(p) for p in inter_paths],
+        ).sign(model, sig)
+
+    # --- Baseline: all valid ---
+
+    def test_all_valid_passes(self, tmp_path):
+        root, leaf, leaf_key, _ = _mint_with_validity(
+            *self._VALID, *self._VALID
+        )
+        self._sign_and_verify(tmp_path, root, leaf, leaf_key, [])
+
+    def test_all_valid_with_intermediate_passes(self, tmp_path):
+        root, leaf, leaf_key, inters = _mint_with_validity(
+            *self._VALID, *self._VALID,
+            inter_not_before=self._VALID[0], inter_not_after=self._VALID[1],
+        )
+        self._sign_and_verify(tmp_path, root, leaf, leaf_key, inters)
+
+    # --- Signing rejects expired/not-yet-valid leaf ---
+
+    def test_signing_rejects_expired_leaf(self, tmp_path):
+        root, leaf, leaf_key, _ = _mint_with_validity(
+            *self._VALID, *self._EXPIRED
+        )
+        with pytest.raises(ValueError, match="certificate has expired"):
+            self._try_sign(tmp_path, root, leaf, leaf_key, [])
+
+    def test_signing_rejects_not_yet_valid_leaf(self, tmp_path):
+        root, leaf, leaf_key, _ = _mint_with_validity(
+            *self._VALID, *self._NOT_YET
+        )
+        with pytest.raises(ValueError, match="not yet valid"):
+            self._try_sign(tmp_path, root, leaf, leaf_key, [])
+
+    def test_signing_rejects_expired_leaf_with_intermediate(self, tmp_path):
+        root, leaf, leaf_key, inters = _mint_with_validity(
+            *self._VALID, *self._EXPIRED,
+            inter_not_before=self._VALID[0], inter_not_after=self._VALID[1],
+        )
+        with pytest.raises(ValueError, match="certificate has expired"):
+            self._try_sign(tmp_path, root, leaf, leaf_key, inters)
+
+    # --- Verification rejects expired certs in the chain ---
+
+    def test_verification_rejects_expired_root(self, tmp_path):
+        root, leaf, leaf_key, _ = _mint_with_validity(
+            *self._EXPIRED, *self._VALID
+        )
+        _write_pem(tmp_path / "root.pem", root)
+        _write_pem(tmp_path / "leaf.pem", leaf)
+        _write_pem(tmp_path / "leaf.key", leaf_key, is_key=True)
+
+        model = tmp_path / "model"
+        model.mkdir()
+        (model / "data.txt").write_text("test content")
+        sig = tmp_path / "model.sig"
+
+        signing.Config().use_certificate_signer(
+            private_key=str(tmp_path / "leaf.key"),
+            signing_certificate=str(tmp_path / "leaf.pem"),
+            certificate_chain=[],
+        ).sign(model, sig)
+
+        with pytest.raises(Exception):
+            verifying.Config().use_certificate_verifier(
+                certificate_chain=[str(tmp_path / "root.pem")],
+            ).verify(model, sig)
+
+    def test_verification_rejects_expired_intermediate(self, tmp_path):
+        root, leaf, leaf_key, inters = _mint_with_validity(
+            *self._VALID, *self._VALID,
+            inter_not_before=self._EXPIRED[0], inter_not_after=self._EXPIRED[1],
+        )
+        _write_pem(tmp_path / "root.pem", root)
+        _write_pem(tmp_path / "leaf.pem", leaf)
+        _write_pem(tmp_path / "leaf.key", leaf_key, is_key=True)
+        _write_pem(tmp_path / "inter.pem", inters[0])
+
+        model = tmp_path / "model"
+        model.mkdir()
+        (model / "data.txt").write_text("test content")
+        sig = tmp_path / "model.sig"
+
+        signing.Config().use_certificate_signer(
+            private_key=str(tmp_path / "leaf.key"),
+            signing_certificate=str(tmp_path / "leaf.pem"),
+            certificate_chain=[str(tmp_path / "inter.pem")],
+        ).sign(model, sig)
+
+        with pytest.raises(Exception):
+            verifying.Config().use_certificate_verifier(
+                certificate_chain=[str(tmp_path / "root.pem")],
+            ).verify(model, sig)
+
+    def test_verification_rejects_not_yet_valid_intermediate(self, tmp_path):
+        root, leaf, leaf_key, inters = _mint_with_validity(
+            *self._VALID, *self._VALID,
+            inter_not_before=self._NOT_YET[0], inter_not_after=self._NOT_YET[1],
+        )
+        _write_pem(tmp_path / "root.pem", root)
+        _write_pem(tmp_path / "leaf.pem", leaf)
+        _write_pem(tmp_path / "leaf.key", leaf_key, is_key=True)
+        _write_pem(tmp_path / "inter.pem", inters[0])
+
+        model = tmp_path / "model"
+        model.mkdir()
+        (model / "data.txt").write_text("test content")
+        sig = tmp_path / "model.sig"
+
+        signing.Config().use_certificate_signer(
+            private_key=str(tmp_path / "leaf.key"),
+            signing_certificate=str(tmp_path / "leaf.pem"),
+            certificate_chain=[str(tmp_path / "inter.pem")],
+        ).sign(model, sig)
+
+        with pytest.raises(Exception):
+            verifying.Config().use_certificate_verifier(
+                certificate_chain=[str(tmp_path / "root.pem")],
+            ).verify(model, sig)
+
+    def test_verification_rejects_all_expired(self, tmp_path):
+        root, leaf, leaf_key, _ = _mint_with_validity(
+            *self._EXPIRED, *self._EXPIRED
+        )
+        with pytest.raises(ValueError, match="certificate has expired"):
+            self._try_sign(tmp_path, root, leaf, leaf_key, [])
+
+    # --- Boundary cases ---
+
+    def test_signing_rejects_recently_expired_cert(self, tmp_path):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        root, leaf, leaf_key, _ = _mint_with_validity(
+            *self._VALID,
+            now - datetime.timedelta(days=365),
+            now - datetime.timedelta(seconds=30),
+        )
+        with pytest.raises(ValueError, match="certificate has expired"):
+            self._try_sign(tmp_path, root, leaf, leaf_key, [])
+
+    def test_signing_rejects_cert_not_yet_valid_soon(self, tmp_path):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        root, leaf, leaf_key, _ = _mint_with_validity(
+            *self._VALID,
+            now + datetime.timedelta(seconds=30),
+            now + datetime.timedelta(days=365),
+        )
+        with pytest.raises(ValueError, match="not yet valid"):
+            self._try_sign(tmp_path, root, leaf, leaf_key, [])
+
+    def test_signing_rejects_zero_length_expired_cert(self, tmp_path):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        instant = now - datetime.timedelta(days=1)
+        root, leaf, leaf_key, _ = _mint_with_validity(
+            *self._VALID, instant, instant
+        )
+        with pytest.raises(ValueError, match="certificate has expired"):
+            self._try_sign(tmp_path, root, leaf, leaf_key, [])
+
+    # --- Verifier direct API (bypassing signer to test independently) ---
+
+    def test_verify_certificates_rejects_expired_leaf(self, tmp_path):
+        root, leaf, _, _ = _mint_with_validity(
+            *self._VALID, *self._EXPIRED
+        )
+        _write_pem(tmp_path / "root.pem", root)
+        verifier = certificate.Verifier(
+            certificate_chain_paths=[tmp_path / "root.pem"]
+        )
+        with pytest.raises(Exception):
+            verifier._verify_certificates(_material(leaf))
+
+    def test_verify_certificates_rejects_all_same_expired_window(self, tmp_path):
+        """Regression: when all certs share the same expired validity window,
+        the old set_time(not_valid_before) trick made everything pass."""
+        root, leaf, _, _ = _mint_with_validity(
+            *self._EXPIRED, *self._EXPIRED
+        )
+        _write_pem(tmp_path / "root.pem", root)
+        verifier = certificate.Verifier(
+            certificate_chain_paths=[tmp_path / "root.pem"]
+        )
+        with pytest.raises(Exception):
+            verifier._verify_certificates(_material(leaf))
+
+    def test_verify_certificates_rejects_not_yet_valid_leaf(self, tmp_path):
+        root, leaf, _, _ = _mint_with_validity(
+            *self._VALID, *self._NOT_YET
+        )
+        _write_pem(tmp_path / "root.pem", root)
+        verifier = certificate.Verifier(
+            certificate_chain_paths=[tmp_path / "root.pem"]
+        )
+        with pytest.raises(Exception):
+            verifier._verify_certificates(_material(leaf))
