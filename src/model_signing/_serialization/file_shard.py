@@ -41,6 +41,8 @@ def _endpoints(step: int, end: int) -> Iterable[int]:
     [2, 4, 6, 8, 9]
     >>> list(_endpoints(2, 2))
     [2]
+    >>> list(_endpoints(2, 0))
+    [0]
 
     Yields:
         Values in the range, from `step` and up to `end`.
@@ -203,14 +205,17 @@ class Serializer(serialization.Serializer):
     def _get_shards(
         self, path: pathlib.Path
     ) -> list[tuple[pathlib.Path, int, int]]:
-        """Determines the shards of a given file path."""
+        """Determines the shards of a given file path.
+
+        An empty file gets a single empty shard, so that it is still recorded in
+        the manifest and covered by the signature.
+        """
         shards = []
         path_size = path.stat().st_size
-        if path_size > 0:
-            start = 0
-            for end in _endpoints(self._shard_size, path_size):
-                shards.append((path, start, end))
-                start = end
+        start = 0
+        for end in _endpoints(self._shard_size, path_size):
+            shards.append((path, start, end))
+            start = end
         return shards
 
     def _compute_hash(
