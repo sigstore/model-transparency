@@ -12,6 +12,7 @@ All versions prior to 1.0.0 are untracked.
 ### Added
 - Added the `digest` subcommand to compute and print a model's digest. This enables other tools to easily pair the attestations with a model directory.
 - Added `--module-paths` option to PKCS #11 signing methods pkcs11-key and pkcs11-certificate.
+- Added `model_signing.signing.Config.sign_to_bytes()` (and a module-level `model_signing.signing.sign_to_bytes()` helper) that return the Sigstore bundle in memory as bytes instead of writing it to disk. This supports serverless and pipeline callers that need to stream or store the signature without filesystem access. ([#582](https://github.com/sigstore/model-transparency/issues/582))
 
 ### Changed
 - Standardized CLI flags to use hyphens (e.g., `--trust-config` instead of `--trust_config`). Underscore variants are still accepted for backwards compatibility via token normalization.
