@@ -463,3 +463,88 @@ class TestCertificateSigning:
             signature, ignore_git_paths, ["model.sig", "ignored"]
         )
         assert get_model_name(signature) == os.path.basename(model_path)
+
+
+class TestVerifierHonoursRecordedSymlinkPolicy:
+    """The verifier applies the symlink policy recorded in the manifest.
+
+    OMS v1.0 6.1.1 says "The verifier MUST apply the same `allow_symlinks`
+    policy recorded in `serialization.allow_symlinks`". Every
+    `model_signing verify` subcommand builds a hashing config from its own
+    `--allow-symlinks` flag and passes it to `set_hashing_config`, so
+    `verify()` used the caller's value and `_guess_hashing_config`, the one
+    place that does read the recorded policy, never ran (issue #666).
+    """
+
+    def _model_with_symlink(self, tmp_path: Path) -> Path:
+        """Builds a model directory containing one symlink."""
+        model = tmp_path / "model"
+        model.mkdir()
+        (model / "weights").write_text("weights")
+        (model / "link").symlink_to(model / "weights")
+        return model
+
+    def test_recorded_policy_wins_over_the_callers_flag(self, tmp_path):
+        """A recorded "on" survives a caller that did not ask for symlinks."""
+        model_path = self._model_with_symlink(tmp_path)
+        signature = tmp_path / "model.sig"
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        # Signed with symlinks included, which is what the manifest records.
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key, password=None
+        ).set_hashing_config(
+            hashing.Config()
+            .set_ignored_paths(paths=[signature], ignore_git_paths=False)
+            .set_allow_symlinks(True)
+        ).sign(model_path, signature)
+
+        assert "link" in get_signed_files(signature)
+
+        # Verified by a caller that did not pass --allow-symlinks, which is the
+        # default. The signed policy has to win, or the symlink is not hashed
+        # and the model no longer matches its own signature.
+        verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key
+        ).set_hashing_config(
+            hashing.Config()
+            .set_ignored_paths(paths=[signature], ignore_git_paths=False)
+            .set_allow_symlinks(False)
+        ).verify(model_path, signature)
+
+    def test_policy_off_is_also_applied(self, tmp_path):
+        """A recorded "off" survives a caller that did ask for symlinks."""
+        # The other direction. Sign a model with no symlink and the policy
+        # off, then add a symlink and verify with the caller asking for
+        # symlinks. The recorded "off" has to win: under the caller's "on"
+        # the symlink would be hashed as a file nobody signed.
+        model_path = tmp_path / "model"
+        model_path.mkdir()
+        (model_path / "weights").write_text("weights")
+        signature = tmp_path / "model.sig"
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key, password=None
+        ).set_hashing_config(
+            hashing.Config()
+            .set_ignored_paths(paths=[signature], ignore_git_paths=False)
+            .set_allow_symlinks(False)
+        ).sign(model_path, signature)
+
+        (model_path / "link").symlink_to(model_path / "weights")
+
+        # Serialization refuses a symlink outright when the policy is off,
+        # so applying the recorded value turns a model that has gained a
+        # symlink since signing into a refusal rather than a silent re-hash
+        # under a policy the signer never agreed to.
+        with pytest.raises(ValueError, match="because it is a symlink"):
+            verifying.Config().use_elliptic_key_verifier(
+                public_key=public_key
+            ).set_hashing_config(
+                hashing.Config()
+                .set_ignored_paths(paths=[signature], ignore_git_paths=False)
+                .set_allow_symlinks(True)
+            ).verify(model_path, signature)

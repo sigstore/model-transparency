@@ -105,6 +105,18 @@ class Config:
             hashing_config = copy.deepcopy(self._hashing_config)
         else:
             hashing_config = self._guess_hashing_config(expected_manifest)
+        # OMS v1.0 6.1.1: "The verifier MUST apply the same allow_symlinks
+        # policy recorded in serialization.allow_symlinks". Every verify
+        # subcommand passes a hashing config built from its own
+        # --allow-symlinks flag, so without this the caller's flag silently
+        # replaced the signed policy and _guess_hashing_config, which does read
+        # it, never ran (issue #666).
+        recorded_allow_symlinks = expected_manifest.serialization_type.get(
+            "allow_symlinks"
+        )
+        if recorded_allow_symlinks is not None:
+            hashing_config.set_allow_symlinks(recorded_allow_symlinks)
+
         if "ignore_paths" in expected_manifest.serialization_type:
             hashing_config.add_ignored_paths(
                 model_path=model_path,
