@@ -321,6 +321,44 @@ class TestKeySigning:
         with pytest.raises(ValueError, match="Extra files"):
             config.verify(model_b, sig_b)
 
+    def test_sharded_signature_covers_empty_files(self, base_path, tmp_path):
+        os.chdir(base_path)
+
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        model = tmp_path / "model"
+        model.mkdir()
+        (model / "weights").write_text("weights")
+        (model / "__init__.py").write_bytes(b"")
+        signature = tmp_path / "model.sig"
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key
+        ).set_hashing_config(
+            hashing.Config()
+            .set_ignored_paths(paths=[], ignore_git_paths=False)
+            .use_shard_serialization()
+        ).sign(model, signature)
+
+        assert get_signed_files(signature) == ["__init__.py:0:0", "weights:0:7"]
+
+        config = (
+            verifying.Config()
+            .use_elliptic_key_verifier(public_key=public_key)
+            .set_hashing_config(
+                hashing.Config()
+                .set_ignored_paths(paths=[], ignore_git_paths=False)
+                .use_shard_serialization()
+            )
+        )
+        config.verify(model, signature)
+
+        # Dropping the empty file changes the model, so it must be reported.
+        (model / "__init__.py").unlink()
+        with pytest.raises(ValueError, match="Missing files"):
+            config.verify(model, signature)
+
 
 class TestCertificateSigning:
     def test_sign_and_verify(self, base_path, populate_tmpdir):
