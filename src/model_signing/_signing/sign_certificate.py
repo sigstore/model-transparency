@@ -16,6 +16,7 @@
 
 import base64
 from collections.abc import Iterable
+import datetime
 import logging
 import pathlib
 
@@ -63,6 +64,18 @@ class Signer(ec_key.Signer):
         self._signing_certificate = x509.load_pem_x509_certificate(
             signing_certificate_path.read_bytes()
         )
+
+        now = datetime.datetime.now(datetime.timezone.utc)
+        if now > self._signing_certificate.not_valid_after_utc:
+            raise ValueError(
+                "Signing certificate has expired "
+                f"(expired {self._signing_certificate.not_valid_after_utc})"
+            )
+        if now < self._signing_certificate.not_valid_before_utc:
+            raise ValueError(
+                "Signing certificate is not yet valid "
+                f"(valid from {self._signing_certificate.not_valid_before_utc})"
+            )
 
         public_key_from_key = self._private_key.public_key()
         public_key_from_certificate = self._signing_certificate.public_key()
@@ -216,9 +229,6 @@ class Verifier(sigstore_pb.Verifier):
         signing_certificate = x509.load_der_x509_certificate(
             signing_chain.certificates[0].raw_bytes
         )
-
-        max_signing_time = signing_certificate.not_valid_before_utc
-        self._store.set_time(max_signing_time)
 
         trust_chain_ssl = [
             _to_openssl_certificate(
