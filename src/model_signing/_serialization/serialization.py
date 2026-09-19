@@ -16,13 +16,13 @@
 
 import abc
 from collections.abc import Iterable
-import pathlib
 
+from model_signing import _filesystem
 from model_signing import manifest
 
 
 def check_file_or_directory(
-    path: pathlib.Path, *, allow_symlinks: bool = False
+    path: _filesystem.Path, *, allow_symlinks: bool = False
 ) -> None:
     """Checks that the given path is either a file or a directory.
 
@@ -42,7 +42,7 @@ def check_file_or_directory(
         ValueError: The path is neither a file or a directory, or the path
           is a symlink and `allow_symlinks` is false.
     """
-    if not allow_symlinks and path.is_symlink():
+    if not allow_symlinks and _filesystem.is_symlink(path):
         raise ValueError(
             f"Cannot use '{path}' because it is a symlink. This"
             " behavior can be changed with `allow_symlinks`."
@@ -56,7 +56,7 @@ def check_file_or_directory(
 
 
 def should_ignore(
-    path: pathlib.Path, ignore_paths: Iterable[pathlib.Path]
+    path: _filesystem.Path, ignore_paths: Iterable[_filesystem.Path]
 ) -> bool:
     """Determines if the provided path should be ignored during serialization.
 
@@ -76,9 +76,9 @@ class Serializer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def serialize(
         self,
-        model_path: pathlib.Path,
+        model_path: _filesystem.Path,
         *,
-        ignore_paths: Iterable[pathlib.Path] = frozenset(),
+        ignore_paths: Iterable[_filesystem.Path] = frozenset(),
     ) -> manifest.Manifest:
         """Serializes the model given by the `model_path` argument.
 
