@@ -16,6 +16,7 @@
 
 import abc
 from collections.abc import Iterable
+import os
 import pathlib
 
 from model_signing import manifest
@@ -39,8 +40,9 @@ def check_file_or_directory(
           serialization would raise an error.
 
     Raises:
-        ValueError: The path is neither a file or a directory, or the path
-          is a symlink and `allow_symlinks` is false.
+        ValueError: The path is neither a file or a directory, the path is a
+          symlink and `allow_symlinks` is false, or the path is a directory
+          whose entries cannot be listed.
     """
     if not allow_symlinks and path.is_symlink():
         raise ValueError(
@@ -53,6 +55,19 @@ def check_file_or_directory(
             " special file, it could be missing, or there might be a"
             " permission issue."
         )
+    if path.is_dir():
+        # Listing a directory needs read permission, while `is_dir` only needs
+        # search permission on the parent. `glob` drops a subtree it cannot
+        # list without reporting it, so check here instead of silently leaving
+        # the files it holds out of the manifest.
+        try:
+            with os.scandir(path):
+                pass
+        except OSError as err:
+            raise ValueError(
+                f"Cannot list the contents of '{path}'. Any file under it"
+                " would be missing from the manifest."
+            ) from err
 
 
 def should_ignore(
