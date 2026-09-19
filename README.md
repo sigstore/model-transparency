@@ -372,6 +372,20 @@ for model in all_models:
     signing_config.sign(model, f"{model}_sharded.sig")
 ```
 
+To obtain the signature in memory instead of writing it to disk -- for example
+in a serverless function or a streaming pipeline that needs to push the bundle
+to an object store -- use `sign_to_bytes`, which returns the Sigstore bundle as
+bytes:
+
+```python
+import model_signing
+
+signature_bytes = model_signing.signing.sign_to_bytes("bert-base-uncased")
+```
+
+The same is available on an explicit configuration via
+`Config().sign_to_bytes(model)`.
+
 Verification needs a configuration. To verify using Sigstore:
 
 ```python
