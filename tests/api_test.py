@@ -284,6 +284,7 @@ class TestKeySigning:
             hashing.Config().set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=False,
             )
         ).sign(model_path, signature)
 
@@ -295,6 +296,7 @@ class TestKeySigning:
             hashing.Config().set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=False,
             )
         ).verify(model_path, signature)
 
@@ -316,6 +318,7 @@ class TestKeySigning:
             hashing.Config().set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=False,
             )
         ).sign(model_path, signature)
 
@@ -397,6 +400,7 @@ class TestCertificateSigning:
             hashing.Config().set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=False,
             )
         ).sign(model_path, signature)
 
@@ -409,6 +413,7 @@ class TestCertificateSigning:
             hashing.Config().set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=False,
             )
         ).verify(model_path, signature)
 
@@ -432,6 +437,7 @@ class TestCertificateSigning:
             hashing.Config().set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=False,
             )
         ).sign(model_path, signature)
 
@@ -466,6 +472,7 @@ class TestCertificateSigning:
             .set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=False,
             )
             .use_shard_serialization()
         ).sign(model_path, signature)
@@ -479,6 +486,7 @@ class TestCertificateSigning:
             hashing.Config().set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=False,
             )
         )
         # .verify(model_path, signature)
@@ -504,6 +512,7 @@ class TestCertificateSigning:
             .set_ignored_paths(
                 paths=list(ignore_paths) + [signature],
                 ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=False,
             )
             .use_shard_serialization()
         ).sign(model_path, signature)
