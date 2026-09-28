@@ -32,6 +32,7 @@ dependencies = [
   "blake3",
   "click",
   "cryptography",
+  "etils[epath]>=1.13",
   "in-toto-attestation",
   "sigstore>=4.0",
   "sigstore-models>=0.0.5",
@@ -49,6 +50,12 @@ keywords = [
 ]
 
 [project.optional-dependencies]
+gcs = [
+  "gcsfs",
+]
+s3 = [
+  "s3fs",
+]
 pkcs11 = [
     "PyKCS11",
 ]
