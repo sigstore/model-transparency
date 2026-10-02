@@ -117,6 +117,14 @@ class Serializer(serialization.Serializer):
             )
             if path.is_file():
                 paths.append(path)
+            elif path != model_path and path.is_symlink():
+                # The walk never descends into a symlink to a directory, so
+                # accepting it would leave every file under it out of the
+                # manifest without any error.
+                raise ValueError(
+                    f"Cannot use '{path}' because it is a symlink to a"
+                    " directory. Files under it would not be serialized."
+                )
 
         if not paths:
             raise ValueError(

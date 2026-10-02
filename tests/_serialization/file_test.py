@@ -315,6 +315,30 @@ class TestSerializer:
         manifest = serializer.serialize(sample_model_file)
         assert manifest.serialization_type["allow_symlinks"] is True
 
+    def test_symlink_to_directory_rejected(self, symlink_dir_model_folder):
+        serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
+        with pytest.raises(
+            ValueError, match="because it is a symlink to a directory"
+        ):
+            _ = serializer.serialize(symlink_dir_model_folder)
+
+    def test_ignored_symlink_to_directory_allowed(
+        self, symlink_dir_model_folder
+    ):
+        symlink_path = symlink_dir_model_folder / "symlink_dir"
+        serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
+        manifest = serializer.serialize(
+            symlink_dir_model_folder, ignore_paths=[symlink_path]
+        )
+        assert len(manifest._item_to_digest) == 1
+
+    def test_symlink_model_root_allowed(self, sample_model_folder, tmp_path):
+        symlink_root = tmp_path / "symlink_root"
+        os.symlink(sample_model_folder, symlink_root, target_is_directory=True)
+        serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
+        manifest = serializer.serialize(symlink_root)
+        assert manifest == serializer.serialize(sample_model_folder)
+
     def test_ignore_list_respects_directories(self, sample_model_folder):
         serializer = file.Serializer(self._hasher_factory)
         manifest1 = serializer.serialize(sample_model_folder)

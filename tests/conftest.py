@@ -121,3 +121,25 @@ def symlink_model_folder(
     symlink_file = model_dir / "symlink_file"
     os.symlink(external_file.absolute(), symlink_file.absolute())
     return model_dir
+
+
+@pytest.fixture
+def symlink_dir_model_folder(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> pathlib.Path:
+    """A model folder with a symlink to an external directory."""
+    external_dir = tmp_path_factory.mktemp("external") / "dir"
+    external_dir.mkdir()
+    (external_dir / "file").write_bytes(test_support.KNOWN_MODEL_TEXT)
+
+    model_dir = tmp_path_factory.mktemp("model") / "symlink_dir_model"
+    model_dir.mkdir()
+    (model_dir / "file").write_bytes(test_support.KNOWN_MODEL_TEXT)
+
+    symlink_dir = model_dir / "symlink_dir"
+    os.symlink(
+        external_dir.absolute(),
+        symlink_dir.absolute(),
+        target_is_directory=True,
+    )
+    return model_dir

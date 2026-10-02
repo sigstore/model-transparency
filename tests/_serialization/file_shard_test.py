@@ -20,6 +20,7 @@ models. If the golden tests are failing, regenerate the golden files with
   hatch test --update_goldens
 """
 
+import os
 import pathlib
 from typing import cast
 
@@ -383,6 +384,36 @@ class TestSerializer:
         serializer.set_allow_symlinks(True)
         manifest_file = serializer.serialize(sample_model_file)
         assert manifest_file.serialization_type["allow_symlinks"] is True
+
+    def test_symlink_to_directory_rejected(self, symlink_dir_model_folder):
+        serializer = file_shard.Serializer(
+            self._hasher_factory, allow_symlinks=True
+        )
+        with pytest.raises(
+            ValueError, match="because it is a symlink to a directory"
+        ):
+            _ = serializer.serialize(symlink_dir_model_folder)
+
+    def test_ignored_symlink_to_directory_allowed(
+        self, symlink_dir_model_folder
+    ):
+        symlink_path = symlink_dir_model_folder / "symlink_dir"
+        serializer = file_shard.Serializer(
+            self._hasher_factory, allow_symlinks=True
+        )
+        manifest_file = serializer.serialize(
+            symlink_dir_model_folder, ignore_paths=[symlink_path]
+        )
+        assert len(manifest_file._item_to_digest) == 1
+
+    def test_symlink_model_root_allowed(self, sample_model_folder, tmp_path):
+        symlink_root = tmp_path / "symlink_root"
+        os.symlink(sample_model_folder, symlink_root, target_is_directory=True)
+        serializer = file_shard.Serializer(
+            self._hasher_factory, allow_symlinks=True
+        )
+        manifest_file = serializer.serialize(symlink_root)
+        assert manifest_file == serializer.serialize(sample_model_folder)
 
     def test_shard_to_string(self):
         """Ensure the shard's `__str__` method behaves as assumed."""
