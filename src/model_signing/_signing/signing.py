@@ -154,7 +154,7 @@ def dsse_payload_to_manifest_compat(
 
     # Serialization format is not present, build a fake one.
     serialization = manifest.SerializationType.from_args(
-        {"method": "files", "hash_type": "sha256", "allow_symlinks": "false"}
+        {"method": "files", "hash_type": "sha256", "allow_symlinks": False}
     )
 
     # The only field with actual content is the subject.

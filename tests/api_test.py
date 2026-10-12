@@ -598,3 +598,28 @@ class TestVerifierHonoursRecordedSymlinkPolicy:
                 .set_ignored_paths(paths=[signature], ignore_git_paths=False)
                 .set_allow_symlinks(True)
             ).verify(model_path, signature)
+
+    def test_v0_2_signature_keeps_policy_off(self, tmp_path):
+        """A v0.2 signature records no policy, so symlinks stay refused."""
+        # The v0.2 predicate has no serialization section, so the manifest
+        # rebuilt from it carries the default policy. That has to be a real
+        # boolean: a truthy placeholder lets a signed file be swapped for a
+        # symlink and still verify.
+        fixture = TESTDATA / "v0.2.0-certificate"
+        model_path = tmp_path / "model"
+        model_path.mkdir()
+        for name in ["signme-1", "signme-2"]:
+            (model_path / name).write_bytes((fixture / name).read_bytes())
+        signature = fixture / "model.sig"
+        config = verifying.Config().use_certificate_verifier(
+            certificate_chain=[TESTDATA / "keys/certificate/ca-cert.pem"]
+        )
+
+        config.verify(model_path, signature)
+
+        target = tmp_path / "signme-1"
+        (model_path / "signme-1").rename(target)
+        (model_path / "signme-1").symlink_to(target)
+
+        with pytest.raises(ValueError, match="because it is a symlink"):
+            config.verify(model_path, signature)
