@@ -112,6 +112,12 @@ class Serializer(serialization.Serializer):
         for path in files_to_hash:
             if serialization.should_ignore(path, ignore_paths):
                 continue
+            if (
+                self._allow_symlinks
+                and path.is_symlink()
+                and not serialization.check_symlink(path, model_path)
+            ):
+                continue
             serialization.check_file_or_directory(
                 path, allow_symlinks=self._allow_symlinks
             )

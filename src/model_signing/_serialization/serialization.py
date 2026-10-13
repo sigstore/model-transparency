@@ -16,9 +16,13 @@
 
 import abc
 from collections.abc import Iterable
+import logging
 import pathlib
 
 from model_signing import manifest
+
+
+logger = logging.getLogger(__name__)
 
 
 def check_file_or_directory(
@@ -53,6 +57,39 @@ def check_file_or_directory(
             " special file, it could be missing, or there might be a"
             " permission issue."
         )
+
+
+def check_symlink(path: pathlib.Path, model_path: pathlib.Path) -> bool:
+    """Warns about symlinks targeting outside the model root or forming cycles.
+
+    OMS v1.0 6.1.1: signer MUST report a warning when a symlink target is
+    outside the model root, or when a symlink cycle is detected.
+
+    Args:
+        path: The symlink path to check.
+        model_path: The root of the model directory.
+
+    Returns:
+        True if the symlink is usable, False if it should be skipped (cycle).
+    """
+    try:
+        target = path.resolve(strict=True)
+    except (OSError, RuntimeError):
+        logger.warning("Symlink cycle detected: '%s'", path)
+        return False
+
+    model_root = model_path.resolve()
+    try:
+        target.relative_to(model_root)
+    except ValueError:
+        logger.warning(
+            "Symlink '%s' targets '%s' outside model root '%s'",
+            path,
+            target,
+            model_root,
+        )
+
+    return True
 
 
 def should_ignore(

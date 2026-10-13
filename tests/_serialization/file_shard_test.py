@@ -437,3 +437,29 @@ class TestSerializer:
             serializer.serialize(
                 symlink_model_folder, ignore_paths=[symlink_path]
             )
+
+    def test_symlink_cycle_warns_and_skips(
+        self, symlink_cycle_model_folder, caplog
+    ):
+        serializer = file_shard.Serializer(
+            self._hasher_factory, allow_symlinks=True
+        )
+        with caplog.at_level("WARNING"):
+            result = serializer.serialize(symlink_cycle_model_folder)
+        assert any("cycle detected" in r.message for r in caplog.records)
+        names = {str(k) for k in result._item_to_digest}
+        assert any("real_file" in n for n in names)
+        assert not any("cycle" in n for n in names)
+
+    def test_symlink_outside_root_warns(
+        self, symlink_outside_root_model_folder, caplog
+    ):
+        serializer = file_shard.Serializer(
+            self._hasher_factory, allow_symlinks=True
+        )
+        with caplog.at_level("WARNING"):
+            result = serializer.serialize(symlink_outside_root_model_folder)
+        assert any("outside model root" in r.message for r in caplog.records)
+        names = {str(k) for k in result._item_to_digest}
+        assert any("link_outside" in n for n in names)
+        assert any("real_file" in n for n in names)
