@@ -18,6 +18,7 @@ All versions prior to 1.0.0 are untracked.
 - Standardized CLI flags to use hyphens (e.g., `--trust-config` instead of `--trust_config`). Underscore variants are still accepted for backwards compatibility via token normalization.
 
 ### Fixed
+- Fixed serialization treating a broken symlink as a symlink cycle when `allow_symlinks` was enabled, silently leaving it out of the manifest. A dangling symlink added to a signed model passed verification unreported, while an added regular file was flagged as an extra file. Broken symlinks are now rejected with an error unless they are in the ignored paths.
 - Fixed verification of v0.2 signatures (the deprecated `https://model_signing/Digests/v0.1` predicate) following symlinks in the model. The manifest rebuilt from such a signature recorded `allow_symlinks` as the string `"false"`, which is truthy, so a signed file replaced by a symlink still verified. These signatures are now verified with symlinks refused.
 - Fixed serialization silently leaving out every file under a symlink to a directory when `allow_symlinks` was enabled, so those files were neither signed nor verified. Such symlinks are now rejected with an error unless they are in the ignored paths.
 - Fixed certificate verification accepting a signing certificate whose extended key usage does not permit code signing (for example a TLS `serverAuth` certificate), as long as the digitalSignature key usage bit was set. ([#648](https://github.com/sigstore/model-transparency/pull/648))

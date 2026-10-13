@@ -162,6 +162,20 @@ def symlink_cycle_model_folder(
 
 
 @pytest.fixture
+def broken_symlink_model_folder(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> pathlib.Path:
+    """A model folder with a symlink whose target does not exist."""
+    model_dir = tmp_path_factory.mktemp("model") / "broken_symlink_model"
+    model_dir.mkdir()
+    (model_dir / "real_file").write_bytes(test_support.KNOWN_MODEL_TEXT)
+
+    link = model_dir / "broken_link"
+    os.symlink(model_dir.absolute() / "missing_target", link.absolute())
+    return model_dir
+
+
+@pytest.fixture
 def symlink_outside_root_model_folder(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> pathlib.Path:

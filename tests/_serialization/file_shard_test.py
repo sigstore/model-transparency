@@ -463,3 +463,12 @@ class TestSerializer:
         names = {str(k) for k in result._item_to_digest}
         assert any("link_outside" in n for n in names)
         assert any("real_file" in n for n in names)
+
+    def test_broken_symlink_rejected(self, broken_symlink_model_folder):
+        serializer = file_shard.Serializer(
+            self._hasher_factory, allow_symlinks=True
+        )
+        with pytest.raises(
+            ValueError, match="Cannot use '.+' because it is a broken symlink."
+        ):
+            serializer.serialize(broken_symlink_model_folder)
