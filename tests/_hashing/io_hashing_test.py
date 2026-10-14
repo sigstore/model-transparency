@@ -43,6 +43,13 @@ def sample_file_content_only(tmp_path_factory):
 
 
 @pytest.fixture(scope="class")
+def empty_file(tmp_path_factory):
+    file_path = tmp_path_factory.mktemp("dir") / "empty.txt"
+    file_path.write_bytes(b"")
+    return file_path
+
+
+@pytest.fixture(scope="class")
 def expected_digest():
     # To ensure that the expected file digest is always up to date, use the
     # memory hashing and create a fixture for the expected value.
@@ -182,9 +189,7 @@ class TestShardedFileHasher:
     def test_fails_with_end_lower_than_start(self):
         with pytest.raises(
             ValueError,
-            match=(
-                "File end offset must be stricly higher that file start offset"
-            ),
+            match="File end offset must not be lower than file start offset",
         ):
             io.ShardedFileHasher(_UNUSED_PATH, memory.SHA256(), start=42, end=2)
 
@@ -194,34 +199,29 @@ class TestShardedFileHasher:
         )
         with pytest.raises(
             ValueError,
-            match=(
-                "File end offset must be stricly higher that file start offset"
-            ),
+            match="File end offset must not be lower than file start offset",
         ):
             hasher.set_shard(start=42, end=2)
 
-    def test_fails_with_zero_read_span(self):
-        with pytest.raises(
-            ValueError,
-            match=(
-                "File end offset must be stricly higher that file start offset"
-            ),
-        ):
-            io.ShardedFileHasher(
-                _UNUSED_PATH, memory.SHA256(), start=42, end=42
-            )
-
-    def test_set_fails_with_zero_read_span(self):
+    def test_hash_of_empty_file(self, empty_file):
         hasher = io.ShardedFileHasher(
-            _UNUSED_PATH, memory.SHA256(), start=0, end=42
+            empty_file, memory.SHA256(), start=0, end=0
         )
-        with pytest.raises(
-            ValueError,
-            match=(
-                "File end offset must be stricly higher that file start offset"
-            ),
-        ):
-            hasher.set_shard(start=42, end=42)
+        expected = memory.SHA256(b"").compute()
+
+        digest = hasher.compute()
+
+        assert digest.digest_value == expected.digest_value
+
+    def test_set_allows_zero_read_span(self, sample_file):
+        hasher = io.ShardedFileHasher(
+            sample_file, memory.SHA256(), start=0, end=_SHARD_SIZE
+        )
+        expected = memory.SHA256(b"").compute()
+
+        hasher.set_shard(start=_SHARD_SIZE, end=_SHARD_SIZE)
+
+        assert hasher.compute().digest_value == expected.digest_value
 
     def test_fails_with_read_span_too_large(self):
         with pytest.raises(
