@@ -381,6 +381,22 @@ class TestSerializer:
         assert "link_outside" in names
         assert "real_file" in names
 
+    def test_broken_symlink_rejected(self, broken_symlink_model_folder):
+        serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
+        with pytest.raises(
+            ValueError, match="Cannot use '.+' because it is a broken symlink."
+        ):
+            serializer.serialize(broken_symlink_model_folder)
+
+    def test_ignored_broken_symlink_allowed(self, broken_symlink_model_folder):
+        link = broken_symlink_model_folder / "broken_link"
+        serializer = file.Serializer(self._hasher_factory, allow_symlinks=True)
+        manifest = serializer.serialize(
+            broken_symlink_model_folder, ignore_paths=[link]
+        )
+        names = {str(k) for k in manifest._item_to_digest}
+        assert names == {"real_file"}
+
 
 class TestUtilities:
     def test_check_file_or_directory_raises_on_pipes(self, sample_model_file):

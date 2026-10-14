@@ -16,6 +16,7 @@
 
 import abc
 from collections.abc import Iterable
+import errno
 import logging
 import pathlib
 
@@ -71,12 +72,26 @@ def check_symlink(path: pathlib.Path, model_path: pathlib.Path) -> bool:
 
     Returns:
         True if the symlink is usable, False if it should be skipped (cycle).
+
+    Raises:
+        ValueError: The symlink cannot be resolved (broken symlink).
     """
     try:
         target = path.resolve(strict=True)
-    except (OSError, RuntimeError):
+    except RuntimeError:
+        # Python 3.12 and earlier raise RuntimeError on symlink loops.
         logger.warning("Symlink cycle detected: '%s'", path)
         return False
+    except OSError as err:
+        if err.errno == errno.ELOOP:
+            logger.warning("Symlink cycle detected: '%s'", path)
+            return False
+        # A link that cannot be resolved is not a cycle. Skipping it would
+        # leave it out of the manifest at signing and leave it unreported at
+        # verification, so it must fail like any other unusable path.
+        raise ValueError(
+            f"Cannot use '{path}' because it is a broken symlink."
+        ) from err
 
     model_root = model_path.resolve()
     try:

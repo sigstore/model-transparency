@@ -563,6 +563,31 @@ class TestVerifierHonoursRecordedSymlinkPolicy:
             .set_allow_symlinks(False)
         ).verify(model_path, signature)
 
+    def test_added_broken_symlink_fails_verification(self, tmp_path):
+        """A dangling symlink added after signing must not verify."""
+        # A broken symlink was skipped as if it were a symlink cycle, so one
+        # added to a signed model went unreported while an added regular file
+        # failed verification with "Extra files found".
+        model_path = self._model_with_symlink(tmp_path)
+        signature = tmp_path / "model.sig"
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key, password=None
+        ).set_hashing_config(
+            hashing.Config()
+            .set_ignored_paths(paths=[signature], ignore_git_paths=False)
+            .set_allow_symlinks(True)
+        ).sign(model_path, signature)
+
+        (model_path / "added_link").symlink_to(model_path / "missing")
+
+        with pytest.raises(ValueError, match="because it is a broken symlink"):
+            verifying.Config().use_elliptic_key_verifier(
+                public_key=public_key
+            ).verify(model_path, signature)
+
     def test_policy_off_is_also_applied(self, tmp_path):
         """A recorded "off" survives a caller that did ask for symlinks."""
         # The other direction. Sign a model with no symlink and the policy
