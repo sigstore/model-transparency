@@ -15,8 +15,7 @@
 """Sigstore based signature, signers and verifiers."""
 
 import pathlib
-import sys
-from typing import cast
+from typing import Self, cast
 
 from google.protobuf import json_format
 from sigstore import dsse as sigstore_dsse
@@ -28,11 +27,6 @@ from typing_extensions import override
 
 from model_signing._signing import signing
 
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
 
 _DEFAULT_CLIENT_ID = "sigstore"
 _DEFAULT_CLIENT_SECRET = ""

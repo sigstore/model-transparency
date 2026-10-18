@@ -39,20 +39,13 @@ https://docs.sigstore.dev/about/bundle/.
 import abc
 import json
 import pathlib
-import sys
-from typing import Any
+from typing import Any, Self
 
 from in_toto_attestation.v1 import statement
 
 from model_signing import manifest
 from model_signing._hashing import hashing
 from model_signing._hashing import memory
-
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
 
 
 # The expected in-toto payload type for the signature.

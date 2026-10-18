@@ -44,19 +44,13 @@ The API defined here is stable and backwards compatible.
 
 from collections.abc import Iterable
 import pathlib
-import sys
+from typing import Self
 
 from model_signing import hashing
 from model_signing._signing import sign_certificate as certificate
 from model_signing._signing import sign_ec_key as ec_key
 from model_signing._signing import sign_sigstore as sigstore
 from model_signing._signing import signing
-
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
 
 
 def sign(model_path: hashing.PathLike, signature_path: hashing.PathLike):
