@@ -25,6 +25,8 @@ from model_signing import manifest
 
 logger = logging.getLogger(__name__)
 
+_WINDOWS_ERROR_CANT_RESOLVE_FILENAME = 1921
+
 
 def check_file_or_directory(
     path: pathlib.Path, *, allow_symlinks: bool = False
@@ -83,7 +85,10 @@ def check_symlink(path: pathlib.Path, model_path: pathlib.Path) -> bool:
         logger.warning("Symlink cycle detected: '%s'", path)
         return False
     except OSError as err:
-        if err.errno == errno.ELOOP:
+        if err.errno == errno.ELOOP or (
+            getattr(err, "winerror", None)
+            == _WINDOWS_ERROR_CANT_RESOLVE_FILENAME
+        ):
             logger.warning("Symlink cycle detected: '%s'", path)
             return False
         # A link that cannot be resolved is not a cycle. Skipping it would
