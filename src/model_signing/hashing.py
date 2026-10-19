@@ -50,8 +50,7 @@ The API defined here is stable and backwards compatible.
 from collections.abc import Callable, Iterable
 import os
 import pathlib
-import sys
-from typing import Literal
+from typing import Literal, Self, TypeAlias
 
 import blake3
 
@@ -63,20 +62,9 @@ from model_signing._serialization import file
 from model_signing._serialization import file_shard
 
 
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
-
-
-# `TypeAlias` only exists from Python 3.10
-# `TypeAlias` is deprecated in Python 3.12 in favor of `type`
-from typing import TypeAlias
-
-
 # Type alias to support `os.PathLike`, `str` and `bytes` objects in the API
-# When Python 3.12 is the minimum supported version we can use `type`
-# When Python 3.11 is the minimum supported version we can use `|`
+# `TypeAlias` is deprecated in Python 3.12 in favor of `type`, which we can use
+# once Python 3.12 is the minimum supported version
 PathLike: TypeAlias = str | bytes | os.PathLike
 
 

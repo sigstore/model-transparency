@@ -30,6 +30,7 @@ All versions prior to 1.0.0 are untracked.
 
 ### Removed
 - Removed Python 3.9 support due to it reaching EOL 2025-10-31 (https://devguide.python.org/versions/)
+- Removed Python 3.10 support due to it reaching EOL in October 2026 (https://devguide.python.org/versions/) ([#602](https://github.com/sigstore/model-transparency/issues/602))
 
 ## [1.1.1] - 2025-10-10
 

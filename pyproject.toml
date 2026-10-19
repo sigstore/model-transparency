@@ -15,7 +15,6 @@ authors = [
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -37,7 +36,7 @@ dependencies = [
   "sigstore-models>=0.0.5",
   "typing_extensions",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = [
   "machine learning",
   "artificial intelligence",
@@ -88,7 +87,7 @@ features = [
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+python = ["3.11", "3.12", "3.13", "3.14"]
 
 [tool.hatch.envs.bench]
 description = """Custom environment for running benchmarks.
@@ -104,7 +103,7 @@ extra-dependencies = [
 ]
 
 [[tool.hatch.envs.bench.matrix]]
-python = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+python = ["3.11", "3.12", "3.13", "3.14"]
 
 [tool.hatch.envs.bench.scripts]
 generate = "python benchmarks/generate.py {args}"

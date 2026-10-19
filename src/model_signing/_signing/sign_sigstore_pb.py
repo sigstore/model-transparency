@@ -24,19 +24,12 @@ validation does not allow those.
 import abc
 import json
 import pathlib
-import sys
-from typing import cast
+from typing import Self, cast
 
 from sigstore_models.bundle import v1 as bundle_pb
 from typing_extensions import override
 
 from model_signing._signing import signing
-
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
 
 
 # The media type to use when creating the protobuf based Sigstore bundle

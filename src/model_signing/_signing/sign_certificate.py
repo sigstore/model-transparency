@@ -65,7 +65,7 @@ class Signer(ec_key.Signer):
             signing_certificate_path.read_bytes()
         )
 
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.UTC)
         if now > self._signing_certificate.not_valid_after_utc:
             raise ValueError(
                 "Signing certificate has expired "
