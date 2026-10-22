@@ -32,6 +32,7 @@ dependencies = [
   "click",
   "cryptography",
   "in-toto-attestation",
+  "pyOpenSSL",
   "sigstore>=4.0",
   "sigstore-models>=0.0.5",
   "typing_extensions",
