@@ -93,6 +93,18 @@ _ignore_git_paths_option = click.option(
     help="Ignore git-related files when signing or verifying.",
 )
 
+# Decorator for the commonly used option to ignore attestation files
+_ignore_att_paths_option = click.option(
+    "--ignore-att-paths/--no-ignore-att-paths",
+    type=bool,
+    default=True,
+    show_default=True,
+    help=(
+        "Ignore signature and attestation files "
+        "(*.sig, *.sigstore.json, claims.jsonl)."
+    ),
+)
+
 # Decorator for the commonly used option to ignore all unsigned files
 _ignore_unsigned_files_option = click.option(
     "--ignore-unsigned-files/--no-ignore-unsigned-files",
@@ -353,6 +365,7 @@ def _sign() -> None:
 @_model_path_argument
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_ignore_att_paths_option
 @_allow_symlinks_option
 @_write_signature_option
 @_sigstore_staging_option
@@ -397,6 +410,7 @@ def _sign_sigstore(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    ignore_att_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
     use_ambient_credentials: bool,
@@ -459,7 +473,9 @@ def _sign_sigstore(
             ).set_hashing_config(
                 model_signing.hashing.Config()
                 .set_ignored_paths(
-                    paths=ignored, ignore_git_paths=ignore_git_paths
+                    paths=ignored,
+                    ignore_git_paths=ignore_git_paths,
+                    ignore_att_paths=ignore_att_paths,
                 )
                 .set_allow_symlinks(allow_symlinks)
             ).sign(model_path, signature)
@@ -474,6 +490,7 @@ def _sign_sigstore(
 @_model_path_argument
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_ignore_att_paths_option
 @_allow_symlinks_option
 @_write_signature_option
 @_private_key_option
@@ -488,6 +505,7 @@ def _sign_private_key(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    ignore_att_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
     private_key: pathlib.Path,
@@ -515,7 +533,11 @@ def _sign_private_key(
             private_key=private_key, password=password, tsa_url=tsa_url
         ).set_hashing_config(
             model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
+            .set_ignored_paths(
+                paths=ignored,
+                ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=ignore_att_paths,
+            )
             .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
@@ -529,6 +551,7 @@ def _sign_private_key(
 @_model_path_argument
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_ignore_att_paths_option
 @_allow_symlinks_option
 @_write_signature_option
 @_pkcs11_uri_option
@@ -538,6 +561,7 @@ def _sign_pkcs11_key(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    ignore_att_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
     pkcs11_uri: str,
@@ -568,7 +592,11 @@ def _sign_pkcs11_key(
             pkcs11_uri=pkcs11_uri, module_paths=module_paths, tsa_url=tsa_url
         ).set_hashing_config(
             model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
+            .set_ignored_paths(
+                paths=ignored,
+                ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=ignore_att_paths,
+            )
             .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
@@ -582,6 +610,7 @@ def _sign_pkcs11_key(
 @_model_path_argument
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_ignore_att_paths_option
 @_allow_symlinks_option
 @_write_signature_option
 @_private_key_option
@@ -592,6 +621,7 @@ def _sign_certificate(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    ignore_att_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
     private_key: pathlib.Path,
@@ -626,7 +656,11 @@ def _sign_certificate(
             tsa_url=tsa_url,
         ).set_hashing_config(
             model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
+            .set_ignored_paths(
+                paths=ignored,
+                ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=ignore_att_paths,
+            )
             .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
@@ -640,6 +674,7 @@ def _sign_certificate(
 @_model_path_argument
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_ignore_att_paths_option
 @_allow_symlinks_option
 @_write_signature_option
 @_pkcs11_uri_option
@@ -651,6 +686,7 @@ def _sign_pkcs11_certificate(
     model_path: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    ignore_att_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
     pkcs11_uri: str,
@@ -691,7 +727,11 @@ def _sign_pkcs11_certificate(
             tsa_url=tsa_url,
         ).set_hashing_config(
             model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
+            .set_ignored_paths(
+                paths=ignored,
+                ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=ignore_att_paths,
+            )
             .set_allow_symlinks(allow_symlinks)
         ).sign(model_path, signature)
     except Exception as err:
@@ -729,6 +769,7 @@ def _verify() -> None:
 @_read_signature_option
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_ignore_att_paths_option
 @_allow_symlinks_option
 @_sigstore_staging_option
 @_trust_config_option
@@ -752,6 +793,7 @@ def _verify_sigstore(
     signature: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    ignore_att_paths: bool,
     allow_symlinks: bool,
     identity: str,
     identity_provider: str,
@@ -788,7 +830,9 @@ def _verify_sigstore(
             ).set_hashing_config(
                 model_signing.hashing.Config()
                 .set_ignored_paths(
-                    paths=ignored, ignore_git_paths=ignore_git_paths
+                    paths=ignored,
+                    ignore_git_paths=ignore_git_paths,
+                    ignore_att_paths=ignore_att_paths,
                 )
                 .set_allow_symlinks(allow_symlinks)
             ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
@@ -806,6 +850,7 @@ def _verify_sigstore(
 @_read_signature_option
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_ignore_att_paths_option
 @_allow_symlinks_option
 @_trust_config_option
 @_require_timestamp_option
@@ -822,6 +867,7 @@ def _verify_private_key(
     signature: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    ignore_att_paths: bool,
     allow_symlinks: bool,
     public_key: pathlib.Path,
     ignore_unsigned_files: bool,
@@ -851,7 +897,11 @@ def _verify_private_key(
             require_timestamp=require_timestamp,
         ).set_hashing_config(
             model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
+            .set_ignored_paths(
+                paths=ignored,
+                ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=ignore_att_paths,
+            )
             .set_allow_symlinks(allow_symlinks)
         ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
             model_path, signature
@@ -868,6 +918,7 @@ def _verify_private_key(
 @_read_signature_option
 @_ignore_paths_option
 @_ignore_git_paths_option
+@_ignore_att_paths_option
 @_allow_symlinks_option
 @_certificate_root_of_trust_option
 @_trust_config_option
@@ -901,6 +952,7 @@ def _verify_certificate(
     signature: pathlib.Path,
     ignore_paths: Iterable[pathlib.Path],
     ignore_git_paths: bool,
+    ignore_att_paths: bool,
     allow_symlinks: bool,
     certificate_chain: Iterable[pathlib.Path],
     log_fingerprints: bool,
@@ -944,7 +996,11 @@ def _verify_certificate(
             require_timestamp=require_timestamp,
         ).set_hashing_config(
             model_signing.hashing.Config()
-            .set_ignored_paths(paths=ignored, ignore_git_paths=ignore_git_paths)
+            .set_ignored_paths(
+                paths=ignored,
+                ignore_git_paths=ignore_git_paths,
+                ignore_att_paths=ignore_att_paths,
+            )
             .set_allow_symlinks(allow_symlinks)
         ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
             model_path, signature
