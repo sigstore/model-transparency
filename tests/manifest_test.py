@@ -206,3 +206,28 @@ class TestShardLevelManifest:
         assert descriptors[0].digest.digest_value == b"hash1"
         assert descriptors[1].digest.digest_value == b"hash2"
         assert descriptors[2].digest.digest_value == b"hash3"
+
+
+class TestShardSerializationFromArgs:
+    def _args(self, shard_size):
+        return {
+            "method": "shards",
+            "hash_type": "sha256",
+            "shard_size": shard_size,
+            "allow_symlinks": False,
+        }
+
+    @pytest.mark.parametrize("shard_size", [42, 42.0])
+    def test_whole_number_shard_size_is_read_as_int(self, shard_size):
+        serialization = manifest.SerializationType.from_args(
+            self._args(shard_size)
+        )
+
+        recorded = serialization.serialization_parameters["shard_size"]
+        assert recorded == 42
+        assert isinstance(recorded, int)
+
+    @pytest.mark.parametrize("shard_size", [42.5, 0, -4, 0.0, True, "42"])
+    def test_invalid_shard_size_is_rejected(self, shard_size):
+        with pytest.raises(ValueError, match="Invalid shard_size"):
+            manifest.SerializationType.from_args(self._args(shard_size))

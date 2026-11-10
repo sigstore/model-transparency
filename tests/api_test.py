@@ -411,6 +411,46 @@ class TestKeySigning:
         with pytest.raises(ValueError, match="Missing files"):
             config.verify(model, signature)
 
+    def test_sharded_signature_verifies_with_guessed_config(
+        self, base_path, tmp_path
+    ):
+        os.chdir(base_path)
+
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        model = tmp_path / "model"
+        model.mkdir()
+        (model / "weights").write_text("0123456789")
+        (model / "config").write_text("{}")
+        signature = tmp_path / "model.sig"
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key
+        ).set_hashing_config(
+            hashing.Config().use_shard_serialization(shard_size=4)
+        ).sign(model, signature)
+
+        assert get_signed_files(signature) == [
+            "config:0:2",
+            "weights:0:4",
+            "weights:4:8",
+            "weights:8:10",
+        ]
+
+        # No hashing config: the verifier rebuilds it from the signature,
+        # including the recorded shard size.
+        config = verifying.Config().use_elliptic_key_verifier(
+            public_key=public_key
+        )
+        config.verify(model, signature)
+
+        (model / "weights").write_text("0123456780")
+        with pytest.raises(
+            ValueError, match="Hash mismatch for 'weights:8:10'"
+        ):
+            config.verify(model, signature)
+
 
 class TestCertificateSigning:
     def test_sign_and_verify(self, base_path, populate_tmpdir):

@@ -345,6 +345,33 @@ class _FileSerialization(SerializationType):
         return FileManifestItem(path=path, digest=digest)
 
 
+def _shard_size_from_args(shard_size: Any) -> int:
+    """Reads the shard size recorded in a signature as an integer.
+
+    The signing payload goes through a protobuf `Struct`, which stores every
+    number as a double, so a shard size of 1000000000 is written (and read
+    back) as 1000000000.0. Serialization needs an `int` to compute the shard
+    boundaries.
+
+    Args:
+        shard_size: The `shard_size` value from the serialization arguments.
+
+    Returns:
+        The shard size as an integer.
+
+    Raises:
+        ValueError: The value is not a positive whole number.
+    """
+    value = shard_size
+    if isinstance(value, float) and value.is_integer():
+        value = int(value)
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError(
+            f"Invalid shard_size {shard_size!r}: expected a positive integer"
+        )
+    return value
+
+
 class _ShardSerialization(SerializationType):
     method: Final[str] = "shards"
 
@@ -391,7 +418,7 @@ class _ShardSerialization(SerializationType):
     def _from_args(cls, args: dict[str, Any]) -> Self:
         return cls(
             args["hash_type"],
-            args["shard_size"],
+            _shard_size_from_args(args["shard_size"]),
             args["allow_symlinks"],
             args.get("ignore_paths", frozenset()),
         )
