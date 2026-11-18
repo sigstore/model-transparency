@@ -31,6 +31,7 @@ dependencies = [
   "blake3",
   "click",
   "cryptography",
+  "etils[epath]>=1.13",
   "in-toto-attestation",
   "pyOpenSSL",
   "rfc3161-client>=1.0.6,<1.1.0",
@@ -50,6 +51,12 @@ keywords = [
 ]
 
 [project.optional-dependencies]
+gcs = [
+  "gcsfs",
+]
+s3 = [
+  "s3fs",
+]
 pkcs11 = [
     "PyKCS11",
 ]

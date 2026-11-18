@@ -16,12 +16,12 @@
 
 from collections.abc import Callable, Iterable
 import concurrent.futures
-import itertools
 import os
 import pathlib
 
 from typing_extensions import override
 
+from model_signing import _filesystem
 from model_signing import manifest
 from model_signing._hashing import io
 from model_signing._serialization import serialization
@@ -61,7 +61,7 @@ class Serializer(serialization.Serializer):
     def __init__(
         self,
         sharded_hasher_factory: Callable[
-            [pathlib.Path, int, int], io.ShardedFileHasher
+            [_filesystem.Path, int, int], io.ShardedFileHasher
         ],
         *,
         max_workers: int | None = None,
@@ -115,10 +115,10 @@ class Serializer(serialization.Serializer):
     @override
     def serialize(
         self,
-        model_path: pathlib.Path,
+        model_path: _filesystem.Path,
         *,
-        ignore_paths: Iterable[pathlib.Path] = frozenset(),
-        files_to_hash: Iterable[pathlib.Path] | None = None,
+        ignore_paths: Iterable[_filesystem.Path] = frozenset(),
+        files_to_hash: Iterable[_filesystem.Path] | None = None,
     ) -> manifest.Manifest:
         """Serializes the model given by the `model_path` argument.
 
@@ -138,21 +138,21 @@ class Serializer(serialization.Serializer):
         """
         shards = []
         file_count = 0
-        # TODO: github.com/sigstore/model-transparency/issues/200 - When
-        # Python3.12 is the minimum supported version, the glob can be replaced
-        # with `pathlib.Path.walk` for a clearer interface, and some speed
-        # improvement.
         if files_to_hash is None:
-            files_to_hash = itertools.chain(
-                (model_path,), model_path.glob("**/*")
-            )
+            files_to_hash = _filesystem.walk_paths(model_path)
         for path in files_to_hash:
             if serialization.should_ignore(path, ignore_paths):
                 continue
+            _filesystem.check_path_within_model(
+                model_path, path, allow_symlinks=self._allow_symlinks
+            )
             if (
                 self._allow_symlinks
-                and path.is_symlink()
-                and not serialization.check_symlink(path, model_path)
+                and _filesystem.is_symlink(path)
+                and not serialization.check_symlink(
+                    pathlib.Path(os.fspath(path)),
+                    pathlib.Path(os.fspath(model_path)),
+                )
             ):
                 continue
             serialization.check_file_or_directory(
@@ -161,7 +161,7 @@ class Serializer(serialization.Serializer):
             if path.is_file():
                 file_count += 1
                 shards.extend(self._get_shards(path))
-            elif path != model_path and path.is_symlink():
+            elif path != model_path and _filesystem.is_symlink(path):
                 # The walk never descends into a symlink to a directory, so
                 # accepting it would leave every file under it out of the
                 # manifest without any error.
@@ -195,10 +195,12 @@ class Serializer(serialization.Serializer):
         if ignore_paths:
             rel_ignore_paths = []
             for p in ignore_paths:
-                rp = os.path.relpath(p, model_path)
-                # rp may start with "../" if it is not relative to model_path
-                if not rp.startswith("../"):
-                    rel_ignore_paths.append(pathlib.Path(rp))
+                try:
+                    rel_ignore_paths.append(
+                        pathlib.PurePosixPath(p.relative_to(model_path))
+                    )
+                except ValueError:
+                    continue
 
             hasher = self._hasher_factory(pathlib.Path(), 0, 1)
             self._serialization_description = manifest._ShardSerialization(
@@ -217,15 +219,15 @@ class Serializer(serialization.Serializer):
         )
 
     def _get_shards(
-        self, path: pathlib.Path
-    ) -> list[tuple[pathlib.Path, int, int]]:
+        self, path: _filesystem.Path
+    ) -> list[tuple[_filesystem.Path, int, int]]:
         """Determines the shards of a given file path.
 
         An empty file gets a single empty shard, so that it is still recorded in
         the manifest and covered by the signature.
         """
         shards = []
-        path_size = path.stat().st_size
+        path_size = _filesystem.file_size(path)
         start = 0
         for end in _endpoints(self._shard_size, path_size):
             shards.append((path, start, end))
@@ -233,7 +235,11 @@ class Serializer(serialization.Serializer):
         return shards
 
     def _compute_hash(
-        self, model_path: pathlib.Path, path: pathlib.Path, start: int, end: int
+        self,
+        model_path: _filesystem.Path,
+        path: _filesystem.Path,
+        start: int,
+        end: int,
     ) -> manifest.ShardedFileManifestItem:
         """Produces the manifest item of the file given by `path`.
 
@@ -248,6 +254,7 @@ class Serializer(serialization.Serializer):
             The itemized manifest.
         """
         relative_path = path.relative_to(model_path)
+        _filesystem.relative_path_parts(relative_path)
         digest = self._hasher_factory(path, start, end).compute()
         return manifest.ShardedFileManifestItem(
             path=relative_path, digest=digest, start=start, end=end

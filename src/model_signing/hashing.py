@@ -54,6 +54,7 @@ from typing import Literal, Self, TypeAlias
 
 import blake3
 
+from model_signing import _filesystem
 from model_signing import manifest
 from model_signing._hashing import hashing
 from model_signing._hashing import io
@@ -138,7 +139,7 @@ class Config:
         # All paths in ``_ignored_paths`` are expected to be relative to the
         # model directory. Join them to ``model_path`` and ensure they do not
         # escape it.
-        model_path = pathlib.Path(model_path)
+        model_path = _filesystem.as_path(model_path)
         ignored_paths = []
         for p in self._ignored_paths:
             full = model_path / p
@@ -164,9 +165,13 @@ class Config:
         self._serializer.set_allow_symlinks(self._allow_symlinks)
 
         return self._serializer.serialize(
-            pathlib.Path(model_path),
+            model_path,
             ignore_paths=ignored_paths,
-            files_to_hash=files_to_hash,
+            files_to_hash=(
+                None
+                if files_to_hash is None
+                else [_filesystem.as_path(p) for p in files_to_hash]
+            ),
         )
 
     def _build_stream_hasher(
@@ -198,7 +203,7 @@ class Config:
         hashing_algorithm: Literal["sha256", "blake2", "blake3"] = "sha256",
         chunk_size: int = 1048576,
         max_workers: int | None = None,
-    ) -> Callable[[pathlib.Path], io.FileHasher]:
+    ) -> Callable[[_filesystem.Path], io.FileHasher]:
         """Builds the hasher factory for a serialization by file.
 
         Args:
@@ -216,7 +221,7 @@ class Config:
         if max_workers is None:
             max_workers = blake3.blake3.AUTO
 
-        def _factory(path: pathlib.Path) -> io.FileHasher:
+        def _factory(path: _filesystem.Path) -> io.FileHasher:
             if hashing_algorithm == "blake3":
                 return io.Blake3FileHasher(path, max_threads=max_workers)
             hasher = self._build_stream_hasher(hashing_algorithm)
@@ -229,7 +234,7 @@ class Config:
         hashing_algorithm: Literal["sha256", "blake2"] = "sha256",
         chunk_size: int = 1048576,
         shard_size: int = 1_000_000_000,
-    ) -> Callable[[pathlib.Path, int, int], io.ShardedFileHasher]:
+    ) -> Callable[[_filesystem.Path, int, int], io.ShardedFileHasher]:
         """Builds the hasher factory for a serialization by file shards.
 
         This is not recommended for BLAKE3 because it is not necessary. BLAKE3
@@ -248,7 +253,7 @@ class Config:
         """
 
         def _factory(
-            path: pathlib.Path, start: int, end: int
+            path: _filesystem.Path, start: int, end: int
         ) -> io.ShardedFileHasher:
             hasher = self._build_stream_hasher(hashing_algorithm)
             return io.ShardedFileHasher(
@@ -385,7 +390,7 @@ class Config:
         """
         # Preserve the user-provided relative paths; they are resolved against
         # the model directory later when hashing.
-        self._ignored_paths = frozenset(pathlib.Path(p) for p in paths)
+        self._ignored_paths = frozenset(_filesystem.as_path(p) for p in paths)
         self._ignore_git_paths = ignore_git_paths
         return self
 
@@ -400,9 +405,9 @@ class Config:
                    the model directory.
         """
         newset = set(self._ignored_paths)
-        model_path = pathlib.Path(model_path)
+        model_path = _filesystem.as_path(model_path)
         for p in paths:
-            candidate = pathlib.Path(p)
+            candidate = _filesystem.as_path(p)
             full = model_path / candidate
             try:
                 full.relative_to(model_path)

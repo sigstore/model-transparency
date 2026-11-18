@@ -23,6 +23,7 @@ import sys
 import click
 
 import model_signing
+from model_signing import _filesystem
 
 
 class NoOpTracer:
@@ -44,7 +45,7 @@ tracer = None
 
 # Decorator for the commonly used argument for the model path.
 _model_path_argument = click.argument(
-    "model_path", type=pathlib.Path, metavar="MODEL_PATH"
+    "model_path", type=str, metavar="MODEL_PATH"
 )
 
 
@@ -78,7 +79,7 @@ _trust_config_option = click.option(
 # Decorator for the commonly used option to ignore certain paths
 _ignore_paths_option = click.option(
     "--ignore-paths",
-    type=pathlib.Path,
+    type=str,
     metavar="IGNORE_PATHS",
     multiple=True,
     help="File paths to ignore when signing or verifying.",
@@ -180,13 +181,39 @@ _require_timestamp_option = click.option(
 
 
 def _resolve_ignore_paths(
-    model_path: pathlib.Path, paths: Iterable[pathlib.Path]
-) -> list[pathlib.Path]:
-    model_root = model_path.resolve()
+    model_path: model_signing.hashing.PathLike,
+    paths: Iterable[str | pathlib.Path],
+) -> list[_filesystem.Path]:
+    model_root = _filesystem.as_path(model_path)
+
+    if _filesystem.is_remote(model_root):
+        remote_paths = []
+        for p in paths:
+            # Signature paths are local pathlib values. Explicit ignore paths
+            # arrive as strings and are resolved against the remote model.
+            if not isinstance(p, str):
+                continue
+            candidate = _filesystem.as_path(p)
+            if _filesystem.is_remote(candidate):
+                full = candidate
+            elif candidate.is_absolute():
+                continue
+            else:
+                full = model_root / candidate
+            try:
+                remote_paths.append(full.relative_to(model_root))
+            except ValueError:
+                continue
+        return remote_paths
+
+    model_root = pathlib.Path(model_path).resolve()
     cwd = pathlib.Path.cwd()
-    resolved_paths = []
+    resolved_paths: list[_filesystem.Path] = []
     for p in paths:
-        candidate = (p if p.is_absolute() else (cwd / p)).resolve()
+        local_path = pathlib.Path(p)
+        candidate = (
+            local_path if local_path.is_absolute() else (cwd / local_path)
+        ).resolve()
         try:
             resolved_paths.append(candidate.relative_to(model_root))
         except ValueError:
@@ -273,9 +300,7 @@ def main(log_level: str) -> None:
 
     try:
         from opentelemetry import trace  # type: ignore[import-error]
-        from opentelemetry.instrumentation import (
-            auto_instrumentation,  # type: ignore[import-error]
-        )
+        from opentelemetry.instrumentation import auto_instrumentation  # type: ignore[import-error]
 
         auto_instrumentation.initialize()
         tracer = trace.get_tracer(__name__)
@@ -295,8 +320,8 @@ def main(log_level: str) -> None:
 @_ignore_git_paths_option
 @_allow_symlinks_option
 def _digest(
-    model_path: pathlib.Path,
-    ignore_paths: Iterable[pathlib.Path],
+    model_path: str,
+    ignore_paths: Iterable[str],
     ignore_git_paths: bool,
     allow_symlinks: bool,
 ) -> None:
@@ -394,8 +419,8 @@ def _sign() -> None:
     help="The custom OpenID Connect client secret to use during OAuth2",
 )
 def _sign_sigstore(
-    model_path: pathlib.Path,
-    ignore_paths: Iterable[pathlib.Path],
+    model_path: str,
+    ignore_paths: Iterable[str],
     ignore_git_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
@@ -485,8 +510,8 @@ def _sign_sigstore(
     help="Password for the key encryption, if any",
 )
 def _sign_private_key(
-    model_path: pathlib.Path,
-    ignore_paths: Iterable[pathlib.Path],
+    model_path: str,
+    ignore_paths: Iterable[str],
     ignore_git_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
@@ -535,8 +560,8 @@ def _sign_private_key(
 @_module_paths_option
 @_tsa_url_option
 def _sign_pkcs11_key(
-    model_path: pathlib.Path,
-    ignore_paths: Iterable[pathlib.Path],
+    model_path: str,
+    ignore_paths: Iterable[str],
     ignore_git_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
@@ -589,8 +614,8 @@ def _sign_pkcs11_key(
 @_certificate_root_of_trust_option
 @_tsa_url_option
 def _sign_certificate(
-    model_path: pathlib.Path,
-    ignore_paths: Iterable[pathlib.Path],
+    model_path: str,
+    ignore_paths: Iterable[str],
     ignore_git_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
@@ -648,8 +673,8 @@ def _sign_certificate(
 @_module_paths_option
 @_tsa_url_option
 def _sign_pkcs11_certificate(
-    model_path: pathlib.Path,
-    ignore_paths: Iterable[pathlib.Path],
+    model_path: str,
+    ignore_paths: Iterable[str],
     ignore_git_paths: bool,
     allow_symlinks: bool,
     signature: pathlib.Path,
@@ -748,9 +773,9 @@ def _verify() -> None:
 )
 @_ignore_unsigned_files_option
 def _verify_sigstore(
-    model_path: pathlib.Path,
+    model_path: str,
     signature: pathlib.Path,
-    ignore_paths: Iterable[pathlib.Path],
+    ignore_paths: Iterable[str],
     ignore_git_paths: bool,
     allow_symlinks: bool,
     identity: str,
@@ -818,9 +843,9 @@ def _verify_sigstore(
 )
 @_ignore_unsigned_files_option
 def _verify_private_key(
-    model_path: pathlib.Path,
+    model_path: str,
     signature: pathlib.Path,
-    ignore_paths: Iterable[pathlib.Path],
+    ignore_paths: Iterable[str],
     ignore_git_paths: bool,
     allow_symlinks: bool,
     public_key: pathlib.Path,
@@ -897,9 +922,9 @@ def _verify_private_key(
 )
 @_ignore_unsigned_files_option
 def _verify_certificate(
-    model_path: pathlib.Path,
+    model_path: str,
     signature: pathlib.Path,
-    ignore_paths: Iterable[pathlib.Path],
+    ignore_paths: Iterable[str],
     ignore_git_paths: bool,
     allow_symlinks: bool,
     certificate_chain: Iterable[pathlib.Path],
