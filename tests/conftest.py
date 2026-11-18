@@ -121,3 +121,72 @@ def symlink_model_folder(
     symlink_file = model_dir / "symlink_file"
     os.symlink(external_file.absolute(), symlink_file.absolute())
     return model_dir
+
+
+@pytest.fixture
+def symlink_dir_model_folder(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> pathlib.Path:
+    """A model folder with a symlink to an external directory."""
+    external_dir = tmp_path_factory.mktemp("external") / "dir"
+    external_dir.mkdir()
+    (external_dir / "file").write_bytes(test_support.KNOWN_MODEL_TEXT)
+
+    model_dir = tmp_path_factory.mktemp("model") / "symlink_dir_model"
+    model_dir.mkdir()
+    (model_dir / "file").write_bytes(test_support.KNOWN_MODEL_TEXT)
+
+    symlink_dir = model_dir / "symlink_dir"
+    os.symlink(
+        external_dir.absolute(),
+        symlink_dir.absolute(),
+        target_is_directory=True,
+    )
+    return model_dir
+
+
+@pytest.fixture
+def symlink_cycle_model_folder(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> pathlib.Path:
+    """A model folder containing a symlink cycle and a real file."""
+    model_dir = tmp_path_factory.mktemp("model") / "cycle_model"
+    model_dir.mkdir()
+    (model_dir / "real_file").write_bytes(test_support.KNOWN_MODEL_TEXT)
+
+    cycle_a = model_dir / "cycle_a"
+    cycle_b = model_dir / "cycle_b"
+    os.symlink(cycle_b.absolute(), cycle_a.absolute())
+    os.symlink(cycle_a.absolute(), cycle_b.absolute())
+    return model_dir
+
+
+@pytest.fixture
+def broken_symlink_model_folder(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> pathlib.Path:
+    """A model folder with a symlink whose target does not exist."""
+    model_dir = tmp_path_factory.mktemp("model") / "broken_symlink_model"
+    model_dir.mkdir()
+    (model_dir / "real_file").write_bytes(test_support.KNOWN_MODEL_TEXT)
+
+    link = model_dir / "broken_link"
+    os.symlink(model_dir.absolute() / "missing_target", link.absolute())
+    return model_dir
+
+
+@pytest.fixture
+def symlink_outside_root_model_folder(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> pathlib.Path:
+    """A model folder with a symlink to a file outside the model root."""
+    external_file = tmp_path_factory.mktemp("external") / "outside.bin"
+    external_file.write_bytes(test_support.KNOWN_MODEL_TEXT)
+
+    model_dir = tmp_path_factory.mktemp("model") / "outside_model"
+    model_dir.mkdir()
+    (model_dir / "real_file").write_bytes(test_support.KNOWN_MODEL_TEXT)
+
+    link = model_dir / "link_outside"
+    os.symlink(external_file.absolute(), link.absolute())
+    return model_dir

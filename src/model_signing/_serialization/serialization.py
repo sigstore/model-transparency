@@ -16,9 +16,17 @@
 
 import abc
 from collections.abc import Iterable
+import errno
+import logging
+import pathlib
 
 from model_signing import _filesystem
 from model_signing import manifest
+
+
+logger = logging.getLogger(__name__)
+
+_WINDOWS_ERROR_CANT_RESOLVE_FILENAME = 1921
 
 
 def check_file_or_directory(
@@ -53,6 +61,56 @@ def check_file_or_directory(
             " special file, it could be missing, or there might be a"
             " permission issue."
         )
+
+
+def check_symlink(path: pathlib.Path, model_path: pathlib.Path) -> bool:
+    """Warns about symlinks targeting outside the model root or forming cycles.
+
+    OMS v1.0 6.1.1: signer MUST report a warning when a symlink target is
+    outside the model root, or when a symlink cycle is detected.
+
+    Args:
+        path: The symlink path to check.
+        model_path: The root of the model directory.
+
+    Returns:
+        True if the symlink is usable, False if it should be skipped (cycle).
+
+    Raises:
+        ValueError: The symlink cannot be resolved (broken symlink).
+    """
+    try:
+        target = path.resolve(strict=True)
+    except RuntimeError:
+        # Python 3.12 and earlier raise RuntimeError on symlink loops.
+        logger.warning("Symlink cycle detected: '%s'", path)
+        return False
+    except OSError as err:
+        if err.errno == errno.ELOOP or (
+            getattr(err, "winerror", None)
+            == _WINDOWS_ERROR_CANT_RESOLVE_FILENAME
+        ):
+            logger.warning("Symlink cycle detected: '%s'", path)
+            return False
+        # A link that cannot be resolved is not a cycle. Skipping it would
+        # leave it out of the manifest at signing and leave it unreported at
+        # verification, so it must fail like any other unusable path.
+        raise ValueError(
+            f"Cannot use '{path}' because it is a broken symlink."
+        ) from err
+
+    model_root = model_path.resolve()
+    try:
+        target.relative_to(model_root)
+    except ValueError:
+        logger.warning(
+            "Symlink '%s' targets '%s' outside model root '%s'",
+            path,
+            target,
+            model_root,
+        )
+
+    return True
 
 
 def should_ignore(

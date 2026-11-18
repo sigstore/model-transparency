@@ -27,10 +27,12 @@ import time
 import urllib.request
 
 import pytest
+import rfc3161_client
 
 from model_signing import hashing
 from model_signing import signing
 from model_signing import verifying
+from model_signing._signing import sign_sigstore_pb
 
 
 # Directory with testdata for this test
@@ -371,6 +373,44 @@ class TestKeySigning:
         with pytest.raises(ValueError, match="Extra files"):
             config.verify(model_b, sig_b)
 
+    def test_sharded_signature_covers_empty_files(self, base_path, tmp_path):
+        os.chdir(base_path)
+
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        model = tmp_path / "model"
+        model.mkdir()
+        (model / "weights").write_text("weights")
+        (model / "__init__.py").write_bytes(b"")
+        signature = tmp_path / "model.sig"
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key
+        ).set_hashing_config(
+            hashing.Config()
+            .set_ignored_paths(paths=[], ignore_git_paths=False)
+            .use_shard_serialization()
+        ).sign(model, signature)
+
+        assert get_signed_files(signature) == ["__init__.py:0:0", "weights:0:7"]
+
+        config = (
+            verifying.Config()
+            .use_elliptic_key_verifier(public_key=public_key)
+            .set_hashing_config(
+                hashing.Config()
+                .set_ignored_paths(paths=[], ignore_git_paths=False)
+                .use_shard_serialization()
+            )
+        )
+        config.verify(model, signature)
+
+        # Dropping the empty file changes the model, so it must be reported.
+        (model / "__init__.py").unlink()
+        with pytest.raises(ValueError, match="Missing files"):
+            config.verify(model, signature)
+
 
 class TestCertificateSigning:
     def test_sign_and_verify(self, base_path, populate_tmpdir):
@@ -563,6 +603,31 @@ class TestVerifierHonoursRecordedSymlinkPolicy:
             .set_allow_symlinks(False)
         ).verify(model_path, signature)
 
+    def test_added_broken_symlink_fails_verification(self, tmp_path):
+        """A dangling symlink added after signing must not verify."""
+        # A broken symlink was skipped as if it were a symlink cycle, so one
+        # added to a signed model went unreported while an added regular file
+        # failed verification with "Extra files found".
+        model_path = self._model_with_symlink(tmp_path)
+        signature = tmp_path / "model.sig"
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+        public_key = Path(TESTDATA / "keys/certificate/signing-key-pub.pem")
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key, password=None
+        ).set_hashing_config(
+            hashing.Config()
+            .set_ignored_paths(paths=[signature], ignore_git_paths=False)
+            .set_allow_symlinks(True)
+        ).sign(model_path, signature)
+
+        (model_path / "added_link").symlink_to(model_path / "missing")
+
+        with pytest.raises(ValueError, match="because it is a broken symlink"):
+            verifying.Config().use_elliptic_key_verifier(
+                public_key=public_key
+            ).verify(model_path, signature)
+
     def test_policy_off_is_also_applied(self, tmp_path):
         """A recorded "off" survives a caller that did ask for symlinks."""
         # The other direction. Sign a model with no symlink and the policy
@@ -598,3 +663,55 @@ class TestVerifierHonoursRecordedSymlinkPolicy:
                 .set_ignored_paths(paths=[signature], ignore_git_paths=False)
                 .set_allow_symlinks(True)
             ).verify(model_path, signature)
+
+    def test_v0_2_signature_keeps_policy_off(self, tmp_path):
+        """A v0.2 signature records no policy, so symlinks stay refused."""
+        # The v0.2 predicate has no serialization section, so the manifest
+        # rebuilt from it carries the default policy. That has to be a real
+        # boolean: a truthy placeholder lets a signed file be swapped for a
+        # symlink and still verify.
+        fixture = TESTDATA / "v0.2.0-certificate"
+        model_path = tmp_path / "model"
+        model_path.mkdir()
+        for name in ["signme-1", "signme-2"]:
+            (model_path / name).write_bytes((fixture / name).read_bytes())
+        signature = fixture / "model.sig"
+        config = verifying.Config().use_certificate_verifier(
+            certificate_chain=[TESTDATA / "keys/certificate/ca-cert.pem"]
+        )
+
+        config.verify(model_path, signature)
+
+        target = tmp_path / "signme-1"
+        (model_path / "signme-1").rename(target)
+        (model_path / "signme-1").symlink_to(target)
+
+        with pytest.raises(ValueError, match="because it is a symlink"):
+            config.verify(model_path, signature)
+
+
+class TestTSASigning:
+    @pytest.mark.integration
+    def test_sign_with_tsa(self, base_path, populate_tmpdir):
+        os.chdir(base_path)
+
+        model_path = populate_tmpdir
+        signature = Path(model_path / "model.sig")
+        private_key = Path(TESTDATA / "keys/certificate/signing-key.pem")
+
+        signing.Config().use_elliptic_key_signer(
+            private_key=private_key,
+            tsa_url="https://timestamp.sigstore.dev/api/v1/timestamp",
+        ).set_hashing_config(
+            hashing.Config().set_ignored_paths(
+                paths=[signature], ignore_git_paths=False
+            )
+        ).sign(model_path, signature)
+
+        bundle = sign_sigstore_pb.Signature.read(signature).bundle
+        timestamps = (
+            bundle.verification_material.timestamp_verification_data
+            .rfc3161_timestamps
+        )
+        assert len(timestamps) == 1
+        rfc3161_client.decode_timestamp_response(timestamps[0].signed_timestamp)

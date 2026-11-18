@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+# Copyright 2025 The Sigstore Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""python-conformance — model-signing conformance adapter.
+
+Translates the OMS conformance protocol to the model_signing Python CLI.
+
+Usage:
+    python-conformance sign-model --method key|certificate|sigstore \
+        --model-path DIR --output-bundle FILE [FLAGS...]
+
+    python-conformance verify-model --method key|certificate|sigstore \
+        --model-path DIR --bundle FILE [FLAGS...]
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import subprocess
+import sys
+
+
+def _python() -> str:
+    return os.environ.get("PYTHON_BIN", sys.executable)
+
+
+def cmd_sign(args: argparse.Namespace) -> int:
+    method = args.method
+    cmd = [_python(), "-m", "model_signing", "sign", method,
+           "--signature", args.output_bundle]
+
+    if method == "key":
+        if not args.private_key:
+            print("ERROR: --private-key required for method=key", file=sys.stderr)
+            return 2
+        cmd += ["--private_key", args.private_key]
+
+    elif method == "certificate":
+        if not args.private_key:
+            print("ERROR: --private-key required for method=certificate", file=sys.stderr)
+            return 2
+        if not args.signing_cert:
+            print("ERROR: --signing-cert required for method=certificate", file=sys.stderr)
+            return 2
+        cmd += ["--private_key", args.private_key]
+        cmd += ["--signing_certificate", args.signing_cert]
+        for chain_cert in (args.cert_chain or []):
+            cmd += ["--certificate_chain", chain_cert]
+
+    elif method == "sigstore":
+        token = args.identity_token or os.environ.get("SIGSTORE_ID_TOKEN", "")
+        if token:
+            cmd += ["--identity_token", token]
+        if args.use_staging:
+            cmd += ["--use_staging"]
+
+    else:
+        print(f"ERROR: Unknown method: {method}", file=sys.stderr)
+        return 2
+
+    for ignore_path in (args.ignore_paths or []):
+        cmd += ["--ignore-paths", ignore_path]
+
+    cmd += [args.model_path]
+
+    result = subprocess.run(cmd, timeout=300)
+    return result.returncode
+
+
+def cmd_verify(args: argparse.Namespace) -> int:
+    method = args.method
+    cmd = [_python(), "-m", "model_signing", "verify", method,
+           "--signature", args.bundle]
+
+    if method == "key":
+        if not args.public_key:
+            print("ERROR: --public-key required for method=key", file=sys.stderr)
+            return 2
+        cmd += ["--public_key", args.public_key]
+
+    elif method == "certificate":
+        for chain_cert in (args.cert_chain or []):
+            cmd += ["--certificate_chain", chain_cert]
+
+    elif method == "sigstore":
+        if args.identity:
+            cmd += ["--identity", args.identity]
+        if args.identity_provider:
+            cmd += ["--identity_provider", args.identity_provider]
+        if args.use_staging:
+            cmd += ["--use_staging"]
+
+    else:
+        print(f"ERROR: Unknown method: {method}", file=sys.stderr)
+        return 2
+
+    for ignore_path in (args.ignore_paths or []):
+        cmd += ["--ignore-paths", ignore_path]
+
+    if args.ignore_unsigned_files:
+        cmd += ["--ignore_unsigned_files"]
+
+    cmd += [args.model_path]
+
+    result = subprocess.run(cmd, timeout=300)
+    return result.returncode
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        prog="python-conformance",
+        description="model-signing conformance adapter (Python)",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    sign_parser = subparsers.add_parser("sign-model")
+    sign_parser.add_argument("--method", required=True,
+                             choices=["key", "certificate", "sigstore"])
+    sign_parser.add_argument("--model-path", required=True)
+    sign_parser.add_argument("--output-bundle", required=True)
+    sign_parser.add_argument("--private-key")
+    sign_parser.add_argument("--signing-cert")
+    sign_parser.add_argument("--cert-chain", action="append", default=[])
+    sign_parser.add_argument("--ignore-paths", action="append",
+                             dest="ignore_paths", default=[])
+    sign_parser.add_argument("--identity-token")
+    sign_parser.add_argument("--use-staging", action="store_true")
+
+    verify_parser = subparsers.add_parser("verify-model")
+    verify_parser.add_argument("--method", required=True,
+                               choices=["key", "certificate", "sigstore"])
+    verify_parser.add_argument("--model-path", required=True)
+    verify_parser.add_argument("--bundle", required=True)
+    verify_parser.add_argument("--public-key")
+    verify_parser.add_argument("--cert-chain", action="append", default=[])
+    verify_parser.add_argument("--ignore-paths", action="append",
+                               dest="ignore_paths", default=[])
+    verify_parser.add_argument("--ignore-unsigned-files", action="store_true")
+    verify_parser.add_argument("--identity")
+    verify_parser.add_argument("--identity-provider")
+    verify_parser.add_argument("--use-staging", action="store_true")
+
+    args = parser.parse_args()
+
+    if args.command == "sign-model":
+        return cmd_sign(args)
+    elif args.command == "verify-model":
+        return cmd_verify(args)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

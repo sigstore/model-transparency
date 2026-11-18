@@ -41,6 +41,8 @@ def _endpoints(step: int, end: int) -> Iterable[int]:
     [2, 4, 6, 8, 9]
     >>> list(_endpoints(2, 2))
     [2]
+    >>> list(_endpoints(2, 0))
+    [0]
 
     Yields:
         Values in the range, from `step` and up to `end`.
@@ -136,10 +138,6 @@ class Serializer(serialization.Serializer):
         """
         shards = []
         file_count = 0
-        # TODO: github.com/sigstore/model-transparency/issues/200 - When
-        # Python3.12 is the minimum supported version, the glob can be replaced
-        # with `pathlib.Path.walk` for a clearer interface, and some speed
-        # improvement.
         if files_to_hash is None:
             files_to_hash = _filesystem.walk_paths(model_path)
         for path in files_to_hash:
@@ -148,12 +146,29 @@ class Serializer(serialization.Serializer):
             _filesystem.check_path_within_model(
                 model_path, path, allow_symlinks=self._allow_symlinks
             )
+            if (
+                self._allow_symlinks
+                and _filesystem.is_symlink(path)
+                and not serialization.check_symlink(
+                    pathlib.Path(os.fspath(path)),
+                    pathlib.Path(os.fspath(model_path)),
+                )
+            ):
+                continue
             serialization.check_file_or_directory(
                 path, allow_symlinks=self._allow_symlinks
             )
             if path.is_file():
                 file_count += 1
                 shards.extend(self._get_shards(path))
+            elif path != model_path and _filesystem.is_symlink(path):
+                # The walk never descends into a symlink to a directory, so
+                # accepting it would leave every file under it out of the
+                # manifest without any error.
+                raise ValueError(
+                    f"Cannot use '{path}' because it is a symlink to a"
+                    " directory. Files under it would not be serialized."
+                )
 
         if file_count == 0:
             raise ValueError(
@@ -206,14 +221,17 @@ class Serializer(serialization.Serializer):
     def _get_shards(
         self, path: _filesystem.Path
     ) -> list[tuple[_filesystem.Path, int, int]]:
-        """Determines the shards of a given file path."""
+        """Determines the shards of a given file path.
+
+        An empty file gets a single empty shard, so that it is still recorded in
+        the manifest and covered by the signature.
+        """
         shards = []
         path_size = _filesystem.file_size(path)
-        if path_size > 0:
-            start = 0
-            for end in _endpoints(self._shard_size, path_size):
-                shards.append((path, start, end))
-                start = end
+        start = 0
+        for end in _endpoints(self._shard_size, path_size):
+            shards.append((path, start, end))
+            start = end
         return shards
 
     def _compute_hash(

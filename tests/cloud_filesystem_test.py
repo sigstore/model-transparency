@@ -37,10 +37,31 @@ class _FakeGcsFileSystem(MemoryFileSystem):
     protocol = "gs"
 
 
+class _FakeS3FileSystem(MemoryFileSystem):
+    """An in-memory fsspec filesystem accepting s3:// paths."""
+
+    protocol = "s3"
+
+
 @pytest.fixture
 def fake_gcs(monkeypatch: pytest.MonkeyPatch) -> Iterator[_FakeGcsFileSystem]:
     """Routes etils GCS operations to an isolated memory filesystem."""
     filesystem = _FakeGcsFileSystem()
+    filesystem.store.clear()
+    filesystem.pseudo_dirs[:] = [""]
+    monkeypatch.setattr(epath.gpath, "_is_tf_installed", lambda: False)
+    monkeypatch.setattr(
+        epath.backend.fsspec_backend, "_get_filesystem", lambda _: filesystem
+    )
+    yield filesystem
+    filesystem.store.clear()
+    filesystem.pseudo_dirs[:] = [""]
+
+
+@pytest.fixture
+def fake_s3(monkeypatch: pytest.MonkeyPatch) -> Iterator[_FakeS3FileSystem]:
+    """Routes etils S3 operations to an isolated memory filesystem."""
+    filesystem = _FakeS3FileSystem()
     filesystem.store.clear()
     filesystem.pseudo_dirs[:] = [""]
     monkeypatch.setattr(epath.gpath, "_is_tf_installed", lambda: False)
@@ -90,6 +111,64 @@ def test_remote_hash_matches_local(
     assert (
         remote_manifest.serialization_type == local_manifest.serialization_type
     )
+
+
+def test_remote_empty_file_is_signed_as_a_shard(
+    fake_gcs: _FakeGcsFileSystem, tmp_path: pathlib.Path
+) -> None:
+    """An empty cloud file remains present in a sharded manifest."""
+    fake_gcs.makedirs("gs://bucket/model")
+    fake_gcs.pipe("gs://bucket/model/empty.bin", b"")
+    local_model = tmp_path / "model"
+    local_model.mkdir()
+    (local_model / "empty.bin").write_bytes(b"")
+    config = hashing.Config().use_shard_serialization(shard_size=4)
+
+    remote_manifest = config.hash("gs://bucket/model")
+
+    assert remote_manifest == config.hash(local_model)
+    assert [
+        descriptor.identifier
+        for descriptor in remote_manifest.resource_descriptors()
+    ] == ["empty.bin:0:0"]
+
+    fake_gcs.pipe("gs://bucket/model/empty.bin", b"changed")
+    assert config.hash("gs://bucket/model") != remote_manifest
+
+
+@pytest.mark.parametrize("use_shards", [False, True])
+def test_s3_hash_matches_local(
+    use_shards: bool, fake_s3: _FakeS3FileSystem, tmp_path: pathlib.Path
+) -> None:
+    """S3 paths use the same file and shard semantics as local paths."""
+    fake_s3.makedirs("s3://bucket/model")
+    fake_s3.pipe("s3://bucket/model/weights.bin", b"0123456789")
+    fake_s3.pipe("s3://bucket/model/empty.bin", b"")
+    local_model = tmp_path / "model"
+    local_model.mkdir()
+    (local_model / "weights.bin").write_bytes(b"0123456789")
+    (local_model / "empty.bin").write_bytes(b"")
+    config = hashing.Config()
+    if use_shards:
+        config.use_shard_serialization(shard_size=4)
+
+    assert config.hash("s3://bucket/model") == config.hash(local_model)
+
+
+@pytest.mark.parametrize("use_shards", [False, True])
+def test_remote_hash_with_allow_symlinks(
+    use_shards: bool, fake_gcs: _FakeGcsFileSystem, tmp_path: pathlib.Path
+) -> None:
+    """Cloud paths do not invoke local-only symlink checks."""
+    _populate_remote_model(fake_gcs)
+    local_model = tmp_path / "model"
+    _populate_local_model(local_model)
+    config = hashing.Config()
+    if use_shards:
+        config.use_shard_serialization(shard_size=4)
+    config.set_allow_symlinks(True)
+
+    assert config.hash("gs://bucket/model") == config.hash(local_model)
 
 
 def test_remote_streaming_reads_are_bounded(

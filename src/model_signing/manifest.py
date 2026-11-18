@@ -42,18 +42,11 @@ import abc
 from collections.abc import Iterable, Iterator
 import dataclasses
 import pathlib
-import sys
-from typing import Any, Final
+from typing import Any, Final, Self
 
 from typing_extensions import override
 
 from model_signing._hashing import hashing
-
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
 
 
 @dataclasses.dataclass(frozen=True, order=True)
