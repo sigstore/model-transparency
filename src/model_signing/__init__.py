@@ -53,14 +53,14 @@ model_signing.signing.Config().use_elliptic_key_signer(
     private_key="key"
 ).set_hashing_config(
     model_signing.hashing.Config().set_ignored_paths(
-        paths=["README.md"], ignore_git_paths=True
+        paths=["README.md"], ignore_git_paths=True, ignore_att_paths=True
     )
 ).sign("finbert", "finbert.sig")
 ```
 
 This example generates a signature using a private key based on elliptic curve
-cryptography. It also hashes the model by ignoring `README.md` and any git
-related file present in the model directory.
+cryptography. It also hashes the model by ignoring `README.md`, any git-related
+files, and attestation files present in the model directory.
 
 We also support signing with signing certificates, using a similar API as above.
 
